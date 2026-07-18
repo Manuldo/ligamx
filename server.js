@@ -41,6 +41,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Error interno" });
 });
 
+// Chequeo de configuracion al arrancar: falla claro y temprano.
+const CRITICAS = ["MONGODB_URI", "JWT_SECRET", "ADMIN_KEY"];
+const faltantes = CRITICAS.filter((k) => !process.env[k]);
+if (faltantes.length) {
+  console.error("Faltan variables de entorno criticas:", faltantes.join(", "));
+  process.exit(1);
+}
+
+const OPCIONALES = {
+  STRIPE_SECRET_KEY: "pagos deshabilitados",
+  STRIPE_WEBHOOK_SECRET: "webhook de Stripe deshabilitado",
+  ANTHROPIC_API_KEY: "analisis IA de parlays deshabilitado"
+};
+for (const [k, msg] of Object.entries(OPCIONALES)) {
+  if (!process.env[k]) console.warn(`Aviso: falta ${k} -> ${msg}`);
+}
+
+// Red de seguridad: un error no capturado no debe matar el proceso en silencio
+process.on("unhandledRejection", (err) => console.error("unhandledRejection:", err));
+
 const PORT = process.env.PORT || 3000;
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));

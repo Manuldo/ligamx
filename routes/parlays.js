@@ -3,6 +3,7 @@ import Pick from "../models/Pick.js";
 import Parlay from "../models/Parlay.js";
 import { mejoresParlays } from "../parlay-engine.js";
 import { requireAuth, requirePro, requireAdmin } from "../middleware/auth.js";
+import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -54,7 +55,7 @@ Responde SOLO con un JSON valido, sin markdown ni backticks:
 // Se dispara despues de publicar los picks. Arma:
 //   - 1 parlay publico (SOLO con picks publicos, para no filtrar PRO)
 //   - N parlays PRO (con todos los picks del dia)
-router.post("/generate", requireAdmin, async (req, res) => {
+router.post("/generate", requireAdmin, ah(async (req, res) => {
   const fecha = req.body.fecha || hoy();
   const cuantosPro = req.body.cuantosPro || 3;
 
@@ -100,20 +101,20 @@ router.post("/generate", requireAdmin, async (req, res) => {
   }
 
   res.json({ ok: true, fecha, generados: guardados.length });
-});
+}));
 
 // --- PUBLICO: el parlay del dia ---
-router.get("/public", async (req, res) => {
+router.get("/public", ah(async (req, res) => {
   const fecha = req.query.fecha || hoy();
   const parlays = await Parlay.find({ fecha, tier: "public" }).lean();
   res.json(parlays);
-});
+}));
 
 // --- PRO: parlays exclusivos. Muro server-side igual que los picks ---
-router.get("/pro", requireAuth, requirePro, async (req, res) => {
+router.get("/pro", requireAuth, requirePro, ah(async (req, res) => {
   const fecha = req.query.fecha || hoy();
   const parlays = await Parlay.find({ fecha, tier: "pro" }).lean();
   res.json(parlays);
-});
+}));
 
 export default router;

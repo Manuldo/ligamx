@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
+import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ function signToken(user) {
   });
 }
 
-router.post("/register", authLimiter, async (req, res) => {
+router.post("/register", authLimiter, ah(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password || password.length < 8) {
     return res.status(400).json({ error: "Email y password (min 8) requeridos" });
@@ -29,9 +30,9 @@ router.post("/register", authLimiter, async (req, res) => {
   const { salt, hash } = User.hashPassword(password);
   const user = await User.create({ email, salt, passwordHash: hash });
   res.json({ token: signToken(user), user: { email: user.email, isPro: false } });
-});
+}));
 
-router.post("/login", authLimiter, async (req, res) => {
+router.post("/login", authLimiter, ah(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email: (email || "").toLowerCase() });
   // Mensaje generico: no revelar si el email existe
@@ -42,6 +43,6 @@ router.post("/login", authLimiter, async (req, res) => {
     token: signToken(user),
     user: { email: user.email, isPro: user.isProActive() }
   });
-});
+}));
 
 export default router;

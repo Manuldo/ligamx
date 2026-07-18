@@ -2,13 +2,26 @@ import express from "express";
 import Stripe from "stripe";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
+import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Inicializacion perezosa: si no hay llave, el server arranca igual
+// y solo fallan los endpoints de pago. No tumba el proceso.
+let _stripe = null;
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return _stripe;
+}
 
 // Crea sesion de checkout. Stripe MX soporta tarjeta + OXXO + SPEI
 // habilitandolos en el dashboard de Stripe (payment_method_types).
-router.post("/checkout", requireAuth, async (req, res) => {
+router.post("/checkout", requireAuth, ah(async (req, res) => {
+  const stripe = getStripe();
+  if (!stripe) {
+    return res.status(503).json({ error: "Pagos no configurados todavia" });
+  }
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     payment_method_types: ["card", "oxxo"], // SPEI/OXXO se habilitan en dashboard
@@ -19,12 +32,16 @@ router.post("/checkout", requireAuth, async (req, res) => {
     metadata: { uid: req.user._id.toString() }
   });
   res.json({ url: session.url });
-});
+}));
 
 // Webhook: la unica fuente de verdad del estado de pago.
 // Sincroniza isPro + vigencia con lo que dice Stripe.
 // NOTA: este endpoint usa raw body (ver server.js).
-router.post("/webhook", async (req, res) => {
+router.post("/webhook", ah(async (req, res) => {
+  const stripe = getStripe();
+  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).json({ error: "Webhook no configurado" });
+  }
   const sig = req.headers["stripe-signature"];
   let event;
   try {
@@ -75,6 +92,6 @@ router.post("/webhook", async (req, res) => {
   }
 
   res.json({ received: true });
-});
+}));
 
 export default router;

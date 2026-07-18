@@ -2,6 +2,7 @@ import express from "express";
 import Pick from "../models/Pick.js";
 import Vote from "../models/Vote.js";
 import { requireAdmin } from "../middleware/auth.js";
+import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ function hoy() {
 //   fecha?: "YYYY-MM-DD",
 //   candidatos: [{ partido, mercado, momio, probEstimada, verdicto, analisis, tier }]
 // }
-router.post("/publish", requireAdmin, async (req, res) => {
+router.post("/publish", requireAdmin, ah(async (req, res) => {
   const fecha = req.body.fecha || hoy();
   const candidatos = req.body.candidatos || [];
 
@@ -59,6 +60,6 @@ router.post("/publish", requireAdmin, async (req, res) => {
   );
 
   res.json({ ok: true, fecha, publicados: creados.length, picks: creados });
-});
+}));
 
 export default router;
