@@ -252,6 +252,10 @@ body.landing .page{padding:0;max-width:none}
 .mbox .btn-red{width:100%;padding:12px;font-size:14.5px}
 .mswap{text-align:center;font-size:12.5px;color:var(--dim);margin-top:14px;cursor:pointer}
 .mswap b{color:var(--red)}
+.mforgot{text-align:center;font-size:12px;color:var(--dim2);margin-top:10px;cursor:pointer}
+.mforgot:hover{color:var(--dim)}
+.mnote{font-size:12.5px;line-height:1.5;color:var(--dim);background:var(--panel2);
+  border-radius:8px;padding:12px;margin-bottom:12px}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
   background:var(--panel3);color:var(--txt);padding:12px 18px;border-radius:8px;
   font-size:13px;font-weight:600;z-index:90;transition:transform .3s cubic-bezier(.22,1,.36,1);
@@ -320,6 +324,7 @@ body.landing .page{padding:0;max-width:none}
       <input type="password" id="mPass" placeholder="Mínimo 8 caracteres" autocomplete="current-password"></div>
     <button class="btn btn-red" id="mGo">Entrar</button>
     <div class="mswap" id="mSw">¿Primera vez? <b>Crear cuenta</b></div>
+    <div class="mforgot" id="mForgot">¿Olvidaste tu contraseña?</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -725,15 +730,38 @@ async function goPro(){
 }
 function openAuth(m){
   mode=m;
+  // Restaurar el modal por si venia del flujo de recuperacion
+  $("#mEmail").parentElement.style.display="";
+  $("#mPass").parentElement.style.display="";
+  $("#mGo").style.display="";$("#mGo").disabled=false;
+  document.querySelectorAll(".mnote").forEach(n=>n.remove());
+  $("#mSw").onclick=()=>openAuth(mode==="login"?"register":"login");
   $("#mT").textContent=m==="login"?"Entrar":"Crear cuenta";
   $("#mS").textContent=m==="login"?"Accede a la tabla, jornadas y picks del día."
     :"Gratis. Incluye tabla, jornadas, jugadores y el pick del día.";
   $("#mGo").textContent=m==="login"?"Entrar":"Crear cuenta";
   $("#mSw").innerHTML=m==="login"?'¿Primera vez? <b>Crear cuenta</b>':'¿Ya tienes cuenta? <b>Entrar</b>';
+  $("#mForgot").style.display=m==="login"?"block":"none";
   $("#mE").textContent="";$("#mod").classList.add("on");
   setTimeout(()=>$("#mEmail").focus(),80);
 }
 $("#mSw").onclick=()=>openAuth(mode==="login"?"register":"login");
+
+// --- Recuperar contraseña ---
+$("#mForgot").onclick=()=>{
+  $("#mT").textContent="Recuperar contraseña";
+  $("#mS").textContent="Te mandamos un enlace para elegir una nueva.";
+  $("#mE").textContent="";
+  $("#mPass").parentElement.style.display="none";
+  $("#mGo").textContent="Enviar enlace";
+  $("#mSw").innerHTML='¿Ya la recordaste? <b>Entrar</b>';
+  $("#mSw").onclick=()=>{ $("#mPass").parentElement.style.display="";
+    $("#mSw").onclick=()=>openAuth(mode==="login"?"register":"login");
+    openAuth("login"); };
+  $("#mForgot").style.display="none";
+  mode="forgot";
+  setTimeout(()=>$("#mEmail").focus(),80);
+};
 $("#mod").onclick=e=>{if(e.target.id==="mod")$("#mod").classList.remove("on")};
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape")$("#mod").classList.remove("on");
@@ -741,6 +769,37 @@ document.addEventListener("keydown",e=>{
 });
 $("#mGo").onclick=async()=>{
   const email=$("#mEmail").value.trim(),password=$("#mPass").value;
+
+  // Recuperar contraseña: solo pide el correo
+  if(mode==="forgot"){
+    if(!email||!email.includes("@")){$("#mE").textContent="Escribe un correo válido.";return;}
+    $("#mGo").disabled=true;$("#mGo").textContent="Enviando…";
+    try{
+      const r=await fetch(`${API}/auth/forgot`,{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok){
+        $("#mT").textContent="Revisa tu correo";
+        $("#mS").textContent="";
+        $("#mE").textContent="";
+        $("#mEmail").parentElement.style.display="none";
+        $("#mGo").style.display="none";
+        $("#mSw").innerHTML='<b>Volver a entrar</b>';
+        const nota=document.createElement("div");
+        nota.className="mnote";
+        nota.textContent=d.mensaje||"Si ese correo tiene cuenta, te enviamos el enlace.";
+        $("#mE").after(nota);
+      }else{
+        $("#mE").textContent=d.error||"No se pudo enviar.";
+        $("#mGo").disabled=false;$("#mGo").textContent="Enviar enlace";
+      }
+    }catch{
+      $("#mE").textContent="Sin conexión.";
+      $("#mGo").disabled=false;$("#mGo").textContent="Enviar enlace";
+    }
+    return;
+  }
+
   if(!email||!password){$("#mE").textContent="Escribe tu correo y contraseña.";return;}
   if(mode==="register"&&password.length<8){$("#mE").textContent="Mínimo 8 caracteres.";return;}
   $("#mGo").disabled=true;$("#mGo").textContent="Un momento…";
