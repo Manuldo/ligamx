@@ -185,6 +185,48 @@ tbody tr:hover{background:var(--panel2)}
   animation:sh 1.3s infinite;background:linear-gradient(90deg,var(--panel2),var(--panel3),var(--panel2));
   background-size:200% 100%}
 @keyframes sh{to{background-position:-200% 0}}
+/* ===== LANDING (sin sesión) ===== */
+body.landing aside,body.landing .topbar{display:none}
+body.landing .wrap{margin-left:0}
+body.landing .page{padding:0;max-width:none}
+.land{position:relative;min-height:100vh;display:flex;align-items:center;
+  justify-content:center;padding:56px 22px;background:#14120f;overflow:hidden}
+.land-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:grayscale(1) brightness(.5);z-index:0}
+.land-bg{position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%,rgba(236,48,19,.20),transparent 62%),
+    linear-gradient(180deg,rgba(20,18,15,.55),rgba(20,18,15,.88)),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 5px)}
+.land-bg::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px);
+  opacity:.45}
+/* Si el usuario pide menos movimiento, el video no se reproduce */
+@media(prefers-reduced-motion:reduce){.land-vid{display:none}}
+.land-in{position:relative;z-index:2;max-width:560px;width:100%;text-align:center}
+.land-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:#cfcac6;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 16px;margin-bottom:22px}
+.land-badge .d{width:6px;height:6px;border-radius:50%;background:var(--red);
+  animation:beat 2.2s infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.3}}
+.land-h1{font-weight:900;font-size:clamp(29px,5vw,46px);line-height:1.06;
+  letter-spacing:-.03em;color:#f3f2f2;margin-bottom:18px}
+.land-p{color:#b7b2ae;font-size:15.5px;line-height:1.6;margin-bottom:32px}
+.land-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:30px;text-align:left}
+.lc{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:16px;transition:background .18s}
+.lc:hover{background:rgba(255,255,255,.08)}
+.lc b{display:block;font-weight:800;font-size:14px;color:#f3f2f2;margin-bottom:4px}
+.lc span{color:#9c9691;font-size:12.5px;line-height:1.5}
+.land-cta{width:100%;font-weight:800;font-size:15px;color:#fff;background:var(--red);
+  border:none;border-radius:12px;padding:15px 20px;
+  box-shadow:0 10px 24px rgba(236,48,19,.35);transition:.18s}
+.land-cta:hover{background:#ff4a2a;transform:translateY(-1px)}
+.land-sub{color:#807b77;font-size:12.5px;margin-top:14px;cursor:pointer}
+.land-sub b{color:#cfcac6}
+@media(max-width:560px){.land-grid{grid-template-columns:1fr}.land{padding:40px 18px}}
+
 .gate{max-width:400px;margin:70px auto;text-align:center;padding:0 20px}
 .gate .m{width:52px;height:52px;background:var(--red);margin:0 auto 18px;display:grid;
   place-items:center;font-size:24px;font-weight:900;color:#fff;border-radius:10px}
@@ -352,8 +394,8 @@ function sbUser(){
        ${isPro()?'<em>PRO</em>':'<em style="color:var(--dim2)">Cuenta gratis</em>'}</div>`
     : `<span class="av">?</span><div class="sb-user-i"><b>Sin sesión</b></div>`;
   $("#tbAct").innerHTML = me
-    ? (isPro()?'<button class="btn btn-line" data-a="out">Salir</button>'
-      :'<button class="btn btn-red" data-a="pro">Hazte PRO</button>')
+    ? (isPro()?"":'<button class="btn btn-red" data-a="pro">Hazte PRO</button>')
+      +'<button class="btn btn-line" data-a="out" style="margin-left:8px">Salir</button>'
     : '<button class="btn btn-red" data-a="in">Entrar</button>';
 }
 document.addEventListener("click",e=>{
@@ -365,19 +407,40 @@ document.addEventListener("click",e=>{
 
 /* ===== GATE ===== */
 function gate(){
-  $("#page").innerHTML=`<div class="gate"><div class="m">P</div>
-    <h2>Entra para ver Pickazo</h2>
-    <p>La tabla, las jornadas, los jugadores y los picks del día
-       están disponibles con una cuenta. Crearla es gratis.</p>
-    <div class="btns">
-      <button class="btn btn-red" data-a="up">Crear cuenta</button>
-      <button class="btn btn-line" data-a="in">Ya tengo cuenta</button>
-    </div></div>`;
+  // La landing ocupa toda la pantalla: sin sidebar ni topbar.
+  document.body.classList.add("landing");
+  $("#page").innerHTML=`
+    <div class="land">
+      <video class="land-vid" autoplay muted loop playsinline preload="metadata"
+        poster="/media/estadio.jpg" aria-hidden="true">
+        <source src="/media/estadio.mp4" type="video/mp4">
+      </video>
+      <div class="land-bg"></div>
+      <div class="land-in">
+        <div class="land-badge"><span class="d"></span> Acceso privado</div>
+        <h1 class="land-h1">El que estudia cobra. El que adivina reza.</h1>
+        <p class="land-p">Crea tu cuenta y activa PRO para desbloquear los picks del día,
+          los parlays combinados por IA y el historial verificado.</p>
+        <div class="land-grid">
+          <div class="lc"><b>Ventaja matemática</b>
+            <span>Solo picks donde la prob. real supera lo que paga la casa.</span></div>
+          <div class="lc"><b>Parlays por IA</b>
+            <span>Combinados armados con datos, no corazonada.</span></div>
+          <div class="lc"><b>Historial verificado</b>
+            <span>Cada pick se marca acierto o fallo, sin editar después.</span></div>
+          <div class="lc"><b>Picks del día</b>
+            <span>Solo los de mayor ventaja, filtrados antes de cada jornada.</span></div>
+        </div>
+        <button class="land-cta" data-a="up">Crear cuenta y empezar</button>
+        <div class="land-sub" data-a="in">¿Ya tienes cuenta? <b>Entrar</b></div>
+      </div>
+    </div>`;
 }
 
 /* ===== RENDER ===== */
 async function render(){
   if(!me){gate();return;}
+  document.body.classList.remove("landing");
   const p=$("#page");
   p.innerHTML=`<div class="card"><div class="skel"></div><div class="skel" style="width:70%"></div>
     <div class="skel" style="width:85%"></div></div>`;
@@ -696,7 +759,9 @@ $("#mGo").onclick=async()=>{
 };
 function logout(){
   token=null;me=null;localStorage.removeItem("token");localStorage.removeItem("me");
-  sbUser();setView("hoy");toast("Sesión cerrada");
+  view="hoy";
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==="hoy"));
+  sbUser();gate();toast("Sesión cerrada");
 }
 
 sbUser();render();
