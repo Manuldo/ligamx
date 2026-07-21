@@ -8,7 +8,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "security": "npm audit --audit-level=moderate",
-    "test": "node test-engine.mjs"
+    "test": "node test-engine.mjs",
+    "check": "node boot-check.mjs"
   },
   "engines": {
     "node": ">=22"

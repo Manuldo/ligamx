@@ -50,4 +50,7 @@ router.get("/", ah(async (req, res) => {
   res.json(cache);
 }));
 
+// Invalida el cache cuando se cierra un pick (lo llama history.js)
+export function invalidarRecord() { cache = null; }
+
 export default router;
