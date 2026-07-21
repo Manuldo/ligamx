@@ -62,4 +62,16 @@ router.post("/publish", requireAdmin, ah(async (req, res) => {
   res.json({ ok: true, fecha, publicados: creados.length, picks: creados });
 }));
 
+// --- LISTA DE PICKS (para el panel: ver y cerrar resultados) ---
+router.get("/picks", requireAdmin, ah(async (req, res) => {
+  const q = {};
+  if (req.query.fecha) q.fecha = req.query.fecha;
+  if (req.query.pendientes === "1") q.resultado = "pendiente";
+  const picks = await Pick.find(q).sort({ fecha: -1, edge: -1 }).limit(120).lean();
+  res.json(picks);
+}));
+
+// --- VERIFICAR LLAVE (para el login del panel) ---
+router.get("/ping", requireAdmin, (req, res) => res.json({ ok: true }));
+
 export default router;

@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema({
   isPro: { type: Boolean, default: false },
   subscriptionExpiresAt: { type: Date, default: null },
   stripeCustomerId: { type: String, default: null },
+  // Cuota diaria de analisis bajo demanda (solo PRO)
+  analisisFecha: { type: String, default: "" },   // YYYY-MM-DD
+  analisisUsados: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 

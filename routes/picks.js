@@ -10,12 +10,56 @@ function hoy() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// --- PICKS PUBLICOS: cualquiera los ve (funnel) ---
+// --- PICKS DEL DIA ---
+// Modelo freemium: todos los picks son del mismo conjunto.
+// El de MENOR ventaja se libera gratis (muestra la calidad);
+// los de mayor ventaja quedan para PRO.
+//
+// Seguridad: a un no-PRO le mandamos solo metadatos del pick bloqueado
+// (que existe, y su ventaja), NUNCA el mercado ni el momio ni el analisis.
+// El dato que se paga jamas sale del servidor sin suscripcion.
+function opcionalAuth(req, _res, next) {
+  const h = req.headers.authorization || "";
+  if (!h.startsWith("Bearer ")) return next();
+  requireAuth(req, _res, () => next());
+}
+
+router.get("/hoy", opcionalAuth, ah(async (req, res) => {
+  const fecha = req.query.fecha || hoy();
+  const picks = await Pick.find({ fecha, activo: true }).sort({ edge: -1 }).lean();
+  if (!picks.length) return res.json({ picks: [], esPro: false, bloqueados: 0 });
+
+  const esPro = !!(req.user && req.user.isProActive());
+  if (esPro) return res.json({ picks, esPro: true, bloqueados: 0 });
+
+  // El gratis es el de menor ventaja: probamos calidad sin regalar lo mejor.
+  const gratisId = picks[picks.length - 1]._id.toString();
+
+  const salida = picks.map((p) => {
+    if (p._id.toString() === gratisId) return { ...p, bloqueado: false };
+    // Version censurada: solo lo que justifica pagar, nada aprovechable.
+    return {
+      _id: p._id,
+      partido: p.partido,
+      edge: p.edge,
+      verdicto: p.verdicto,
+      votos: p.votos,
+      bloqueado: true
+    };
+  });
+
+  res.json({
+    picks: salida,
+    esPro: false,
+    bloqueados: picks.length - 1,
+    gratisId
+  });
+}));
+
+// Compat: /public devuelve solo el pick gratis del dia
 router.get("/public", ah(async (req, res) => {
   const fecha = req.query.fecha || hoy();
-  const picks = await Pick.find({ fecha, tier: "public", activo: true })
-    .sort({ edge: -1 })
-    .lean();
+  const picks = await Pick.find({ fecha, activo: true }).sort({ edge: 1 }).limit(1).lean();
   res.json(picks);
 }));
 

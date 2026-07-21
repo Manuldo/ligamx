@@ -103,7 +103,32 @@ router.post("/generate", requireAdmin, ah(async (req, res) => {
   res.json({ ok: true, fecha, generados: guardados.length });
 }));
 
-// --- PUBLICO: el parlay del dia ---
+// --- PARLAYS DEL DIA ---
+// Mismo criterio que los picks: el no-PRO ve que existen y su ventaja,
+// pero las patas (lo que se paga) solo salen para PRO.
+function opcionalAuth(req, _res, next) {
+  const h = req.headers.authorization || "";
+  if (!h.startsWith("Bearer ")) return next();
+  requireAuth(req, _res, () => next());
+}
+
+router.get("/hoy", opcionalAuth, ah(async (req, res) => {
+  const fecha = req.query.fecha || hoy();
+  const parlays = await Parlay.find({ fecha }).sort({ edge: -1 }).lean();
+  const esPro = !!(req.user && req.user.isProActive());
+  if (esPro) return res.json({ parlays, esPro: true });
+
+  const salida = parlays.map((pl) => ({
+    _id: pl._id,
+    numPatas: pl.patas.length,
+    momioComb: pl.momioComb,
+    edge: pl.edge,
+    bloqueado: true
+  }));
+  res.json({ parlays: salida, esPro: false });
+}));
+
+// --- PUBLICO (compat) ---
 router.get("/public", ah(async (req, res) => {
   const fecha = req.query.fecha || hoy();
   const parlays = await Parlay.find({ fecha, tier: "public" }).lean();

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Pickazo · Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0f13;--panel:#15171d;--panel2:#1b1e26;--panel3:#232733;
+  --txt:#eceef4;--dim:#8d93a3;--dim2:#5f6474;--line:#252935;
+  --red:#ec3013;--red-dk:#c4260c;--green:#22c55e;--amber:#f0b429;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:Archivo,system-ui,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer}
+.hide{display:none!important}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:4px}
+
+.top{display:flex;align-items:center;gap:12px;padding:13px 22px;
+  border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:20}
+.mark{width:26px;height:26px;background:var(--red);display:grid;place-items:center;
+  font-weight:900;font-size:13px;color:#fff}
+.ttl{font-weight:900;font-size:15px;letter-spacing:-.2px}
+.ttl em{font-style:normal;color:var(--red)}
+.who{margin-left:auto;font-size:11.5px;color:var(--dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:700;
+  font-size:13px;padding:8px 14px;border:1px solid transparent;border-radius:6px;transition:.15s}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:var(--red-dk)}
+.btn-line{background:transparent;color:var(--dim);border-color:var(--line)}
+.btn-line:hover{color:var(--txt);border-color:var(--dim2)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-sm{padding:5px 10px;font-size:11.5px}
+
+.tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--line);
+  background:var(--panel);overflow-x:auto}
+.tab{background:none;border:none;color:var(--dim);font-weight:700;font-size:13.5px;
+  padding:11px 14px;white-space:nowrap;border-bottom:2px solid transparent}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--txt);border-bottom-color:var(--red)}
+
+.page{max-width:1000px;margin:0 auto;padding:22px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;margin-bottom:16px}
+.card-h{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.card-t{font-weight:800;font-size:14px}
+.card-s{font-size:11.5px;color:var(--dim);margin-left:auto}
+.card-b{padding:16px}
+
+label.f{display:block;font-size:9.5px;font-weight:800;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--dim2);margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);
+  color:var(--txt);padding:9px 11px;border-radius:6px;font-family:inherit;font-size:14px}
+textarea{resize:vertical;min-height:150px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.55}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+.row{display:grid;gap:10px;margin-bottom:11px}
+.r2{grid-template-columns:1fr 1fr}
+.r3{grid-template-columns:1fr 1fr 1fr}
+.r4{grid-template-columns:2fr 2fr 1fr 1fr}
+@media(max-width:700px){.r2,.r3,.r4{grid-template-columns:1fr}}
+
+.hint{font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:12px}
+.hint code{background:var(--panel3);padding:1px 5px;border-radius:3px;font-size:11.5px}
+
+/* candidatos */
+.cand{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:9px;background:var(--panel2)}
+.cand-h{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.cand-n{font-size:10px;font-weight:800;color:var(--dim2);letter-spacing:.1em}
+.cand-x{margin-left:auto;background:none;border:none;color:var(--dim2);font-size:16px;line-height:1}
+.cand-x:hover{color:var(--red)}
+.calc{display:flex;gap:16px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);flex-wrap:wrap}
+.calc div{font-size:11px;color:var(--dim)}
+.calc b{display:block;font-size:14px;font-weight:800;color:var(--txt);margin-top:1px}
+.calc .ok{color:var(--green)}.calc .no{color:var(--red)}
+
+/* lista picks */
+.prow{display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid rgba(37,41,53,.6)}
+.prow:last-child{border-bottom:none}
+.prow:hover{background:var(--panel2)}
+.pinfo{flex:1;min-width:0}
+.pinfo b{display:block;font-size:13.5px;font-weight:700}
+.pinfo span{font-size:11.5px;color:var(--dim)}
+.tag{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 7px;
+  border-radius:4px;text-transform:uppercase}
+.t-pendiente{background:var(--panel3);color:var(--dim)}
+.t-acierto{background:rgba(34,197,94,.15);color:var(--green)}
+.t-fallo{background:rgba(236,48,19,.15);color:var(--red)}
+.t-nulo{background:var(--panel3);color:var(--dim2)}
+.t-pro{background:rgba(236,48,19,.15);color:var(--red)}
+.t-public{background:var(--panel3);color:var(--dim)}
+
+.res{margin-top:12px;padding:11px 13px;border-radius:7px;font-size:13px;line-height:1.5}
+.res.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac}
+.res.bad{background:rgba(236,48,19,.1);border:1px solid rgba(236,48,19,.3);color:#fca5a5}
+
+.gate{max-width:340px;margin:100px auto;text-align:center;padding:0 20px}
+.gate .m{width:48px;height:48px;background:var(--red);margin:0 auto 16px;display:grid;
+  place-items:center;font-size:22px;font-weight:900;color:#fff;border-radius:9px}
+.gate h2{font-weight:900;font-size:23px;letter-spacing:-.03em;margin-bottom:6px}
+.gate p{color:var(--dim);font-size:13.5px;margin-bottom:20px}
+.empty{padding:30px 20px;text-align:center;color:var(--dim);font-size:13px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
+  background:var(--panel3);color:var(--txt);padding:12px 18px;border-radius:8px;
+  font-size:13px;font-weight:600;z-index:90;transition:transform .3s cubic-bezier(.22,1,.36,1);
+  border-left:3px solid var(--red)}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-left-color:var(--green)}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate">
+    <div class="m">P</div>
+    <h2>Panel maestro</h2>
+    <p>Escribe tu llave de administrador para continuar.</p>
+    <input type="password" id="key" placeholder="ADMIN_KEY" autocomplete="off">
+    <div style="margin-top:11px"><button class="btn btn-red" id="enter" style="width:100%;padding:11px">Entrar</button></div>
+    <div class="res bad hide" id="gateErr"></div>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <div class="top">
+    <span class="mark">P</span>
+    <span class="ttl">PICKAZO <em>·</em> Panel</span>
+    <span class="who" id="today"></span>
+    <button class="btn btn-line btn-sm" id="out">Salir</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-t="publicar">Publicar picks</button>
+    <button class="tab" data-t="cerrar">Cerrar resultados</button>
+    <button class="tab" data-t="partidos">Partidos</button>
+    <button class="tab" data-t="tabla">Tabla</button>
+    <button class="tab" data-t="jugadores">Jugadores</button>
+  </div>
+
+  <div class="page" id="page"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API="/api";
+let KEY=sessionStorage.getItem("adminKey")||"";
+let tab="publicar";
+let cands=[];
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hoy=()=>new Date().toISOString().slice(0,10);
+const AH=()=>({"Content-Type":"application/json","x-admin-key":KEY});
+const dec=n=>Number(n).toFixed(2);
+const pct=n=>(Number(n)*100).toFixed(1)+"%";
+
+function toast(m,k){const t=$("#toast");t.textContent=m;t.className="toast on "+(k||"");
+  clearTimeout(t._t);t._t=setTimeout(()=>t.className="toast "+(k||""),2600);}
+
+/* ===== ACCESO ===== */
+async function tryKey(k){
+  try{
+    const r=await fetch(`${API}/admin/ping`,{headers:{"x-admin-key":k}});
+    return r.ok;
+  }catch{return false;}
+}
+$("#enter").onclick=async()=>{
+  const k=$("#key").value.trim();
+  if(!k)return;
+  $("#enter").disabled=true;$("#enter").textContent="Verificando…";
+  if(await tryKey(k)){
+    KEY=k;sessionStorage.setItem("adminKey",k);
+    $("#gate").classList.add("hide");$("#app").classList.remove("hide");
+    boot();
+  }else{
+    $("#gateErr").textContent="Llave incorrecta.";$("#gateErr").classList.remove("hide");
+  }
+  $("#enter").disabled=false;$("#enter").textContent="Entrar";
+};
+$("#key").addEventListener("keydown",e=>{if(e.key==="Enter")$("#enter").click();});
+$("#out").onclick=()=>{sessionStorage.removeItem("adminKey");location.reload();};
+
+function boot(){
+  const f=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+  $("#today").textContent=f.charAt(0).toUpperCase()+f.slice(1);
+  render();
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-t]"); if(!t)return;
+  tab=t.dataset.t;
+  document.querySelectorAll("[data-t]").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
+  render();
+});
+
+function render(){
+  if(tab==="publicar")vPublicar();
+  else if(tab==="cerrar")vCerrar();
+  else if(tab==="partidos")vSync("partidos");
+  else if(tab==="tabla")vSync("tabla");
+  else if(tab==="jugadores")vSync("jugadores");
+}
+
+/* ===== 1. PUBLICAR PICKS ===== */
+function candHTML(c,i){
+  const momio=parseFloat(c.momio)||0, prob=parseFloat(c.probEstimada)||0;
+  const imp=momio>0?1/momio:0;
+  const edge=prob-imp;
+  const pasa=momio>=1.70&&edge>0;
+  return `<div class="cand">
+    <div class="cand-h"><span class="cand-n">CANDIDATO ${i+1}</span>
+      <button class="cand-x" data-del="${i}" title="Quitar">×</button></div>
+    <div class="row r2">
+      <div><label class="f">Partido</label>
+        <input data-f="partido" data-i="${i}" value="${esc(c.partido)}" placeholder="Cruz Azul vs Puebla"></div>
+      <div><label class="f">Mercado</label>
+        <input data-f="mercado" data-i="${i}" value="${esc(c.mercado)}" placeholder="Más de 2.5 goles"></div>
+    </div>
+    <div class="row r4">
+      <div><label class="f">Momio (decimal)</label>
+        <input data-f="momio" data-i="${i}" value="${esc(c.momio)}" placeholder="1.85" inputmode="decimal"></div>
+      <div><label class="f">Prob. estimada (0-1)</label>
+        <input data-f="probEstimada" data-i="${i}" value="${esc(c.probEstimada)}" placeholder="0.62" inputmode="decimal"></div>
+      <div><label class="f">Verdicto</label>
+        <select data-f="verdicto" data-i="${i}">
+          ${["MANDAR","RESERVAS","EVITAR"].map(v=>`<option ${c.verdicto===v?"selected":""}>${v}</option>`).join("")}
+        </select></div>
+      <div><label class="f">Nivel</label>
+        <select data-f="tier" data-i="${i}">
+          <option value="pro" ${c.tier==="pro"?"selected":""}>PRO</option>
+          <option value="public" ${c.tier==="public"?"selected":""}>Público</option>
+        </select></div>
+    </div>
+    <div><label class="f">Análisis (opcional)</label>
+      <input data-f="analisis" data-i="${i}" value="${esc(c.analisis)}" placeholder="Por qué este pick"></div>
+    <div class="calc">
+      <div>Paga la casa<b class="mono">${momio>0?pct(imp):"—"}</b></div>
+      <div>Ventaja<b class="mono ${edge>0?"ok":"no"}">${momio>0&&prob>0?(edge>0?"+":"")+pct(edge):"—"}</b></div>
+      <div>Filtro<b class="mono ${pasa?"ok":"no"}">${!momio||!prob?"—":pasa?"Pasa":momio<1.70?"Momio < 1.70":"Sin ventaja"}</b></div>
+    </div>
+  </div>`;
+}
+function vPublicar(){
+  if(!cands.length)cands=[{partido:"",mercado:"",momio:"",probEstimada:"",verdicto:"MANDAR",tier:"pro",analisis:""}];
+  $("#page").innerHTML=`
+    <div class="card">
+      <div class="card-h"><span class="card-t">Publicar picks del día</span>
+        <span class="card-s">Se filtran por momio ≥ 1.70 y ventaja &gt; 0</span></div>
+      <div class="card-b">
+        <p class="hint">Escribe tu probabilidad estimada como decimal (0.62 = 62%). La ventaja
+          se calcula sola: <code>tu probabilidad − 1/momio</code>. Solo los tres de mayor
+          ventaja se publican.</p>
+        <div class="row r2">
+          <div><label class="f">Fecha</label><input type="date" id="pubFecha" value="${hoy()}"></div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn btn-line" id="addCand" style="width:100%">+ Agregar candidato</button></div>
+        </div>
+        <div id="candList">${cands.map(candHTML).join("")}</div>
+        <div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-red" id="doPub">Publicar picks</button>
+          <button class="btn btn-line" id="doParlay">Generar parlays</button>
+        </div>
+        <div class="res hide" id="pubRes"></div>
+      </div>
+    </div>`;
+}
+document.addEventListener("input",e=>{
+  const f=e.target.closest("[data-f]"); if(!f)return;
+  const i=+f.dataset.i;
+  cands[i][f.dataset.f]=f.value;
+  if(["momio","probEstimada"].includes(f.dataset.f)){
+    // recalcular solo el bloque de ese candidato, sin perder el foco
+    const c=cands[i],m=parseFloat(c.momio)||0,p=parseFloat(c.probEstimada)||0;
+    const imp=m>0?1/m:0,ed=p-imp,pasa=m>=1.70&&ed>0;
+    const box=f.closest(".cand").querySelector(".calc");
+    box.innerHTML=`<div>Paga la casa<b class="mono">${m>0?pct(imp):"—"}</b></div>
+      <div>Ventaja<b class="mono ${ed>0?"ok":"no"}">${m>0&&p>0?(ed>0?"+":"")+pct(ed):"—"}</b></div>
+      <div>Filtro<b class="mono ${pasa?"ok":"no"}">${!m||!p?"—":pasa?"Pasa":m<1.70?"Momio < 1.70":"Sin ventaja"}</b></div>`;
+  }
+});
+document.addEventListener("change",e=>{
+  const f=e.target.closest("select[data-f]"); if(!f)return;
+  cands[+f.dataset.i][f.dataset.f]=f.value;
+});
+document.addEventListener("click",e=>{
+  if(e.target.id==="addCand"){
+    cands.push({partido:"",mercado:"",momio:"",probEstimada:"",verdicto:"MANDAR",tier:"pro",analisis:""});
+    $("#candList").innerHTML=cands.map(candHTML).join("");return;
+  }
+  const d=e.target.closest("[data-del]");
+  if(d){cands.splice(+d.dataset.del,1);
+    if(!cands.length)cands=[{partido:"",mercado:"",momio:"",probEstimada:"",verdicto:"MANDAR",tier:"pro",analisis:""}];
+    $("#candList").innerHTML=cands.map(candHTML).join("");}
+});
+document.addEventListener("click",async e=>{
+  if(e.target.id!=="doPub")return;
+  const b=e.target,out=$("#pubRes");
+  const listos=cands.filter(c=>c.partido&&c.mercado&&parseFloat(c.momio)>0&&parseFloat(c.probEstimada)>0)
+    .map(c=>({partido:c.partido.trim(),mercado:c.mercado.trim(),
+      momio:parseFloat(c.momio),probEstimada:parseFloat(c.probEstimada),
+      verdicto:c.verdicto,tier:c.tier,analisis:(c.analisis||"").trim()}));
+  if(!listos.length){out.className="res bad";out.textContent="Llena al menos un candidato completo.";return;}
+  b.disabled=true;b.textContent="Publicando…";
+  try{
+    const r=await fetch(`${API}/admin/publish`,{method:"POST",headers:AH(),
+      body:JSON.stringify({fecha:$("#pubFecha").value||hoy(),candidatos:listos})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){out.className="res ok";
+      out.innerHTML=`Publicados <b>${d.publicados}</b> picks para ${esc(d.fecha)}.<br>`+
+        (d.picks||[]).map(p=>`• ${esc(p.partido)} — ${esc(p.mercado)} (ventaja +${pct(p.edge)}, ${p.tier})`).join("<br>");
+      toast("Picks publicados","ok");
+    }else{out.className="res bad";out.textContent=d.error||"No se pudo publicar.";}
+  }catch{out.className="res bad";out.textContent="Sin conexión.";}
+  b.disabled=false;b.textContent="Publicar picks";
+});
+document.addEventListener("click",async e=>{
+  if(e.target.id!=="doParlay")return;
+  const b=e.target,out=$("#pubRes");
+  b.disabled=true;b.textContent="Generando…";
+  try{
+    const r=await fetch(`${API}/parlays/generate`,{method:"POST",headers:AH(),
+      body:JSON.stringify({fecha:$("#pubFecha").value||hoy()})});
+    const d=await r.json().catch(()=>({}));
+    out.className=r.ok?"res ok":"res bad";
+    out.textContent=r.ok?`Generados ${d.generados} parlays.`:(d.error||"No se pudo generar.");
+    if(r.ok)toast("Parlays generados","ok");
+  }catch{out.className="res bad";out.textContent="Sin conexión.";}
+  b.disabled=false;b.textContent="Generar parlays";
+});
+
+/* ===== 2. CERRAR RESULTADOS ===== */
+async function vCerrar(){
+  $("#page").innerHTML=`<div class="card"><div class="card-h">
+    <span class="card-t">Cerrar resultados</span>
+    <span class="card-s">Marca acierto o fallo · actualiza tu track record</span></div>
+    <div id="cerrarList"><div class="empty">Cargando…</div></div></div>`;
+  try{
+    const r=await fetch(`${API}/admin/picks`,{headers:AH()});
+    const l=await r.json();
+    if(!l.length){$("#cerrarList").innerHTML=`<div class="empty">No hay picks publicados todavía.</div>`;return;}
+    $("#cerrarList").innerHTML=l.map(p=>`<div class="prow">
+      <span class="tag t-${esc(p.tier)}">${p.tier==="pro"?"PRO":"Público"}</span>
+      <div class="pinfo"><b>${esc(p.partido)}</b>
+        <span>${esc(p.mercado)} · ${esc(p.fecha)} · ${dec(p.momio)} · ventaja +${pct(p.edge)}</span></div>
+      ${p.resultado&&p.resultado!=="pendiente"
+        ? `<span class="tag t-${esc(p.resultado)}">${esc(p.resultado)}</span>`
+        : `<div style="display:flex;gap:5px">
+            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="acierto"
+              style="border-color:rgba(34,197,94,.4);color:var(--green)">Acierto</button>
+            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="fallo"
+              style="border-color:rgba(236,48,19,.4);color:var(--red)">Fallo</button>
+            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="nulo">Nulo</button>
+          </div>`}
+    </div>`).join("");
+  }catch{$("#cerrarList").innerHTML=`<div class="empty">No se pudo cargar.</div>`;}
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-close]"); if(!b)return;
+  b.disabled=true;
+  try{
+    const r=await fetch(`${API}/history/cerrar`,{method:"POST",headers:AH(),
+      body:JSON.stringify({pickId:b.dataset.close,resultado:b.dataset.r})});
+    if(r.ok){toast(`Marcado como ${b.dataset.r}`,"ok");vCerrar();}
+    else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo cerrar");b.disabled=false;}
+  }catch{toast("Sin conexión");b.disabled=false;}
+});
+
+/* ===== 3-5. SYNC (partidos / tabla / jugadores) ===== */
+const SYNC={
+  partidos:{
+    url:"/matches/sync", campo:"partidos", titulo:"Sincronizar partidos",
+    nota:"Pega el JSON que saca tu scraper de FotMob. Se actualiza por local+visitante+fecha, así que puedes reenviar el mismo partido con el marcador ya puesto.",
+    ej:`[
+  {
+    "local": "Cruz Azul",
+    "visitante": "Puebla",
+    "fecha": "2026-07-22",
+    "kickoff": "2026-07-22T01:00:00Z",
+    "jornada": "Jornada 2",
+    "estado": "programado"
+  },
+  {
+    "local": "Pachuca",
+    "visitante": "Mazatlán",
+    "fecha": "2026-07-15",
+    "jornada": "Jornada 1",
+    "estado": "finalizado",
+    "golesLocal": 3,
+    "golesVisitante": 0
+  }
+]`},
+  tabla:{
+    url:"/league/tabla/sync", campo:"tabla", titulo:"Sincronizar tabla",
+    nota:"La diferencia de goles se calcula sola. En forma, el primero es el más reciente: G, E o P.",
+    ej:`[
+  {
+    "equipo": "Pachuca",
+    "abrev": "PAC",
+    "color": "#00285e",
+    "pos": 1,
+    "jugados": 1,
+    "ganados": 1,
+    "empatados": 0,
+    "perdidos": 0,
+    "golesFavor": 3,
+    "golesContra": 0,
+    "puntos": 3,
+    "forma": ["G"]
+  }
+]`},
+  jugadores:{
+    url:"/league/jugadores/sync", campo:"jugadores", titulo:"Sincronizar jugadores",
+    nota:"La posición debe ser POR, DEF, MED o DEL — con eso se calcula el benchmark contra el promedio de cada puesto.",
+    ej:`[
+  {
+    "nombre": "Lucas Ocampos",
+    "equipo": "Monterrey",
+    "posicion": "DEL",
+    "dorsal": 7,
+    "partidos": 1,
+    "minutos": 90,
+    "goles": 2,
+    "asistencias": 0,
+    "xG": 1.4,
+    "rating": 9.5
+  }
+]`}
+};
+function vSync(kind){
+  const s=SYNC[kind];
+  $("#page").innerHTML=`<div class="card">
+    <div class="card-h"><span class="card-t">${s.titulo}</span>
+      <span class="card-s">JSON desde tu scraper</span></div>
+    <div class="card-b">
+      <p class="hint">${s.nota}</p>
+      <div class="row"><div><label class="f">Torneo</label>
+        <input id="torneo" value="Apertura 2026"></div></div>
+      <label class="f">JSON</label>
+      <textarea id="jsonIn" spellcheck="false" placeholder="Pega aquí el arreglo JSON"></textarea>
+      <div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">
+        <button class="btn btn-red" id="doSync" data-kind="${kind}">Sincronizar</button>
+        <button class="btn btn-line" id="doEj" data-kind="${kind}">Ver ejemplo</button>
+      </div>
+      <div class="res hide" id="syncRes"></div>
+    </div></div>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("#doEj"); if(!b)return;
+  $("#jsonIn").value=SYNC[b.dataset.kind].ej;
+});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("#doSync"); if(!b)return;
+  const s=SYNC[b.dataset.kind],out=$("#syncRes");
+  let datos;
+  try{
+    datos=JSON.parse($("#jsonIn").value);
+    if(!Array.isArray(datos))throw new Error("Debe ser un arreglo [ ... ]");
+  }catch(err){
+    out.className="res bad";out.textContent="JSON inválido: "+err.message;return;
+  }
+  b.disabled=true;b.textContent="Enviando…";
+  try{
+    const body={[s.campo]:datos};
+    const t=$("#torneo"); if(t&&b.dataset.kind!=="partidos")body.torneo=t.value;
+    const r=await fetch(API+s.url,{method:"POST",headers:AH(),body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){out.className="res ok";
+      out.textContent=`Listo. ${d.creados!=null?`${d.creados} creados, ${d.actualizados} actualizados.`
+        :`${d.filas??d.jugadores??datos.length} registros procesados.`}`;
+      toast("Sincronizado","ok");
+    }else{out.className="res bad";out.textContent=d.error||"No se pudo sincronizar.";}
+  }catch{out.className="res bad";out.textContent="Sin conexión.";}
+  b.disabled=false;b.textContent="Sincronizar";
+});
+
+/* ===== INIT ===== */
+(async()=>{
+  if(KEY&&await tryKey(KEY)){
+    $("#gate").classList.add("hide");$("#app").classList.remove("hide");boot();
+  }else{
+    sessionStorage.removeItem("adminKey");
+    setTimeout(()=>$("#key").focus(),100);
+  }
+})();
+</script>
+</body>
+</html>

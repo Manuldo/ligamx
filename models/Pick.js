@@ -13,6 +13,7 @@ const pickSchema = new mongoose.Schema({
   tier: { type: String, enum: ["public", "pro"], required: true, index: true },
   votos: { type: Number, default: 0 },                   // contador denormalizado
   activo: { type: Boolean, default: true },
+  resultado: { type: String, enum: ["pendiente","acierto","fallo","nulo"], default: "pendiente" },
   createdAt: { type: Date, default: Date.now }
 });
 

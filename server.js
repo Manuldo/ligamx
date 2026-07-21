@@ -12,6 +12,10 @@ import pickRoutes from "./routes/picks.js";
 import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payments.js";
 import parlayRoutes from "./routes/parlays.js";
+import matchRoutes from "./routes/matches.js";
+import historyRoutes from "./routes/history.js";
+import recordRoutes from "./routes/record.js";
+import leagueRoutes from "./routes/league.js";
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +36,10 @@ app.use("/api/picks", pickRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/parlays", parlayRoutes);
+app.use("/api/matches", matchRoutes);
+app.use("/api/history", historyRoutes);
+app.use("/api/record", recordRoutes);
+app.use("/api/league", leagueRoutes);
 
 app.use(express.static(path.join(__dirname, "public"), { setHeaders: (r) => r.setHeader("Cache-Control", "no-store") }));
 
