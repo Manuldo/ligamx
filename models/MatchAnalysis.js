@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
-// Analisis generado por IA para un partido concreto, a peticion de un PRO.
-// Se cachea por partido: si otro PRO pide el mismo partido el mismo dia,
-// se reusa y no se gasta otra llamada a la API.
+// Analisis generado por el motor para un partido, a peticion de un PRO.
+// Se cachea por partido+fecha: si otro PRO pide el mismo el mismo dia, se reusa.
 const matchAnalysisSchema = new mongoose.Schema({
-  matchId: { type: mongoose.Schema.Types.ObjectId, ref: "Match", required: true, index: true },
+  matchId: { type: mongoose.Schema.Types.ObjectId, ref: "Match", default: null },
   fecha: { type: String, required: true, index: true },
-  partido: { type: String, required: true },
+  partido: { type: String, required: true, index: true },  // "liga:local:visitante"
   sugerencias: [{
     mercado: String,
     momioSugerido: Number,
@@ -19,6 +18,6 @@ const matchAnalysisSchema = new mongoose.Schema({
   generadoPor: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now }
 });
-matchAnalysisSchema.index({ matchId: 1, fecha: 1 }, { unique: true });
+// Cache por partido + fecha (ya no por matchId, porque los datos vienen del motor)
+matchAnalysisSchema.index({ partido: 1, fecha: 1 }, { unique: true });
 export default mongoose.model("MatchAnalysis", matchAnalysisSchema);
- 
