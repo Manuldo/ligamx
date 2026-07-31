@@ -1,15 +1,15 @@
-// routes/motor.js — Rutas que conectan pickazoapp con el motor de análisis
-// Sigue el mismo patrón que tus otras rutas (auth.js, picks.js, etc.)
+// routes/motor.js — Conecta pickazoapp con el motor de análisis Pickazo MX
+// Usa TUS middlewares reales: requireAuth, requirePro, requireAdmin.
 
 import express from "express";
 import { analizarPartido, picksDelDia } from "../lib/motor.js";
-import { requireAuth } from "../middleware/auth.js"; // tu middleware de auth existente
+import { requireAuth, requirePro, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
 /**
  * GET /api/motor/picks-hoy?liga=ligamx
- * GRATIS: los picks del día. Cualquiera los ve (el gancho).
+ * GRATIS — el gancho. Cualquiera ve los picks del día, sin login.
  */
 router.get("/picks-hoy", async (req, res) => {
   try {
@@ -23,33 +23,52 @@ router.get("/picks-hoy", async (req, res) => {
 });
 
 /**
- * POST /api/motor/analizar
- * Body: { local, visitante, liga }
- * PRO: análisis a fondo. Requiere estar logueado Y ser PRO.
- * Los no-PRO reciben el análisis básico (o un mensaje para hacerse PRO).
+ * POST /api/motor/analizar-basico
+ * Análisis BÁSICO — requiere login, NO ser PRO. Para que el gratis pruebe.
  */
-router.post("/analizar", requireAuth, async (req, res) => {
+router.post("/analizar-basico", requireAuth, async (req, res) => {
   try {
     const { local, visitante, liga } = req.body;
-    if (!local || !visitante) {
-      return res.status(400).json({ error: "Faltan equipos" });
-    }
-
-    // ¿el usuario es PRO? (ajusta según cómo marques PRO en tu modelo de usuario)
-    const esPro = req.user && (req.user.plan === "pro" || req.user.isPro === true);
-
-    // PRO recibe análisis profundo; gratis recibe el básico
-    const data = await analizarPartido(local, visitante, liga || "ligamx", esPro);
-
+    if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
+    const data = await analizarPartido(local, visitante, liga || "ligamx", false);
     res.json({
       ...data,
-      esPro,
-      // si no es PRO, el front puede mostrar un CTA "Hazte PRO para análisis a fondo"
-      mensaje_pro: esPro ? null : "Hazte PRO para el análisis a fondo con más detalle",
+      mensaje_pro: "Hazte PRO para el análisis a fondo con todos los modelos y detalle",
     });
+  } catch (e) {
+    console.error("Error analizar-basico:", e.message);
+    res.status(502).json({ error: "El motor de análisis no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/analizar
+ * Análisis A FONDO (PRO) — requirePro corta a quien no pagó.
+ */
+router.post("/analizar", requireAuth, requirePro, async (req, res) => {
+  try {
+    const { local, visitante, liga } = req.body;
+    if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
+    const data = await analizarPartido(local, visitante, liga || "ligamx", true);
+    res.json(data);
   } catch (e) {
     console.error("Error analizar:", e.message);
     res.status(502).json({ error: "El motor de análisis no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/generar-picks-dia
+ * Solo ADMIN (tú). Header: x-admin-key: TU_ADMIN_KEY
+ */
+router.post("/generar-picks-dia", requireAdmin, async (req, res) => {
+  try {
+    const liga = req.body.liga || "ligamx";
+    const data = await picksDelDia(liga, 12);
+    res.json({ ok: true, generados: data });
+  } catch (e) {
+    console.error("Error generar-picks-dia:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
   }
 });
 
