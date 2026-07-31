@@ -16,6 +16,7 @@ import matchRoutes from "./routes/matches.js";
 import historyRoutes from "./routes/history.js";
 import recordRoutes from "./routes/record.js";
 import leagueRoutes from "./routes/league.js";
+import motorRoutes from "./routes/motor.js";
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +41,7 @@ app.use("/api/matches", matchRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/record", recordRoutes);
 app.use("/api/league", leagueRoutes);
+app.use("/api/motor", motorRoutes);
 
 app.use(express.static(path.join(__dirname, "public"), { setHeaders: (r) => r.setHeader("Cache-Control", "no-store") }));
 
