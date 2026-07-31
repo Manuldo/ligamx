@@ -37,8 +37,10 @@ router.get("/", ah(async (req, res) => {
 }));
 
 // --- ANÁLISIS (solo PRO, con cuota) — USA EL MOTOR ---
-router.post("/:id/analizar", requireAuth, requirePro, ah(async (req, res) => {
-  const { liga, local, visitante } = parseId(req.params.id);
+// El id del partido ("liga:local:visitante") viene en el body para evitar
+// problemas con ":" y espacios en la URL.
+router.post("/analizar", requireAuth, requirePro, ah(async (req, res) => {
+  const { liga, local, visitante } = parseId(req.body.id || "");
   if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
 
   const fecha = hoy();
