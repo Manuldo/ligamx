@@ -608,12 +608,15 @@ async function viewTabla(){
 function jmRow(m,conAnalisis){
   const fin=m.estado==="finalizado";
   const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
+  // El _id del motor es "liga:local:visitante" (con : y espacios), que rompe
+  // los selectores CSS. Usamos un id LIMPIO para el HTML y guardamos el real aparte.
+  const safe="m"+Math.abs([...String(m._id)].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7));
   return `<div class="jm">
     <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
     <span class="jm-mid mono ${fin?"sc":""}">${fin?`${m.golesLocal} - ${m.golesVisitante}`:hora||"vs"}</span>
     <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
-    ${conAnalisis&&!fin?`<button class="jm-an" data-an="${m._id}">Analizar</button>`:""}
-  </div><div id="an-${m._id}"></div>`;
+    ${conAnalisis&&!fin?`<button class="jm-an" data-an="${esc(m._id)}" data-box="${safe}">Analizar</button>`:""}
+  </div><div id="an-${safe}"></div>`;
 }
 async function viewJornada(){
   const r=await fetch(`${API}/league/jornadas`,{headers:H()});
@@ -711,10 +714,11 @@ document.addEventListener("click",async e=>{
   const an=e.target.closest("[data-an]");
   if(an){
     if(!isPro()){goPro();return;}
-    const id=an.dataset.an,box=$("#an-"+id);
+    const id=an.dataset.an, box=$("#an-"+an.dataset.box);
     an.disabled=true;an.textContent="…";
     try{
-      const r=await fetch(`${API}/matches/${id}/analizar`,{method:"POST",headers:H()});
+      const r=await fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),
+        body:JSON.stringify({id:id})});
       const d=await r.json().catch(()=>({}));
       if(!r.ok){box.innerHTML=`<div style="padding:12px 16px;font-size:12.5px;color:var(--dim);
         border-bottom:1px solid var(--line)">${esc(d.error||"No se pudo analizar")}${d.usados!=null?` · ${d.usados}/${d.limite} hoy`:""}</div>`;
