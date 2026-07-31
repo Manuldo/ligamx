@@ -177,6 +177,13 @@ tbody tr:hover{background:var(--panel2)}
 .lk-e .k{font-size:9px;color:var(--dim2);text-transform:uppercase;letter-spacing:.08em}
 .lk-e .v{font-weight:800;font-size:15px;color:var(--red)}
 
+/* ===== ANALISIS DEL MOTOR ===== */
+.an-sec{padding:13px 16px;border-bottom:1px solid var(--line);border-left:3px solid var(--panel3)}
+.an-sec-t{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px}
+.an-sec-b{font-size:13px;line-height:1.5;color:var(--txt)}
+.an-sec-b b{color:var(--txt)}
+
 /* ===== ESTADOS ===== */
 .empty{padding:32px 20px;text-align:center}
 .empty b{display:block;font-weight:700;font-size:14.5px;margin-bottom:4px}
@@ -361,6 +368,40 @@ function face(nombre,equipo){
   const ini=String(nombre).split(" ").filter(Boolean).map(w=>w[0]).slice(0,2).join("").toUpperCase();
   return `<span class="face" style="background:${teamColor(nombre)}">${esc(ini)}
     <i style="background:${teamColor(equipo)}">${esc(ab(equipo))}</i></span>`;
+}
+
+// ===== ANALISIS DEL MOTOR: markdown -> tarjetas =====
+function motorAnalisisHTML(markdown){
+  if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
+  let h=String(markdown).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const inline=t=>t
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/`(.+?)`/g,'<span class="mono">$1</span>')
+    .replace(/^\s*[-*] (.+)$/gm,'• $1')
+    .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+  h=h.replace(/^# .+$/gm,'');
+  const partes=h.split(/^## /gm);
+  let out='';
+  for(let k=1;k<partes.length;k++){
+    const bloque=partes[k];
+    const nl=bloque.indexOf('\n');
+    const titulo=(nl<0?bloque:bloque.slice(0,nl)).trim();
+    const cuerpo=(nl<0?'':bloque.slice(nl+1)).trim();
+    const tl=titulo.toLowerCase();
+    let borde='var(--panel3)',icono='';
+    if(tl.includes('lectura')){borde='var(--blue)';icono='📖 ';}
+    else if(tl.includes('veredicto')){borde='var(--amber)';icono='⚖️ ';}
+    else if(tl.includes('riesgo')){borde='var(--red)';icono='⚠️ ';}
+    else if(titulo.includes('⭐')||tl.includes('conservador')){borde='var(--green)';icono='◆ ';}
+    else if(titulo.includes('🔥')||tl.includes('estakazo')){borde='var(--red)';icono='◆ ';}
+    else if(tl.includes('descartado')){borde='var(--dim2)';icono='🚫 ';}
+    else if(tl.includes('derecha')){borde='var(--green)';icono='✔️ ';}
+    const tituloLimpio=titulo.replace(/[⭐🔥]/g,'').trim();
+    out+=`<div class="an-sec" style="border-left-color:${borde}">
+      <div class="an-sec-t">${icono}${esc(tituloLimpio)}</div>
+      <div class="an-sec-b">${inline(cuerpo)}</div></div>`;
+  }
+  return out;
 }
 
 /* ===== SIDEBAR ===== */
@@ -676,18 +717,13 @@ document.addEventListener("click",async e=>{
       const r=await fetch(`${API}/matches/${id}/analizar`,{method:"POST",headers:H()});
       const d=await r.json().catch(()=>({}));
       if(!r.ok){box.innerHTML=`<div style="padding:12px 16px;font-size:12.5px;color:var(--dim);
-        border-bottom:1px solid var(--line)">${esc(d.error||"No se pudo analizar")}</div>`;
+        border-bottom:1px solid var(--line)">${esc(d.error||"No se pudo analizar")}${d.usados!=null?` · ${d.usados}/${d.limite} hoy`:""}</div>`;
         an.disabled=false;an.textContent="Analizar";return;}
-      box.innerHTML=`<div style="padding:13px 16px;background:var(--panel2);border-bottom:1px solid var(--line)">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
-          color:var(--red);margin-bottom:7px">Análisis${d.cacheado?" (ya generado hoy)":""}</div>
-        <p style="font-size:13px;line-height:1.5;color:var(--txt)">${esc(d.resumen||"")}</p>
-        ${(d.sugerencias||[]).map(s=>`<div style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">
-          <b style="font-size:13px">${esc(s.mercado)}</b>
-          ${s.momioSugerido?`<span class="mono" style="color:var(--red)"> ~${dec(s.momioSugerido)}</span>`:""}
-          <div style="font-size:12px;color:var(--dim);margin-top:2px">${esc(s.razon||"")}</div></div>`).join("")}
-        <div style="font-size:10.5px;color:var(--dim2);margin-top:10px">${esc(d.aviso||"")}
-          ${d.usados!=null?` · ${d.usados} de ${d.limite} hoy`:""}</div></div>`;
+      box.innerHTML=`<div style="background:var(--panel2);border-bottom:1px solid var(--line)">
+        <div style="padding:11px 16px;font-size:10px;font-weight:800;letter-spacing:.11em;
+          text-transform:uppercase;color:var(--red)">Análisis Pickazo MX${d.nivel==="premium"?" · A fondo":""}${d.cacheado?" · guardado":""}</div>
+        ${motorAnalisisHTML(d.analisisMarkdown||"")}
+      </div>`;
       an.textContent="✓";
     }catch{an.disabled=false;an.textContent="Analizar";toast("Sin conexión");}
     return;
