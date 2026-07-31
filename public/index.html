@@ -180,9 +180,37 @@ tbody tr:hover{background:var(--panel2)}
 /* ===== ANALISIS DEL MOTOR ===== */
 .an-sec{padding:13px 16px;border-bottom:1px solid var(--line);border-left:3px solid var(--panel3)}
 .an-sec-t{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--dim);margin-bottom:7px}
+  color:var(--dim);margin-bottom:7px;display:flex;align-items:center;gap:6px}
 .an-sec-b{font-size:13px;line-height:1.5;color:var(--txt)}
 .an-sec-b b{color:var(--txt)}
+.sec-lectura{border-left-color:var(--blue)}
+.sec-veredicto{border-left-color:var(--amber);background:linear-gradient(120deg,rgba(240,180,41,.06),transparent)}
+.sec-riesgo{border-left-color:var(--red)}
+.an-li{padding:5px 0 5px 4px;border-top:1px solid rgba(37,41,53,.5);font-size:12.5px;color:var(--dim)}
+.an-li:first-child{border-top:none}
+.an-li b{color:var(--txt)}
+/* modelos */
+.an-model{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  padding:9px 16px;margin-top:2px}
+.an-model-cons{color:var(--green);background:linear-gradient(90deg,rgba(34,197,94,.1),transparent);
+  border-left:3px solid var(--green)}
+.an-model-esta{color:var(--red);background:linear-gradient(90deg,rgba(236,48,19,.1),transparent);
+  border-left:3px solid var(--red)}
+/* pick con barra de confianza */
+.an-pick{display:flex;gap:13px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:flex-start}
+.an-pick-conf{flex-shrink:0;width:52px;text-align:center;padding-top:2px}
+.an-pick-conf b{display:block;font-size:19px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
+.an-pick-conf span{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--dim2)}
+.an-pick-body{flex:1;min-width:0}
+.an-pick-sel{font-weight:700;font-size:14px;margin-bottom:3px}
+.an-pick-why{font-size:12.5px;color:var(--dim);line-height:1.45}
+.an-pick-bar{height:3px;background:var(--panel3);border-radius:2px;margin-top:8px;overflow:hidden}
+.an-pick-bar i{display:block;height:100%;border-radius:2px}
+/* colapsables */
+.an-collapse{cursor:pointer;user-select:none}
+.an-caret{margin-left:auto;transition:transform .2s;color:var(--dim2)}
+.an-collapse.closed .an-caret{transform:rotate(-90deg)}
+.an-collapse.closed .an-sec-b{display:none}
 
 /* ===== ESTADOS ===== */
 .empty{padding:32px 20px;text-align:center}
@@ -374,10 +402,25 @@ function face(nombre,equipo){
 function motorAnalisisHTML(markdown){
   if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
   let h=String(markdown).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  // convierte los PICK con confianza en tarjetas con barra
+  function picks(txt){
+    return txt.replace(/\*\*PICK:\*\*\s*(.+?)\s*·\s*\*\*Confianza:\*\*\s*(\d+)%?\s*\n?([^\n]*)/g,
+      (m,pick,conf,razon)=>{
+        const n=parseInt(conf);
+        const col=n>=78?'var(--green)':(n>=68?'var(--amber)':'var(--dim2)');
+        const lbl=n>=78?'Alta':(n>=68?'Media':'Baja');
+        return `<div class="an-pick">
+          <div class="an-pick-conf" style="color:${col}"><b>${conf}%</b><span>${lbl}</span></div>
+          <div class="an-pick-body"><div class="an-pick-sel">${pick.trim()}</div>
+          <div class="an-pick-why">${razon.trim()}</div>
+          <div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div></div>
+        </div>`;
+      });
+  }
   const inline=t=>t
     .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
     .replace(/`(.+?)`/g,'<span class="mono">$1</span>')
-    .replace(/^\s*[-*] (.+)$/gm,'• $1')
+    .replace(/^\s*[-*] (.+)$/gm,'<div class="an-li">$1</div>')
     .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
   h=h.replace(/^# .+$/gm,'');
   const partes=h.split(/^## /gm);
@@ -388,22 +431,43 @@ function motorAnalisisHTML(markdown){
     const titulo=(nl<0?bloque:bloque.slice(0,nl)).trim();
     const cuerpo=(nl<0?'':bloque.slice(nl+1)).trim();
     const tl=titulo.toLowerCase();
-    let borde='var(--panel3)',icono='';
-    if(tl.includes('lectura')){borde='var(--blue)';icono='📖 ';}
-    else if(tl.includes('veredicto')){borde='var(--amber)';icono='⚖️ ';}
-    else if(tl.includes('riesgo')){borde='var(--red)';icono='⚠️ ';}
-    else if(titulo.includes('⭐')||tl.includes('conservador')){borde='var(--green)';icono='◆ ';}
-    else if(titulo.includes('🔥')||tl.includes('estakazo')){borde='var(--red)';icono='◆ ';}
-    else if(tl.includes('descartado')){borde='var(--dim2)';icono='🚫 ';}
-    else if(tl.includes('derecha')){borde='var(--green)';icono='✔️ ';}
     const tituloLimpio=titulo.replace(/[⭐🔥]/g,'').trim();
-    out+=`<div class="an-sec" style="border-left-color:${borde}">
-      <div class="an-sec-t">${icono}${esc(tituloLimpio)}</div>
+
+    // MODELOS (con picks de confianza) — encabezado de color
+    if(titulo.includes('⭐')||tl.includes('conservador')){
+      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+    }
+    if(titulo.includes('🔥')||tl.includes('estakazo')){
+      out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+    }
+    // LECTURA — tarjeta azul
+    if(tl.includes('lectura')){
+      out+=`<div class="an-sec sec-lectura"><div class="an-sec-t">📖 ${esc(tituloLimpio)}</div>
+        <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
+    }
+    // VEREDICTO — ámbar destacado
+    if(tl.includes('veredicto')){
+      out+=`<div class="an-sec sec-veredicto"><div class="an-sec-t">⚖️ ${esc(tituloLimpio)}</div>
+        <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
+    }
+    // RIESGO — rojo
+    if(tl.includes('riesgo')){
+      out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t">⚠️ ${esc(tituloLimpio)}</div>
+        <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
+    }
+    // DESCARTADOS / DERECHAS — colapsables (cerrados)
+    if(tl.includes('descartado')||tl.includes('derecha')){
+      const ic=tl.includes('descartado')?'🚫':'✔️';
+      out+=`<div class="an-sec an-collapse closed" onclick="this.classList.toggle('closed')">
+        <div class="an-sec-t">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
+        <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
+    }
+    // otra sección
+    out+=`<div class="an-sec"><div class="an-sec-t">${esc(tituloLimpio)}</div>
       <div class="an-sec-b">${inline(cuerpo)}</div></div>`;
   }
   return out;
 }
-
 /* ===== SIDEBAR ===== */
 const isMobile=()=>window.innerWidth<=820;
 $("#tog").onclick=()=>{
