@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -19,7 +19,7 @@ function parseId(id) {
 router.get("/", ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
   try {
-    const data = await partidosLiga(liga, 60);
+    const data = await partidosLiga(liga, 400);
     const estado = req.query.estado || "todos";
     let partidos = data.partidos || [];
     if (estado === "proximos") partidos = partidos.filter(p => p.estado !== "finalizado");
@@ -127,6 +127,23 @@ router.get("/jornadas-liga", ah(async (req, res) => {
   } catch (e) {
     console.error("Error jornadas-liga:", e.message);
     res.json({ liga, jornadas: [] });
+  }
+}));
+
+// --- TODAS LAS LIGAS juntas ---
+router.get("/todas", ah(async (req, res) => {
+  try {
+    const data = await todasLasLigas(300);
+    const partidos = (data.partidos || []).map(p => ({
+      _id: p.id, local: p.local, visitante: p.visitante, liga: p.liga,
+      ligaNombre: p.ligaNombre, kickoff: p.inicio, estado: p.estado,
+      enVivo: p.enVivo, minuto: p.minuto,
+      golesLocal: p.golesLocal, golesVisitante: p.golesVisitante, jornada: p.jornada,
+    }));
+    res.json(partidos);
+  } catch (e) {
+    console.error("Error todas:", e.message);
+    res.json([]);
   }
 }));
 
