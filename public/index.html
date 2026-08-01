@@ -177,6 +177,25 @@ tbody tr:hover{background:var(--panel2)}
 .lk-e .k{font-size:9px;color:var(--dim2);text-transform:uppercase;letter-spacing:.08em}
 .lk-e .v{font-weight:800;font-size:15px;color:var(--red)}
 
+/* ===== MARCADORES EN VIVO + BADGES (idea 1) ===== */
+.badge-live{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;
+  letter-spacing:.06em;color:var(--red);background:rgba(236,48,19,.12);padding:3px 9px;border-radius:5px;flex-shrink:0}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulseLive 1.4s infinite}
+@keyframes pulseLive{0%{box-shadow:0 0 0 0 rgba(236,48,19,.6)}70%{box-shadow:0 0 0 6px rgba(236,48,19,0)}100%{box-shadow:0 0 0 0 rgba(236,48,19,0)}}
+.badge-hoy{font-size:10px;font-weight:800;color:var(--amber);background:rgba(240,180,41,.12);padding:3px 9px;border-radius:5px;flex-shrink:0}
+.badge-fin{font-size:10px;font-weight:800;color:var(--dim2);background:var(--panel3);padding:3px 9px;border-radius:5px;flex-shrink:0}
+.jm-min{font-size:10px;color:var(--red);font-weight:800;display:block;text-align:center}
+.gol-flash{animation:golFlash 1s ease}
+@keyframes golFlash{0%{color:var(--green);transform:scale(1.35)}100%{color:var(--txt);transform:scale(1)}}
+
+/* ===== SELECTOR DE LIGAS ===== */
+.liga-sel{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.liga-chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+  color:var(--dim);border-radius:8px;padding:8px 13px;font-size:13px;font-weight:700}
+.liga-chip:hover{border-color:var(--dim2);color:var(--txt)}
+.liga-chip.on{background:var(--red);border-color:var(--red);color:#fff}
+.liga-chip span{font-size:14px}
+
 /* ===== ANALISIS DEL MOTOR ===== */
 .an-sec{padding:13px 16px;border-bottom:1px solid var(--line);border-left:3px solid var(--panel3)}
 .an-sec-t{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
@@ -370,6 +389,16 @@ let token=localStorage.getItem("token");
 let me=JSON.parse(localStorage.getItem("me")||"null");
 let view="hoy", mode="login";
 const cache={};
+// Ligas disponibles (el motor las tiene). El selector deja cambiar.
+let LIGA_ACTUAL="ligamx";
+const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
+  seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷"};
+function ligaSelectorHTML(){
+  return `<div class="liga-sel">${Object.keys(LIGA_NOMBRES).map(k=>
+    `<button class="liga-chip ${LIGA_ACTUAL===k?"on":""}" data-liga="${k}">
+      <span>${LIGA_FLAGS[k]||"⚽"}</span> ${LIGA_NOMBRES[k]}</button>`).join("")}</div>`;
+}
 
 const $=s=>document.querySelector(s);
 const dec=n=>Number(n).toFixed(2);
@@ -492,6 +521,7 @@ const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],parlays:["Parlays","C
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
+  window.setView=setView;
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   $("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];
@@ -596,21 +626,64 @@ function lockRow(p){
     <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`;
 }
 async function viewHoy(){
-  const r=await fetch(`${API}/picks/hoy`,{headers:H()});
-  const d=await r.json(); const l=d.picks||[];
-  $("#tbS").textContent=l.length?`${l.length} publicados${d.esPro?"":" · 1 gratis"}`:"";
-  $("#page").innerHTML=`<div class="card">
-    <div class="card-h"><span class="card-t">Picks del día</span>
-      <span class="card-s">${d.esPro?"Acceso completo":"Vista gratuita"}</span></div>
-    ${l.length?l.map(p=>p.bloqueado?lockRow(p):pickCard(p)).join("")
-      :`<div class="empty"><b>Todavía no hay picks para hoy</b>
-        <span>El análisis corre antes de cada jornada.</span></div>`}
-    ${!d.esPro&&d.bloqueados?`<div style="padding:16px;border-top:1px solid var(--line);text-align:center">
-      <div style="font-weight:700;margin-bottom:4px">Te faltan ${d.bloqueados} picks de hoy</div>
-      <div style="font-size:12.5px;color:var(--dim);margin-bottom:12px">Los de mayor ventaja quedan para suscriptores.</div>
-      <button class="btn btn-red" data-a="pro">Hazte PRO</button></div>`:""}
-  </div>`;
-  bars();
+  // Pantalla principal tipo motor: partidos de hoy arriba + resultados abajo.
+  const liga=LIGA_ACTUAL;
+  const r=await fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()});
+  const partidos=await r.json().catch(()=>[]);
+  const hoyStr=new Date().toISOString().slice(0,10);
+  const proximos=partidos.filter(p=>p.estado!=="finalizado");
+  const jugados=partidos.filter(p=>p.estado==="finalizado").slice(0,10);
+  $("#tbS").textContent=`${proximos.length} próximos`;
+
+  const cardPartido=(m,fin)=>{
+    const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
+    const vivo=m.enVivo||m.estado==="en_vivo";
+    // marcador o hora en el centro
+    let centro;
+    if(vivo){
+      centro=`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0} - ${m.golesVisitante??0}
+        ${m.minuto?`<span class="jm-min">⚡ ${esc(String(m.minuto))}'</span>`:""}</span>`;
+    }else if(fin){
+      centro=`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`;
+    }else{
+      centro=`<span class="jm-mid mono">${hora||"vs"}</span>`;
+    }
+    // badge de estado
+    let badge="";
+    if(vivo)badge=`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`;
+    else if(fin)badge=`<span class="badge-fin">FINAL</span>`;
+    else if((m.kickoff||"").slice(0,10)===new Date().toISOString().slice(0,10))badge=`<span class="badge-hoy">HOY</span>`;
+    return `<div class="jm">
+      <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
+      ${centro}
+      <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
+      ${badge}
+      ${!fin&&!vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Analizar →</button>`:""}
+      ${vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Ver →</button>`:""}
+    </div>`;
+  };
+
+  $("#page").innerHTML=`
+    ${ligaSelectorHTML()}
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><span class="card-t">Partidos de hoy</span>
+        <span class="card-s">${LIGA_NOMBRES[liga]||liga} · toca Analizar</span></div>
+      ${proximos.length?proximos.map(m=>cardPartido(m,false)).join("")
+        :`<div class="empty"><b>No hay partidos próximos</b>
+          <span>Actualiza los datos desde el motor con tu extensión.</span></div>`}
+    </div>
+    ${jugados.length?`<div class="card">
+      <div class="card-h"><span class="card-t">Resultados recientes</span>
+        <span class="card-s">Últimos ${jugados.length}</span></div>
+      ${jugados.map(m=>cardPartido(m,true)).join("")}
+    </div>`:""}`;
+
+  // Auto-refresco: si hay partidos en vivo, refrescar cada 60s (sin recargar página)
+  const hayVivo=proximos.some(m=>m.enVivo||m.estado==="en_vivo");
+  clearTimeout(window._refreshHoy);
+  if(hayVivo&&view==="hoy"){
+    window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);
+  }
 }
 /* --- PARLAYS --- */
 async function viewParlays(){
@@ -773,8 +846,67 @@ async function viewMios(){
 function bars(){requestAnimationFrame(()=>{
   document.querySelectorAll(".efill").forEach(b=>{if(!b.style.width)b.style.width=b.dataset.w+"%";});});}
 
+// ===== PANTALLA DEDICADA DEL PARTIDO (análisis + top jugadores) =====
+async function abrirPartido(id){
+  const [liga,local,visitante]=id.split(":");
+  view="partido";
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.remove("on"));
+  $("#tbT").textContent=`${local} vs ${visitante}`;
+  $("#tbS").textContent=LIGA_NOMBRES[liga]||liga;
+  $("#page").innerHTML=`
+    <button class="btn btn-line" onclick="setView('hoy')" style="margin-bottom:14px">← Volver</button>
+    <div class="match-hero card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
+        <div style="text-align:center">${crest(local,null,true)}
+          <div style="font-weight:800;font-size:15px;margin-top:8px">${esc(local)}</div></div>
+        <div style="color:var(--dim2);font-weight:800">VS</div>
+        <div style="text-align:center">${crest(visitante,null,true)}
+          <div style="font-weight:800;font-size:15px;margin-top:8px">${esc(visitante)}</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px" id="pAnalisis">
+      <div class="skel"></div><div class="skel" style="width:75%"></div></div>
+    <div class="grid2">
+      <div class="card" id="pJugL"><div class="card-h"><span class="card-t">Top ${esc(local)}</span></div>
+        <div class="skel"></div></div>
+      <div class="card" id="pJugV"><div class="card-h"><span class="card-t">Top ${esc(visitante)}</span></div>
+        <div class="skel"></div></div>
+    </div>`;
+  fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+    .then(r=>r.json()).then(d=>{
+      $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
+        <span class="card-s">${d.cacheado?"guardado":"nuevo"}</span></div>
+        ${motorAnalisisHTML(d.analisisMarkdown||d.error||"Sin análisis")}`;
+    }).catch(()=>{$("#pAnalisis").innerHTML=`<div class="empty"><b>No se pudo analizar</b></div>`;});
+  fetch(`${API}/matches/detalle`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+    .then(r=>r.json()).then(d=>{
+      $("#pJugL").innerHTML=jugadoresCardHTML("Top "+local,(d.local&&d.local.jugadores)||[]);
+      $("#pJugV").innerHTML=jugadoresCardHTML("Top "+visitante,(d.visitante&&d.visitante.jugadores)||[]);
+    }).catch(()=>{});
+}
+function jugadoresCardHTML(titulo,jug){
+  return `<div class="card-h"><span class="card-t">${esc(titulo)}</span></div>
+    ${jug.length?jug.map(j=>`<div class="prow">
+      ${face(j.nombre,j.equipo||"")}
+      <div class="pinfo"><b>${esc(j.nombre)}</b>
+        <span>${esc(j.posicion||"")}${j.partidos?` · ${j.partidos} PJ`:""}</span></div>
+      <div class="pstat"><div class="v mono">${j.rating?Number(j.rating).toFixed(1):(j.goles||0)}</div>
+        <div class="k">${j.rating?"Rating":"Goles"}</div></div>
+    </div>`).join(""):`<div class="empty"><span>Sin datos de jugadores</span></div>`}`;
+}
+
 /* ===== ACCIONES ===== */
 document.addEventListener("click",async e=>{
+  // cambiar de liga
+  const lg=e.target.closest("[data-liga]");
+  if(lg){LIGA_ACTUAL=lg.dataset.liga;render();return;}
+  // abrir pantalla dedicada del partido
+  const pt=e.target.closest("[data-partido]");
+  if(pt){
+    if(!isPro()){goPro();return;}
+    abrirPartido(pt.dataset.partido);
+    return;
+  }
   const an=e.target.closest("[data-an]");
   if(an){
     if(!isPro()){goPro();return;}
