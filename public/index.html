@@ -431,6 +431,14 @@ function ligaSelectorHTML(){
 
 const $=s=>document.querySelector(s);
 const dec=n=>Number(n).toFixed(2);
+// Fecha YYYY-MM-DD en horario de Ciudad de México (para comparar "hoy" bien)
+const TZ="America/Mexico_City";
+function fechaMX(d){
+  // devuelve "YYYY-MM-DD" del Date d en horario de México
+  const s=new Date(d).toLocaleDateString("en-CA",{timeZone:TZ}); // en-CA da formato YYYY-MM-DD
+  return s;
+}
+const hoyMX=()=>fechaMX(new Date());
 const pct=n=>(Number(n)*100).toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const H=()=>{const h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;return h;};
@@ -665,7 +673,7 @@ async function viewHoy(){
     const jugados=partidos.filter(p=>p.estado==="finalizado").slice(0,20);
     $("#tbS").textContent=`${proximos.length} próximos · todas las ligas`;
     const cardT=(m,fin)=>{
-      const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
+      const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
       const vivo=m.enVivo||m.estado==="en_vivo";
       let centro=vivo?`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0}-${m.golesVisitante??0}${m.minuto?`<span class="jm-min">⚡${esc(String(m.minuto))}'</span>`:""}</span>`
         :fin?`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`:`<span class="jm-mid mono">${hora||"vs"}</span>`;
@@ -680,7 +688,7 @@ async function viewHoy(){
     };
     // agrupar por día
     const by={};
-    proximos.forEach(m=>{const k=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}):"Por definir";(by[k]=by[k]||[]).push(m);});
+    proximos.forEach(m=>{const k=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",timeZone:TZ}):"Por definir";(by[k]=by[k]||[]).push(m);});
     const grupos=Object.entries(by).map(([dia,ms])=>`<div class="jday">${esc(dia)}</div>${ms.map(m=>cardT(m,false)).join("")}`).join("");
     $("#page").innerHTML=`${ligaSelectorHTML()}
       <div class="card" style="margin-bottom:16px">
@@ -723,14 +731,14 @@ async function viewHoy(){
   function agrupaPorDia(arr){
     const by={};
     arr.forEach(m=>{
-      const k=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}):"Por definir";
+      const k=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",timeZone:TZ}):"Por definir";
       (by[k]=by[k]||[]).push(m);
     });
     return by;
   }
 
   const cardPartido=(m,fin)=>{
-    const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
+    const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
     const vivo=m.enVivo||m.estado==="en_vivo";
     let centro;
     if(vivo){centro=`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0} - ${m.golesVisitante??0}${m.minuto?`<span class="jm-min">⚡ ${esc(String(m.minuto))}'</span>`:""}</span>`;}
@@ -739,7 +747,7 @@ async function viewHoy(){
     let badge="";
     if(vivo)badge=`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`;
     else if(fin)badge=`<span class="badge-fin">FINAL</span>`;
-    else if((m.kickoff||"").slice(0,10)===new Date().toISOString().slice(0,10))badge=`<span class="badge-hoy">HOY</span>`;
+    else if(m.kickoff&&fechaMX(m.kickoff)===hoyMX())badge=`<span class="badge-hoy">HOY</span>`;
     return `<div class="jm">
       <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
       ${centro}
@@ -841,7 +849,7 @@ async function viewTabla(){
 /* --- JORNADAS --- */
 function jmRow(m,conAnalisis){
   const fin=m.estado==="finalizado";
-  const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
+  const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
   // El _id del motor es "liga:local:visitante" (con : y espacios), que rompe
   // los selectores CSS. Usamos un id LIMPIO para el HTML y guardamos el real aparte.
   const safe="m"+Math.abs([...String(m._id)].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7));
