@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -83,6 +83,26 @@ router.post("/analizar", requireAuth, requirePro, ah(async (req, res) => {
   await u.save();
 
   res.json({ ...doc.toObject(), cacheado: false, usados: u.analisisUsados, limite: LIMITE_DIARIO });
+}));
+
+// --- DETALLE DEL PARTIDO: top jugadores de cada equipo (PRO) ---
+router.post("/detalle", requireAuth, requirePro, ah(async (req, res) => {
+  const { liga, local, visitante } = parseId(req.body.id || "");
+  if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
+  try {
+    const [jl, jv] = await Promise.all([
+      jugadoresEquipo(liga, local, 5),
+      jugadoresEquipo(liga, visitante, 5),
+    ]);
+    res.json({
+      ok: true,
+      local: { equipo: local, jugadores: jl.jugadores || [] },
+      visitante: { equipo: visitante, jugadores: jv.jugadores || [] },
+    });
+  } catch (e) {
+    console.error("Error detalle:", e.message);
+    res.status(502).json({ error: "El motor no responde" });
+  }
 }));
 
 export default router;
