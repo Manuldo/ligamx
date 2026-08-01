@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga, jugadoresEquipo } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -101,6 +101,19 @@ router.post("/detalle", requireAuth, requirePro, ah(async (req, res) => {
     });
   } catch (e) {
     console.error("Error detalle:", e.message);
+    res.status(502).json({ error: "El motor no responde" });
+  }
+}));
+
+// --- ALINEACIONES DE UN PARTIDO (PRO) ---
+router.post("/alineaciones", requireAuth, requirePro, ah(async (req, res) => {
+  const { liga, local, visitante } = parseId(req.body.id || "");
+  if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
+  try {
+    const ali = await alineacionesPartido(liga, local, visitante);
+    res.json(ali);
+  } catch (e) {
+    console.error("Error alineaciones:", e.message);
     res.status(502).json({ error: "El motor no responde" });
   }
 }));
