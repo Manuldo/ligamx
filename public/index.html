@@ -193,6 +193,16 @@ tbody tr:hover{background:var(--panel2)}
 .ali-pos{font-size:9.5px;font-weight:700;color:var(--dim2);text-transform:uppercase}
 .ali-empty{font-size:12px;color:var(--dim2);padding:8px 0}
 
+/* ===== SELECTOR DE JORNADAS ===== */
+.jornada-sel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
+.jor-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
+  color:var(--dim);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
+.jor-chip:hover{border-color:var(--dim2);color:var(--txt)}
+.jor-chip.on{background:var(--panel3);border-color:var(--dim2);color:var(--txt)}
+.jor-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.jday{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--dim);padding:11px 16px 7px;background:var(--panel2);text-transform:capitalize}
+
 /* ===== MARCADORES EN VIVO + BADGES (idea 1) ===== */
 .badge-live{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;
   letter-spacing:.06em;color:var(--red);background:rgba(236,48,19,.12);padding:3px 9px;border-radius:5px;flex-shrink:0}
@@ -641,30 +651,50 @@ function lockRow(p){
     <div class="lk-e"><div class="k">Ventaja</div><div class="v mono">+${pct(p.edge)}</div></div>
     <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`;
 }
+let JORNADA_SEL=null;  // null = auto (próximos)
 async function viewHoy(){
-  // Pantalla principal tipo motor: partidos de hoy arriba + resultados abajo.
   const liga=LIGA_ACTUAL;
-  const r=await fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()});
-  const partidos=await r.json().catch(()=>[]);
-  const hoyStr=new Date().toISOString().slice(0,10);
-  const proximos=partidos.filter(p=>p.estado!=="finalizado");
-  const jugados=partidos.filter(p=>p.estado==="finalizado").slice(0,10);
+  // traer jornadas (para el selector) y partidos en paralelo
+  const [rp,rj]=await Promise.all([
+    fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()}),
+    fetch(`${API}/matches/jornadas-liga?liga=${liga}`,{headers:H()}).catch(()=>null)
+  ]);
+  const partidos=await rp.json().catch(()=>[]);
+  const jdata=rj?await rj.json().catch(()=>({jornadas:[]})):{jornadas:[]};
+  const jornadas=jdata.jornadas||[];
+
+  // jornada por defecto: la "actual", o la primera próxima
+  if(JORNADA_SEL===null){
+    const actual=jornadas.find(j=>j.estado==="actual")||jornadas.find(j=>j.estado==="proxima");
+    JORNADA_SEL=actual?actual.jornada:"__todas__";
+  }
+
+  // filtrar partidos por jornada seleccionada
+  let lista=partidos;
+  if(JORNADA_SEL&&JORNADA_SEL!=="__todas__"){
+    lista=partidos.filter(p=>(p.jornada||"")===JORNADA_SEL);
+  }
+  const proximos=lista.filter(p=>p.estado!=="finalizado");
+  const jugados=lista.filter(p=>p.estado==="finalizado");
   $("#tbS").textContent=`${proximos.length} próximos`;
+
+  // agrupar por día
+  function agrupaPorDia(arr){
+    const by={};
+    arr.forEach(m=>{
+      const k=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"}):"Por definir";
+      (by[k]=by[k]||[]).push(m);
+    });
+    return by;
+  }
 
   const cardPartido=(m,fin)=>{
     const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}):"";
     const vivo=m.enVivo||m.estado==="en_vivo";
-    // marcador o hora en el centro
     let centro;
-    if(vivo){
-      centro=`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0} - ${m.golesVisitante??0}
-        ${m.minuto?`<span class="jm-min">⚡ ${esc(String(m.minuto))}'</span>`:""}</span>`;
-    }else if(fin){
-      centro=`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`;
-    }else{
-      centro=`<span class="jm-mid mono">${hora||"vs"}</span>`;
-    }
-    // badge de estado
+    if(vivo){centro=`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0} - ${m.golesVisitante??0}${m.minuto?`<span class="jm-min">⚡ ${esc(String(m.minuto))}'</span>`:""}</span>`;}
+    else if(fin){centro=`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`;}
+    else{centro=`<span class="jm-mid mono">${hora||"vs"}</span>`;}
     let badge="";
     if(vivo)badge=`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`;
     else if(fin)badge=`<span class="badge-fin">FINAL</span>`;
@@ -679,27 +709,37 @@ async function viewHoy(){
     </div>`;
   };
 
+  const grupoHTML=(arr,fin)=>{
+    const by=agrupaPorDia(arr);
+    return Object.entries(by).map(([dia,ms])=>`<div class="jday">${esc(dia)}</div>${ms.map(m=>cardPartido(m,fin)).join("")}`).join("");
+  };
+
+  // selector de jornadas (chips)
+  const jornadaSelHTML=jornadas.length?`<div class="jornada-sel">
+    ${jornadas.map(j=>`<button class="jor-chip ${JORNADA_SEL===j.jornada?"on":""}" data-jornada="${esc(j.jornada)}">
+      ${esc(j.jornada)}${j.estado==="actual"?' <span class="jor-dot"></span>':""}</button>`).join("")}
+    <button class="jor-chip ${JORNADA_SEL==="__todas__"?"on":""}" data-jornada="__todas__">Todas</button>
+  </div>`:"";
+
   $("#page").innerHTML=`
     ${ligaSelectorHTML()}
+    ${jornadaSelHTML}
     <div class="card" style="margin-bottom:16px">
-      <div class="card-h"><span class="card-t">Partidos de hoy</span>
+      <div class="card-h"><span class="card-t">${JORNADA_SEL&&JORNADA_SEL!=="__todas__"?esc(JORNADA_SEL):"Próximos partidos"}</span>
         <span class="card-s">${LIGA_NOMBRES[liga]||liga} · toca Analizar</span></div>
-      ${proximos.length?proximos.map(m=>cardPartido(m,false)).join("")
+      ${proximos.length?grupoHTML(proximos,false)
         :`<div class="empty"><b>No hay partidos próximos</b>
-          <span>Actualiza los datos desde el motor con tu extensión.</span></div>`}
+          <span>Prueba otra jornada o actualiza los datos con la extensión.</span></div>`}
     </div>
     ${jugados.length?`<div class="card">
-      <div class="card-h"><span class="card-t">Resultados recientes</span>
-        <span class="card-s">Últimos ${jugados.length}</span></div>
-      ${jugados.map(m=>cardPartido(m,true)).join("")}
+      <div class="card-h"><span class="card-t">Resultados</span>
+        <span class="card-s">${jugados.length} jugados</span></div>
+      ${grupoHTML(jugados,true)}
     </div>`:""}`;
 
-  // Auto-refresco: si hay partidos en vivo, refrescar cada 60s (sin recargar página)
   const hayVivo=proximos.some(m=>m.enVivo||m.estado==="en_vivo");
   clearTimeout(window._refreshHoy);
-  if(hayVivo&&view==="hoy"){
-    window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);
-  }
+  if(hayVivo&&view==="hoy"){window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);}
 }
 /* --- PARLAYS --- */
 async function viewParlays(){
@@ -944,7 +984,10 @@ function alineacionesHTML(d,local,visitante){
 document.addEventListener("click",async e=>{
   // cambiar de liga
   const lg=e.target.closest("[data-liga]");
-  if(lg){LIGA_ACTUAL=lg.dataset.liga;render();return;}
+  if(lg){LIGA_ACTUAL=lg.dataset.liga;JORNADA_SEL=null;render();return;}
+  // cambiar de jornada
+  const jr=e.target.closest("[data-jornada]");
+  if(jr){JORNADA_SEL=jr.dataset.jornada;viewHoy();return;}
   // abrir pantalla dedicada del partido
   const pt=e.target.closest("[data-partido]");
   if(pt){
