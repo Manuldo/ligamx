@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -115,6 +115,18 @@ router.post("/alineaciones", requireAuth, requirePro, ah(async (req, res) => {
   } catch (e) {
     console.error("Error alineaciones:", e.message);
     res.status(502).json({ error: "El motor no responde" });
+  }
+}));
+
+// --- JORNADAS de una liga (para el selector) ---
+router.get("/jornadas-liga", ah(async (req, res) => {
+  const liga = req.query.liga || "ligamx";
+  try {
+    const data = await jornadasLiga(liga);
+    res.json(data);
+  } catch (e) {
+    console.error("Error jornadas-liga:", e.message);
+    res.json({ liga, jornadas: [] });
   }
 }));
 
