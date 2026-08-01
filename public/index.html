@@ -177,6 +177,22 @@ tbody tr:hover{background:var(--panel2)}
 .lk-e .k{font-size:9px;color:var(--dim2);text-transform:uppercase;letter-spacing:.08em}
 .lk-e .v{font-weight:800;font-size:15px;color:var(--red)}
 
+/* ===== ALINEACIONES ===== */
+.ali-badge{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:.07em;padding:3px 9px;border-radius:5px}
+.ali-conf{color:var(--green);background:rgba(34,197,94,.13)}
+.ali-prob{color:var(--amber);background:rgba(240,180,41,.13)}
+.ali-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+@media(max-width:560px){.ali-grid{grid-template-columns:1fr}}
+.ali-col{background:var(--panel);padding:12px 14px}
+.ali-team{font-weight:800;font-size:13px;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.ali-form{font-size:10px;font-weight:700;color:var(--dim2);background:var(--panel3);padding:2px 6px;border-radius:4px}
+.ali-p{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid rgba(37,41,53,.4)}
+.ali-p:last-child{border-bottom:none}
+.ali-num{width:20px;font-size:11px;color:var(--dim2);text-align:center;flex-shrink:0}
+.ali-name{font-size:13px;font-weight:600;flex:1}
+.ali-pos{font-size:9.5px;font-weight:700;color:var(--dim2);text-transform:uppercase}
+.ali-empty{font-size:12px;color:var(--dim2);padding:8px 0}
+
 /* ===== MARCADORES EN VIVO + BADGES (idea 1) ===== */
 .badge-live{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;
   letter-spacing:.06em;color:var(--red);background:rgba(236,48,19,.12);padding:3px 9px;border-radius:5px;flex-shrink:0}
@@ -866,6 +882,9 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="skel"></div><div class="skel" style="width:75%"></div></div>
+    <div class="card" style="margin-bottom:16px" id="pAlineaciones">
+      <div class="card-h"><span class="card-t">Alineaciones</span></div>
+      <div class="skel"></div></div>
     <div class="grid2">
       <div class="card" id="pJugL"><div class="card-h"><span class="card-t">Top ${esc(local)}</span></div>
         <div class="skel"></div></div>
@@ -878,6 +897,11 @@ async function abrirPartido(id){
         <span class="card-s">${d.cacheado?"guardado":"nuevo"}</span></div>
         ${motorAnalisisHTML(d.analisisMarkdown||d.error||"Sin análisis")}`;
     }).catch(()=>{$("#pAnalisis").innerHTML=`<div class="empty"><b>No se pudo analizar</b></div>`;});
+  // ALINEACIONES (probables siempre, confirmada ~1h antes)
+  fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+    .then(r=>r.json()).then(d=>{$("#pAlineaciones").innerHTML=alineacionesHTML(d,local,visitante);})
+    .catch(()=>{$("#pAlineaciones").innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
+      <div class="empty"><span>No disponibles ahora</span></div>`;});
   fetch(`${API}/matches/detalle`,{method:"POST",headers:H(),body:JSON.stringify({id})})
     .then(r=>r.json()).then(d=>{
       $("#pJugL").innerHTML=jugadoresCardHTML("Top "+local,(d.local&&d.local.jugadores)||[]);
@@ -893,6 +917,27 @@ function jugadoresCardHTML(titulo,jug){
       <div class="pstat"><div class="v mono">${j.rating?Number(j.rating).toFixed(1):(j.goles||0)}</div>
         <div class="k">${j.rating?"Rating":"Goles"}</div></div>
     </div>`).join(""):`<div class="empty"><span>Sin datos de jugadores</span></div>`}`;
+}
+function alineacionesHTML(d,local,visitante){
+  if(!d||!d.hay){
+    return `<div class="card-h"><span class="card-t">Alineaciones</span>
+      <span class="card-s">Probables</span></div>
+      <div class="empty"><span>${esc((d&&d.mensaje)||"Se publican ~1 hora antes del partido")}</span></div>`;
+  }
+  const badge=d.confirmada
+    ? `<span class="ali-badge ali-conf">✓ CONFIRMADA</span>`
+    : `<span class="ali-badge ali-prob">PROBABLE</span>`;
+  const col=(eq)=>`
+    <div class="ali-col">
+      <div class="ali-team">${esc(eq.equipo)} ${eq.formacion?`<span class="ali-form">${esc(eq.formacion)}</span>`:""}</div>
+      ${(eq.titulares||[]).length?(eq.titulares||[]).map(j=>`
+        <div class="ali-p"><span class="ali-num mono">${esc(String(j.numero||j.dorsal||"·"))}</span>
+        <span class="ali-name">${esc(j.nombre||j.name||j)}</span>
+        ${j.posicion?`<span class="ali-pos">${esc(j.posicion)}</span>`:""}</div>`).join("")
+        :`<div class="ali-empty">Sin confirmar aún</div>`}
+    </div>`;
+  return `<div class="card-h"><span class="card-t">Alineaciones</span>${badge}</div>
+    <div class="ali-grid">${col(d.local||{equipo:local})}${col(d.visitante||{equipo:visitante})}</div>`;
 }
 
 /* ===== ACCIONES ===== */
