@@ -43,46 +43,23 @@ router.post("/analizar", requireAuth, requirePro, ah(async (req, res) => {
   const { liga, local, visitante } = parseId(req.body.id || "");
   if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
 
-  const fecha = hoy();
-  const claveCache = `${liga}:${local}:${visitante}`;
-
-  // 1) Cache del día
-  const cache = await MatchAnalysis.findOne({ partido: claveCache, fecha });
-  if (cache) return res.json({ ...cache.toObject(), cacheado: true });
-
-  // 2) Cuota diaria
-  const u = req.user;
-  if (u.analisisFecha !== fecha) { u.analisisFecha = fecha; u.analisisUsados = 0; }
-  if (u.analisisUsados >= LIMITE_DIARIO) {
-    return res.status(429).json({
-      error: `Llegaste a tu límite de ${LIMITE_DIARIO} análisis por día`,
-      usados: u.analisisUsados, limite: LIMITE_DIARIO,
-    });
-  }
-
-  // 3) Llamar al motor (profundo porque es PRO)
+  // Pickazoapp NO cachea: siempre le pide al MOTOR, que responde con su
+  // propio cache (barato, no gasta IA) o regenera si se le fuerza.
+  // Así pickazoapp siempre muestra lo que el motor tiene actualizado.
   let motor;
   try {
-    motor = await analizarPartido(local, visitante, liga, true);
+    motor = await analizarPartido(local, visitante, liga, true, !!req.body.forzar);
   } catch (err) {
     console.error("Error motor:", err.message);
     return res.status(502).json({ error: "El motor de análisis no responde. Intenta de nuevo." });
   }
 
-  // 4) Guardar en cache + descontar cuota
-  const doc = await MatchAnalysis.create({
-    matchId: undefined,   // ya no usamos ObjectId de Match (los datos vienen del motor)
-    fecha,
-    partido: claveCache,
+  res.json({
+    partido: `${local} vs ${visitante}`,
     analisisMarkdown: motor.analisis_markdown || "",
     nivel: motor.nivel || "premium",
-    resumen: (motor.analisis_markdown || "").slice(0, 300),
-    generadoPor: u._id,
+    cacheado: !!motor.desde_cache,   // si el MOTOR lo tenía guardado
   });
-  u.analisisUsados += 1;
-  await u.save();
-
-  res.json({ ...doc.toObject(), cacheado: false, usados: u.analisisUsados, limite: LIMITE_DIARIO });
 }));
 
 // --- DETALLE DEL PARTIDO: top jugadores de cada equipo (PRO) ---
