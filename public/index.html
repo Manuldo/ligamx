@@ -960,7 +960,7 @@ async function abrirPartido(id){
   $("#tbS").textContent=LIGA_NOMBRES[liga]||liga;
   $("#page").innerHTML=`
     <button class="btn btn-line" onclick="setView('hoy')" style="margin-bottom:14px">← Volver</button>
-    <div class="match-hero card" style="margin-bottom:16px">
+    <div class="match-hero card" style="margin-bottom:16px" id="pHero">
       <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
         <div style="text-align:center">${crest(local,null,true)}
           <div style="font-weight:800;font-size:15px;margin-top:8px">${esc(local)}</div></div>
@@ -980,17 +980,65 @@ async function abrirPartido(id){
       <div class="card" id="pJugV"><div class="card-h"><span class="card-t">Top ${esc(visitante)}</span></div>
         <div class="skel"></div></div>
     </div>`;
-  fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id})})
-    .then(r=>r.json()).then(d=>{
-      $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
-        <span class="card-s">${d.cacheado?"guardado":"nuevo"}</span></div>
-        ${motorAnalisisHTML(d.analisisMarkdown||d.error||"Sin análisis")}`;
-    }).catch(()=>{$("#pAnalisis").innerHTML=`<div class="empty"><b>No se pudo analizar</b></div>`;});
+  // Hero con marcador/estado en vivo (consulta el partido actual)
+  window._cargarHero=()=>{
+    fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()})
+      .then(r=>r.json()).then(arr=>{
+        const m=(arr||[]).find(x=>x._id===id);
+        if(!m)return;
+        const vivo=m.enVivo||m.estado==="en_vivo";
+        const fin=m.estado==="finalizado";
+        let centro,estado="";
+        if(vivo){centro=`<div class="mono" style="font-size:32px;font-weight:900">${m.golesLocal??0} - ${m.golesVisitante??0}</div>`;
+          estado=`<span class="badge-live" style="margin-top:6px"><span class="dot-live"></span>EN VIVO${m.minuto?` · ${esc(String(m.minuto))}'`:""}</span>`;}
+        else if(fin){centro=`<div class="mono" style="font-size:32px;font-weight:900">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</div>`;
+          estado=`<span class="badge-fin" style="margin-top:6px">FINAL</span>`;}
+        else{const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
+          centro=`<div style="color:var(--dim2);font-weight:800;font-size:16px">VS</div>`;
+          estado=`<span style="font-size:12px;color:var(--dim);margin-top:6px">${hora}</span>`;}
+        $("#pHero").innerHTML=`<div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
+          <div style="text-align:center">${crest(local,null,true)}
+            <div style="font-weight:800;font-size:15px;margin-top:8px">${esc(local)}</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center">${centro}${estado}</div>
+          <div style="text-align:center">${crest(visitante,null,true)}
+            <div style="font-weight:800;font-size:15px;margin-top:8px">${esc(visitante)}</div></div>
+        </div>`;
+        // si está en vivo, refrescar el hero cada 60s
+        clearTimeout(window._heroTimer);
+        if(vivo&&view==="partido")window._heroTimer=setTimeout(()=>{if(view==="partido")window._cargarHero();},60000);
+      }).catch(()=>{});
+  };
+  window._cargarHero();
+  window._cargarAnalisis=(forzar)=>{
+    $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+      <div class="skel"></div><div class="skel" style="width:75%"></div>`;
+    fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar})})
+      .then(r=>r.json()).then(d=>{
+        $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
+          <span class="card-s">${d.cacheado?"guardado":"actualizado"}</span>
+          <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" onclick="window._cargarAnalisis(true)">↻ Refrescar</button></div>
+          ${motorAnalisisHTML(d.analisisMarkdown||d.error||"Sin análisis")}`;
+      }).catch(()=>{$("#pAnalisis").innerHTML=`<div class="empty"><b>No se pudo analizar</b></div>`;});
+  };
+  window._cargarAnalisis(false);
   // ALINEACIONES (probables siempre, confirmada ~1h antes)
-  fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
-    .then(r=>r.json()).then(d=>{$("#pAlineaciones").innerHTML=alineacionesHTML(d,local,visitante);})
-    .catch(()=>{$("#pAlineaciones").innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
-      <div class="empty"><span>No disponibles ahora</span></div>`;});
+  window._cargarAlineaciones=()=>{
+    fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+      .then(r=>r.json()).then(d=>{$("#pAlineaciones").innerHTML=alineacionesHTML(d,local,visitante,id);})
+      .catch(()=>{$("#pAlineaciones").innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
+        <div class="empty"><span>No disponibles ahora</span></div>`;});
+  };
+  window._cargarAlineaciones();
+  // botón traer alineación de ESTE partido
+  window._traerAlineacion=(btn)=>{
+    if(btn){btn.disabled=true;btn.textContent="Trayendo…";}
+    fetch(`${API}/matches/traer-alineacion`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+      .then(r=>r.json()).then(d=>{
+        if(d.actualizados>0){window._cargarAlineaciones();}
+        else{if(btn){btn.disabled=false;btn.textContent="🔄 Traer alineación";}
+          const nota=$("#aliNota");if(nota)nota.textContent=d.nota||"Aún no disponible (se confirma ~1h antes)";}
+      }).catch(()=>{if(btn){btn.disabled=false;btn.textContent="🔄 Traer alineación";}});
+  };
   fetch(`${API}/matches/detalle`,{method:"POST",headers:H(),body:JSON.stringify({id})})
     .then(r=>r.json()).then(d=>{
       $("#pJugL").innerHTML=jugadoresCardHTML("Top "+local,(d.local&&d.local.jugadores)||[]);
@@ -1007,11 +1055,12 @@ function jugadoresCardHTML(titulo,jug){
         <div class="k">${j.rating?"Rating":"Goles"}</div></div>
     </div>`).join(""):`<div class="empty"><span>Sin datos de jugadores</span></div>`}`;
 }
-function alineacionesHTML(d,local,visitante){
+function alineacionesHTML(d,local,visitante,id){
+  const btnTraer=`<button class="btn btn-line" style="padding:5px 11px;font-size:11px" onclick="window._traerAlineacion(this)">🔄 Traer alineación</button>`;
   if(!d||!d.hay){
     return `<div class="card-h"><span class="card-t">Alineaciones</span>
-      <span class="card-s">Probables</span></div>
-      <div class="empty"><span>${esc((d&&d.mensaje)||"Se publican ~1 hora antes del partido")}</span></div>`;
+      <span class="card-s" style="margin-left:auto">${btnTraer}</span></div>
+      <div class="empty"><span id="aliNota">${esc((d&&d.mensaje)||"Se publican ~1 hora antes del partido")}</span></div>`;
   }
   const badge=d.confirmada
     ? `<span class="ali-badge ali-conf">✓ CONFIRMADA</span>`
@@ -1025,7 +1074,8 @@ function alineacionesHTML(d,local,visitante){
         ${j.posicion?`<span class="ali-pos">${esc(j.posicion)}</span>`:""}</div>`).join("")
         :`<div class="ali-empty">Sin confirmar aún</div>`}
     </div>`;
-  return `<div class="card-h"><span class="card-t">Alineaciones</span>${badge}</div>
+  return `<div class="card-h"><span class="card-t">Alineaciones</span>${badge}
+    <span style="margin-left:auto">${btnTraer}</span></div>
     <div class="ali-grid">${col(d.local||{equipo:local})}${col(d.visitante||{equipo:visitante})}</div>`;
 }
 
