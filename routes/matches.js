@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas, traerAlineacion } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -121,6 +121,19 @@ router.get("/todas", ah(async (req, res) => {
   } catch (e) {
     console.error("Error todas:", e.message);
     res.json([]);
+  }
+}));
+
+// --- TRAER alineación de UN partido (botón por juego, solo PRO) ---
+router.post("/traer-alineacion", requireAuth, requirePro, ah(async (req, res) => {
+  const { liga, local, visitante } = parseId(req.body.id || "");
+  if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
+  try {
+    const r = await traerAlineacion(liga, local, visitante);
+    res.json(r);
+  } catch (e) {
+    console.error("Error traer-alineacion:", e.message);
+    res.status(502).json({ error: "El motor no responde" });
   }
 }));
 
