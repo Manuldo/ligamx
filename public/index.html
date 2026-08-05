@@ -202,6 +202,19 @@ tbody tr:hover{background:var(--panel2)}
 .ali-pos{font-size:9.5px;font-weight:700;color:var(--dim2);text-transform:uppercase}
 .ali-empty{font-size:12px;color:var(--dim2);padding:8px 0}
 
+/* ===== LIGAS COLAPSABLES EN SIDEBAR ===== */
+.sb-liga{margin-bottom:2px}
+.sb-liga-head{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;
+  color:var(--dim);padding:9px 12px;border-radius:8px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+.sb-liga-head:hover{background:var(--panel3);color:var(--txt)}
+.sb-liga-flag{font-size:15px}
+.sb-liga-name{flex:1;text-align:left}
+.sb-liga-caret{font-size:10px;color:var(--dim2);transition:transform .2s}
+.sb-liga:not(.open) .sb-liga-caret{transform:rotate(-90deg)}
+.sb-liga-sub{overflow:hidden;max-height:0;transition:max-height .2s ease}
+.sb-liga.open .sb-liga-sub{max-height:160px}
+.sb-item.sub{padding-left:34px;font-size:13px}
+
 /* ===== ANALIZADOR (buscador de partidos) ===== */
 .an-input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
   border-radius:9px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none}
@@ -398,10 +411,8 @@ body.landing .page{padding:0;max-width:none}
     <button class="sb-item on" data-v="hoy"><span class="ic">◎</span><span>Picks de hoy</span></button>
     <button class="sb-item" data-v="analizar"><span class="ic">⚡</span><span>Analizar</span></button>
     <button class="sb-item" data-v="parlays"><span class="ic">◆</span><span>Parlays</span></button>
-    <div class="sb-sec">Liga MX</div>
-    <button class="sb-item" data-v="tabla"><span class="ic">▤</span><span>Tabla</span></button>
-    <button class="sb-item" data-v="jornada"><span class="ic">◈</span><span>Jornadas</span></button>
-    <button class="sb-item" data-v="jugadores"><span class="ic">◍</span><span>Jugadores</span></button>
+    <div class="sb-sec">Ligas</div>
+    <div id="sbLigas"></div>
     <div class="sb-sec">Personal</div>
     <button class="sb-item" data-v="mios"><span class="ic">✦</span><span>Mis picks</span></button>
   </div>
@@ -592,6 +603,28 @@ function setView(v){
   $("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];
   render();
 }
+// Liga abierta en el sidebar (colapsable). Por defecto Liga MX.
+let LIGA_SB_ABIERTA="ligamx";
+function sbLigas(){
+  const cont=$("#sbLigas");
+  if(!cont)return;
+  cont.innerHTML=Object.keys(LIGA_NOMBRES).map(k=>{
+    const abierta=LIGA_SB_ABIERTA===k;
+    return `<div class="sb-liga ${abierta?"open":""}">
+      <button class="sb-liga-head" data-ligasb="${k}">
+        <span class="sb-liga-flag">${LIGA_FLAGS[k]||"⚽"}</span>
+        <span class="sb-liga-name">${LIGA_NOMBRES[k]}</span>
+        <span class="sb-liga-caret">▾</span>
+      </button>
+      <div class="sb-liga-sub">
+        <button class="sb-item sub" data-v="tabla" data-liga-target="${k}"><span class="ic">▤</span><span>Tabla</span></button>
+        <button class="sb-item sub" data-v="jornada" data-liga-target="${k}"><span class="ic">◈</span><span>Jornadas</span></button>
+        <button class="sb-item sub" data-v="jugadores" data-liga-target="${k}"><span class="ic">◍</span><span>Jugadores</span></button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
 function sbUser(){
   $("#sbuser").innerHTML = me
     ? `<span class="av">${esc((me.email||"?")[0].toUpperCase())}</span>
@@ -901,7 +934,7 @@ async function viewParlays(){
 }
 /* --- TABLA --- */
 async function viewTabla(){
-  const r=await fetch(`${API}/league/tabla`,{headers:H()});
+  const r=await fetch(`${API}/league/tabla?liga=${LIGA_SB_ABIERTA}`,{headers:H()});
   const t=await r.json();
   if(!t.length){$("#page").innerHTML=`<div class="card"><div class="empty">
     <b>Tabla no disponible</b><span>Se carga desde la cuenta maestra antes de cada jornada.</span>
@@ -942,7 +975,7 @@ function jmRow(m,conAnalisis){
   </div><div id="an-${safe}"></div>`;
 }
 async function viewJornada(){
-  const r=await fetch(`${API}/league/jornadas`,{headers:H()});
+  const r=await fetch(`${API}/league/jornadas?liga=${LIGA_SB_ABIERTA}`,{headers:H()});
   const d=await r.json();
   if(!d.actual&&!(d.previas||[]).length){
     $("#page").innerHTML=`<div class="card"><div class="empty"><b>Sin jornadas cargadas</b>
@@ -967,7 +1000,7 @@ async function viewJornada(){
 /* --- JUGADORES --- */
 let pOrden="rating",pPos="";
 async function viewJugadores(){
-  const q=new URLSearchParams({orden:pOrden});if(pPos)q.set("pos",pPos);
+  const q=new URLSearchParams({orden:pOrden,liga:LIGA_SB_ABIERTA});if(pPos)q.set("pos",pPos);
   const r=await fetch(`${API}/league/jugadores?`+q,{headers:H()});
   const d=await r.json();
   const l=d.jugadores||[];
@@ -1162,6 +1195,21 @@ function alineacionesHTML(d,local,visitante,id){
 
 /* ===== ACCIONES ===== */
 document.addEventListener("click",async e=>{
+  // colapsar/expandir liga en sidebar
+  const lsb=e.target.closest("[data-ligasb]");
+  if(lsb){
+    const k=lsb.dataset.ligasb;
+    LIGA_SB_ABIERTA=(LIGA_SB_ABIERTA===k)?"":k;  // toggle
+    sbLigas();
+    return;
+  }
+  // clic en Tabla/Jornadas/Jugadores de una liga específica
+  const lt=e.target.closest("[data-liga-target]");
+  if(lt){
+    LIGA_SB_ABIERTA=lt.dataset.ligaTarget;
+    setView(lt.dataset.v);
+    return;
+  }
   // cambiar de liga en el analizador
   const alg=e.target.closest("[data-analiga]");
   if(alg){_analizarLiga=alg.dataset.analiga;viewAnalizar();return;}
@@ -1319,7 +1367,7 @@ $("#mGo").onclick=async()=>{
     localStorage.setItem("token",token);localStorage.setItem("me",JSON.stringify(me));
     $("#mod").classList.remove("on");
     toast(mode==="login"?"Bienvenido de vuelta":"Cuenta creada","ok");
-    sbUser();render();
+    sbUser();sbLigas();render();
   }catch{$("#mE").textContent="Sin conexión.";}
   finally{$("#mGo").disabled=false;$("#mGo").textContent=mode==="login"?"Entrar":"Crear cuenta";}
 };
@@ -1330,7 +1378,7 @@ function logout(){
   sbUser();gate();toast("Sesión cerrada");
 }
 
-sbUser();render();
+sbUser();sbLigas();render();
 </script>
 </body>
 </html>
