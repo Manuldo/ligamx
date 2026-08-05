@@ -202,6 +202,24 @@ tbody tr:hover{background:var(--panel2)}
 .ali-pos{font-size:9.5px;font-weight:700;color:var(--dim2);text-transform:uppercase}
 .ali-empty{font-size:12px;color:var(--dim2);padding:8px 0}
 
+/* ===== ANALIZADOR (buscador de partidos) ===== */
+.an-input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  border-radius:9px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none}
+.an-input:focus{border-color:var(--red)}
+.an-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;
+  border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
+.an-row:hover{background:var(--panel2)}
+.an-row:last-child{border-bottom:none}
+.an-row-teams{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.an-row-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-row-vs{font-size:11px;color:var(--dim2);font-weight:700;margin:0 2px}
+.an-row-meta{display:flex;align-items:center;gap:12px;flex-shrink:0;font-size:12px;color:var(--dim)}
+.an-row-go{color:var(--red);font-weight:700;font-size:12px}
+@media(max-width:560px){
+  .an-row{flex-wrap:wrap;gap:7px}
+  .an-row-meta{width:100%;justify-content:space-between}
+}
+
 /* ===== SELECTOR DE JORNADAS ===== */
 .jornada-sel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;overflow-x:auto;padding-bottom:2px}
 .jor-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);
@@ -378,7 +396,8 @@ body.landing .page{padding:0;max-width:none}
   <div class="sb-nav" id="sbnav">
     <div class="sb-sec">Análisis</div>
     <button class="sb-item on" data-v="hoy"><span class="ic">◎</span><span>Picks de hoy</span></button>
-    <button class="sb-item" data-v="parlays"><span class="ic">⚡</span><span>Parlays</span></button>
+    <button class="sb-item" data-v="analizar"><span class="ic">⚡</span><span>Analizar</span></button>
+    <button class="sb-item" data-v="parlays"><span class="ic">◆</span><span>Parlays</span></button>
     <div class="sb-sec">Liga MX</div>
     <button class="sb-item" data-v="tabla"><span class="ic">▤</span><span>Tabla</span></button>
     <button class="sb-item" data-v="jornada"><span class="ic">◈</span><span>Jornadas</span></button>
@@ -563,7 +582,7 @@ document.addEventListener("click",e=>{
   if(isMobile()){document.body.classList.remove("mopen");$("#scrim").classList.remove("on");}
 });
 
-const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],parlays:["Parlays","Combinados por IA"],
+const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados por IA"],
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
@@ -632,6 +651,7 @@ async function render(){
     <div class="skel" style="width:85%"></div></div>`;
   try{
     if(view==="hoy")await viewHoy();
+    else if(view==="analizar")await viewAnalizar();
     else if(view==="parlays")await viewParlays();
     else if(view==="tabla")await viewTabla();
     else if(view==="jornada")await viewJornada();
@@ -799,6 +819,58 @@ async function viewHoy(){
   clearTimeout(window._refreshHoy);
   if(hayVivo&&view==="hoy"){window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);}
 }
+/* --- ANALIZAR: buscador de partidos --- */
+let _analizarLiga="ligamx", _analizarBusqueda="";
+async function viewAnalizar(){
+  const liga=_analizarLiga;
+  const r=await fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()});
+  const partidos=await r.json().catch(()=>[]);
+  $("#tbT").textContent="Analizar";
+  $("#tbS").textContent="Elige un partido";
+  // filtrar por búsqueda
+  const q=_analizarBusqueda.trim().toLowerCase();
+  let lista=partidos.filter(p=>p.estado!=="finalizado");
+  if(q)lista=lista.filter(p=>(`${p.local} ${p.visitante}`).toLowerCase().includes(q));
+  lista=lista.slice(0,40);
+
+  const fila=(m)=>{
+    const hora=m.kickoff?new Date(m.kickoff).toLocaleDateString("es-MX",{day:"numeric",month:"short",timeZone:TZ})
+      +" · "+new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
+    const vivo=m.enVivo||m.estado==="en_vivo";
+    return `<div class="an-row" data-partido="${esc(m._id)}">
+      <div class="an-row-teams">
+        ${crest(m.local)}<span class="an-row-name">${esc(m.local)}</span>
+        <span class="an-row-vs">vs</span>
+        ${crest(m.visitante)}<span class="an-row-name">${esc(m.visitante)}</span>
+      </div>
+      <div class="an-row-meta">${vivo?'<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>':hora}
+        <span class="an-row-go">Analizar →</span></div>
+    </div>`;
+  };
+
+  $("#page").innerHTML=`
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-h"><span class="card-t">Analizar un partido</span>
+        <span class="card-s">elige de la lista o busca</span></div>
+      <div style="padding:14px 16px">
+        <input id="anBusca" class="an-input" placeholder="Buscar equipo… (ej. Chivas)" value="${esc(_analizarBusqueda)}" autocomplete="off">
+        <div class="liga-sel" style="margin-top:12px">${Object.keys(LIGA_NOMBRES).map(k=>
+          `<button class="liga-chip ${_analizarLiga===k?"on":""}" data-analiga="${k}">
+            <span>${LIGA_FLAGS[k]||"⚽"}</span> ${LIGA_NOMBRES[k]}</button>`).join("")}</div>
+      </div>
+    </div>
+    <div class="card">
+      ${lista.length?lista.map(fila).join(""):`<div class="empty"><b>Sin partidos</b>
+        <span>Prueba otra liga o cambia la búsqueda.</span></div>`}
+    </div>`;
+
+  // listeners del buscador
+  const inp=$("#anBusca");
+  if(inp){inp.oninput=()=>{_analizarBusqueda=inp.value;clearTimeout(window._anDeb);
+    window._anDeb=setTimeout(()=>viewAnalizar(),250);};
+    inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
+}
+
 /* --- PARLAYS --- */
 async function viewParlays(){
   const r=await fetch(`${API}/parlays/hoy`,{headers:H()});
@@ -1090,6 +1162,9 @@ function alineacionesHTML(d,local,visitante,id){
 
 /* ===== ACCIONES ===== */
 document.addEventListener("click",async e=>{
+  // cambiar de liga en el analizador
+  const alg=e.target.closest("[data-analiga]");
+  if(alg){_analizarLiga=alg.dataset.analiga;viewAnalizar();return;}
   // cambiar de liga
   const lg=e.target.closest("[data-liga]");
   if(lg){LIGA_ACTUAL=lg.dataset.liga;JORNADA_SEL=null;render();return;}
