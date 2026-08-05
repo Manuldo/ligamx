@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pickazo MX</title>
+<link rel="icon" href="/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0e0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pickazo">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -906,7 +915,8 @@ async function viewAnalizar(){
 
 /* --- PARLAYS --- */
 async function viewParlays(){
-  const r=await fetch(`${API}/parlays/hoy`,{headers:H()});
+  const liga=LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL;
+  const r=await fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()});
   const d=await r.json(); const l=d.parlays||[];
   $("#page").innerHTML=`<div class="card">
     <div class="card-h"><span class="card-t">Parlays del día</span>
@@ -924,12 +934,19 @@ async function viewParlays(){
         <div class="en"><div class="k">Prob. conjunta</div><div class="v mono">${pct(pl.probConjunta)}</div></div>
         <div class="en"><div class="k">Ventaja</div><div class="v mono" style="color:var(--red)">+${pct(pl.edge)}</div></div></div>
       ${pl.analisisIA?`<p class="pnote">${pl.veredicto?`<b style="color:var(--red)">${esc(pl.veredicto)}</b> · `:""}${esc(pl.analisisIA)}</p>`:""}
+      ${(()=>{const mine=localStorage.getItem("mp_"+pl._id);
+        const snap={patas:pl.patas.map(x=>({partido:x.partido})),momioComb:pl.momioComb,probConjunta:pl.probConjunta,edge:pl.edge};
+        return `<div class="pft"><span></span>
+        <button class="sm ${mine?"on":""}" data-mine-parlay="${esc(pl._id)}"
+          data-snap='${esc(JSON.stringify(snap))}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>`;})()}
       </div>`).join("")
       :l.map(pl=>`<div class="lockrow"><div class="lk-b"><b>Parlay de ${pl.numPatas} patas</b>
         <div class="lk-blur">Patas reservadas</div></div>
         <div class="lk-e"><div class="k">Momio</div><div class="v mono">${dec(pl.momioComb)}</div></div>
         <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`).join(""))
-    :`<div class="empty"><b>Sin parlays hoy</b><span>Se arman con los picks del día.</span></div>`}
+    :`<div class="empty"><b>Sin parlays hoy</b><span>${d.motorCaido
+        ?"El motor no responde ahora. Intenta en un momento."
+        :"Se necesitan al menos 2 partidos con pick para armar un combinado. Vuelve cuando haya más juegos programados."}</span></div>`}
   </div>`;
 }
 /* --- TABLA --- */
@@ -1261,6 +1278,20 @@ document.addEventListener("click",async e=>{
         if(r.ok)toast("Guardado en tu historial","ok");}
       else{bm.disabled=false;toast(d.error||"No se pudo guardar");}
     }catch{bm.disabled=false;toast("Sin conexión");}
+    return;
+  }
+  const bmp=e.target.closest("[data-mine-parlay]");
+  if(bmp){
+    const id=bmp.dataset.mineParlay;bmp.disabled=true;
+    let snap={};try{snap=JSON.parse(bmp.dataset.snap||"{}");}catch{}
+    try{const r=await fetch(`${API}/history/registrar`,{method:"POST",headers:H(),
+        body:JSON.stringify({parlayId:id,snapshotParlay:snap})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok||r.status===409){localStorage.setItem("mp_"+id,"1");
+        bmp.textContent="✓ Lo jugué";bmp.classList.add("on");
+        if(r.ok)toast("Parlay guardado en tu historial","ok");}
+      else{bmp.disabled=false;toast(d.error||"No se pudo guardar");}
+    }catch{bmp.disabled=false;toast("Sin conexión");}
     return;
   }
   const bv=e.target.closest("[data-vote]");
