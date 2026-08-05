@@ -123,6 +123,15 @@ tbody tr:hover{background:var(--panel2)}
   padding:4px 8px;font-size:11px;font-weight:700;flex-shrink:0}
 .jm-an:hover:not(:disabled){border-color:var(--red);color:var(--red)}
 .jm-an:disabled{opacity:.4}
+/* --- Móvil: fila de partido más legible --- */
+@media(max-width:560px){
+  .jm{flex-wrap:wrap;gap:8px 10px;padding:12px 14px}
+  .jm-side{flex:1 1 40%;min-width:0}
+  .jm-name{font-size:13px}
+  .jm-mid{order:0;min-width:44px}
+  .badge-live,.badge-fin,.badge-hoy,.badge-liga{order:5;flex:0 0 auto}
+  .jm-an{order:6;margin-left:auto}
+}
 
 /* ===== JUGADORES ===== */
 .pfilters{display:flex;gap:6px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
