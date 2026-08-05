@@ -9,7 +9,8 @@ const LIGA = "ligamx"; // por ahora pickazoapp es Liga MX
 // --- TABLA (requiere login, como en tu app) ---
 router.get("/tabla", requireAuth, ah(async (req, res) => {
   try {
-    const data = await tablaLiga(LIGA);
+    const liga = req.query.liga || "ligamx";
+    const data = await tablaLiga(liga);
     // adaptar al formato que espera tu frontend
     const tabla = (data.tabla || []).map((f, i) => ({
       pos: f.posicion || i + 1,
@@ -35,7 +36,8 @@ router.get("/tabla", requireAuth, ah(async (req, res) => {
 // --- JORNADAS (requiere login) ---
 router.get("/jornadas", requireAuth, ah(async (req, res) => {
   try {
-    const data = await partidosLiga(LIGA, 100);
+    const liga = req.query.liga || "ligamx";
+    const data = await partidosLiga(liga, 400);
     const partidos = (data.partidos || []).map(p => ({
       _id: p.id, local: p.local, visitante: p.visitante,
       kickoff: p.inicio, estado: p.estado, fecha: (p.inicio || "").slice(0, 10),
@@ -57,7 +59,8 @@ router.get("/jornadas", requireAuth, ah(async (req, res) => {
 // --- JUGADORES (requiere login) ---
 router.get("/jugadores", requireAuth, ah(async (req, res) => {
   try {
-    const data = await jugadoresLiga(LIGA, 60);
+    const liga = req.query.liga || "ligamx";
+    const data = await jugadoresLiga(liga, 60);
     const jugadores = (data.jugadores || []).map(j => ({
       nombre: j.nombre || "",
       equipo: j.equipo || "",
