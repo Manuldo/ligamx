@@ -14,7 +14,7 @@ const router = express.Router();
 router.get("/picks-hoy", async (req, res) => {
   try {
     const liga = req.query.liga || "ligamx";
-    const data = await picksDelDia(liga, 8);
+    const data = await picksDelDia(liga, 8, req.id);
     res.json(data);
   } catch (e) {
     console.error("Error picks-hoy:", e.message);
@@ -30,7 +30,7 @@ router.post("/analizar-basico", requireAuth, async (req, res) => {
   try {
     const { local, visitante, liga } = req.body;
     if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
-    const data = await analizarPartido(local, visitante, liga || "ligamx", false);
+    const data = await analizarPartido(local, visitante, liga || "ligamx", false, false, req.id);
     res.json({
       ...data,
       mensaje_pro: "Hazte PRO para el análisis a fondo con todos los modelos y detalle",
@@ -49,7 +49,7 @@ router.post("/analizar", requireAuth, requirePro, async (req, res) => {
   try {
     const { local, visitante, liga } = req.body;
     if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
-    const data = await analizarPartido(local, visitante, liga || "ligamx", true);
+    const data = await analizarPartido(local, visitante, liga || "ligamx", true, false, req.id);
     res.json(data);
   } catch (e) {
     console.error("Error analizar:", e.message);
@@ -64,7 +64,7 @@ router.post("/analizar", requireAuth, requirePro, async (req, res) => {
 router.post("/generar-picks-dia", requireAdmin, async (req, res) => {
   try {
     const liga = req.body.liga || "ligamx";
-    const data = await picksDelDia(liga, 12);
+    const data = await picksDelDia(liga, 12, req.id);
     res.json({ ok: true, generados: data });
   } catch (e) {
     console.error("Error generar-picks-dia:", e.message);

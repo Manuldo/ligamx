@@ -6,7 +6,6 @@ import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jo
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
-const LIMITE_DIARIO = Number(process.env.ANALISIS_LIMITE_DIARIO || 5);
 
 // El id de partido del motor viene como "liga:local:visitante".
 // Lo partimos para saber qué analizar.
@@ -19,7 +18,7 @@ function parseId(id) {
 router.get("/", ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
   try {
-    const data = await partidosLiga(liga, 400);
+    const data = await partidosLiga(liga, 400, req.id);
     const estado = req.query.estado || "todos";
     let partidos = data.partidos || [];
     if (estado === "proximos") partidos = partidos.filter(p => p.estado !== "finalizado");
@@ -48,7 +47,7 @@ router.post("/analizar", requireAuth, requirePro, ah(async (req, res) => {
   // Así pickazoapp siempre muestra lo que el motor tiene actualizado.
   let motor;
   try {
-    motor = await analizarPartido(local, visitante, liga, true, !!req.body.forzar);
+    motor = await analizarPartido(local, visitante, liga, true, !!req.body.forzar, req.id);
   } catch (err) {
     console.error("Error motor:", err.message);
     return res.status(502).json({ error: "El motor de análisis no responde. Intenta de nuevo." });
@@ -68,8 +67,8 @@ router.post("/detalle", requireAuth, requirePro, ah(async (req, res) => {
   if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
   try {
     const [jl, jv] = await Promise.all([
-      jugadoresEquipo(liga, local, 5),
-      jugadoresEquipo(liga, visitante, 5),
+      jugadoresEquipo(liga, local, 5, req.id),
+      jugadoresEquipo(liga, visitante, 5, req.id),
     ]);
     res.json({
       ok: true,
@@ -87,7 +86,7 @@ router.post("/alineaciones", requireAuth, requirePro, ah(async (req, res) => {
   const { liga, local, visitante } = parseId(req.body.id || "");
   if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
   try {
-    const ali = await alineacionesPartido(liga, local, visitante);
+    const ali = await alineacionesPartido(liga, local, visitante, req.id);
     res.json(ali);
   } catch (e) {
     console.error("Error alineaciones:", e.message);
@@ -99,7 +98,7 @@ router.post("/alineaciones", requireAuth, requirePro, ah(async (req, res) => {
 router.get("/jornadas-liga", ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
   try {
-    const data = await jornadasLiga(liga);
+    const data = await jornadasLiga(liga, req.id);
     res.json(data);
   } catch (e) {
     console.error("Error jornadas-liga:", e.message);
@@ -110,7 +109,7 @@ router.get("/jornadas-liga", ah(async (req, res) => {
 // --- TODAS LAS LIGAS juntas ---
 router.get("/todas", ah(async (req, res) => {
   try {
-    const data = await todasLasLigas(300);
+    const data = await todasLasLigas(300, req.id);
     const partidos = (data.partidos || []).map(p => ({
       _id: p.id, local: p.local, visitante: p.visitante, liga: p.liga,
       ligaNombre: p.ligaNombre, kickoff: p.inicio, estado: p.estado,
@@ -129,7 +128,7 @@ router.post("/traer-alineacion", requireAuth, requirePro, ah(async (req, res) =>
   const { liga, local, visitante } = parseId(req.body.id || "");
   if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
   try {
-    const r = await traerAlineacion(liga, local, visitante);
+    const r = await traerAlineacion(liga, local, visitante, req.id);
     res.json(r);
   } catch (e) {
     console.error("Error traer-alineacion:", e.message);

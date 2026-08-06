@@ -16,15 +16,13 @@ router.post("/registrar", requireAuth, ah(async (req, res) => {
     return res.status(400).json({ error: "Falta el pick o el parlay" });
   }
 
-  // Un id de Mongo válido es un ObjectId de 24 hex. Los parlays que arma el
-  // motor traen ids tipo "ligamx-0": esos NO viven en la Mongo del Node.
+  // ObjectId de Mongo = 24 hex. Los parlays del motor traen ids tipo
+  // "ligamx-0": esos NO viven en la Mongo local del Node.
   const esObjectId = (v) => typeof v === "string" && /^[a-f\d]{24}$/i.test(v);
-
   const hoyFecha = () => new Date().toISOString().slice(0, 10);
+
   let snapshot, fecha;
-  // clave estable para deduplicar registros de parlays del motor (que no
-  // tienen ObjectId): guardamos su id de motor en la propia clave.
-  let parlayObjId = null, parlayMotorId = null;
+  let parlayObjId = null, parlayMotor = false;
 
   if (pickId) {
     const p = await Pick.findById(pickId).lean();
@@ -53,24 +51,24 @@ router.post("/registrar", requireAuth, ah(async (req, res) => {
     };
   } else {
     // Parlay del motor (Camino B): congelamos lo que el usuario vio.
-    // El front manda el snapshot; validamos que traiga lo mínimo.
+    // El front manda el snapshot; validamos lo mínimo.
     const sp = snapshotParlay || {};
     if (!Array.isArray(sp.patas) || !sp.patas.length) {
       return res.status(400).json({ error: "Falta el detalle del parlay" });
     }
     fecha = sp.fecha || hoyFecha();
-    parlayMotorId = String(parlayId);
+    parlayMotor = true;
     snapshot = {
       partido: sp.patas.map(x => x.partido).join(" + "),
       mercado: `${sp.patas.length} patas`,
       momio: sp.momioComb, probEstimada: sp.probConjunta,
-      edge: sp.edge, tipo: "parlay"
+      edge: sp.edge ?? null, tipo: "parlay"   // edge puede ser N/D
     };
   }
 
   try {
-    // Dedupe manual para parlays del motor (no hay índice ObjectId que aplique)
-    if (parlayMotorId) {
+    // Dedupe manual para parlays del motor (sin índice ObjectId que aplique)
+    if (parlayMotor) {
       const yaExiste = await UserPick.findOne({
         userId: req.user._id, fecha, "snapshot.tipo": "parlay",
         "snapshot.partido": snapshot.partido

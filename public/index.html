@@ -918,9 +918,21 @@ async function viewParlays(){
   const liga=LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL;
   const r=await fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()});
   const d=await r.json(); const l=d.parlays||[];
+  // edge honesto: si el motor no lo tiene calibrado, mostramos N/D
+  const edgeCell=(pl)=> (pl.edgeValido && pl.edge!=null)
+    ? `<div class="v mono" style="color:var(--red)">+${pct(pl.edge)}</div>`
+    : `<div class="v mono" style="color:var(--dim)">N/D</div>`;
+  // banner honesto cuando aún no hay edge real
+  const banner = (l.length && !d.edgeDisponible)
+    ? `<p style="font-size:12px;color:var(--dim);padding:0 16px 12px;line-height:1.5">
+        Estos combinados son <b style="color:var(--txt)">análisis</b>, no valor garantizado.
+        Los momios son estimados; la <b style="color:var(--txt)">ventaja real (edge)</b> se
+        activa cuando integremos momios en vivo de tu casa de apuestas.</p>`
+    : "";
   $("#page").innerHTML=`<div class="card">
     <div class="card-h"><span class="card-t">Parlays del día</span>
       <span class="card-s">Máximo 3 patas</span></div>
+    ${banner}
     ${l.length?(d.esPro?l.map((pl,i)=>`<div class="pick">
       <div class="pick-h"><div class="pick-m">Parlay ${i+1} · ${pl.patas.length} patas</div>
         <span class="mono" style="font-weight:900;font-size:19px">${dec(pl.momioComb)}</span></div>
@@ -931,8 +943,8 @@ async function viewParlays(){
         <span style="color:var(--dim)"> · ${esc(x.mercado)}</span></span>
         <span class="mono" style="color:var(--dim)">${dec(x.momio)}</span></div>`).join("")}
       <div class="enums" style="margin-top:11px">
-        <div class="en"><div class="k">Prob. conjunta</div><div class="v mono">${pct(pl.probConjunta)}</div></div>
-        <div class="en"><div class="k">Ventaja</div><div class="v mono" style="color:var(--red)">+${pct(pl.edge)}</div></div></div>
+        <div class="en"><div class="k">Prob. conjunta (est.)</div><div class="v mono">${pct(pl.probConjunta)}</div></div>
+        <div class="en"><div class="k">Ventaja</div>${edgeCell(pl)}</div></div>
       ${pl.analisisIA?`<p class="pnote">${pl.veredicto?`<b style="color:var(--red)">${esc(pl.veredicto)}</b> · `:""}${esc(pl.analisisIA)}</p>`:""}
       ${(()=>{const mine=localStorage.getItem("mp_"+pl._id);
         const snap={patas:pl.patas.map(x=>({partido:x.partido})),momioComb:pl.momioComb,probConjunta:pl.probConjunta,edge:pl.edge};

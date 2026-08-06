@@ -3,11 +3,11 @@
 const mods=["./server.js","./db.js","./parlay-engine.js","./asyncHandler.js",
  "./routes/auth.js","./routes/picks.js","./routes/admin.js","./routes/payments.js",
  "./routes/parlays.js","./routes/matches.js","./routes/history.js","./routes/record.js",
- "./routes/league.js","./middleware/auth.js",
+ "./routes/league.js","./routes/motor.js","./routes/admin-pro.js","./lib/motor.js","./middleware/auth.js",
  "./models/User.js","./models/Pick.js","./models/Vote.js","./models/Parlay.js",
  "./models/Match.js","./models/MatchAnalysis.js","./models/UserPick.js",
  "./models/Standing.js","./models/PlayerStat.js",
- "./models/PasswordReset.js","./mailer.js"];
+ "./models/PasswordReset.js","./models/StripeEvent.js","./mailer.js"];
 process.env.MONGODB_URI="mongodb://localhost:1/x";
 process.env.JWT_SECRET="x";process.env.ADMIN_KEY="x";
 let ok=0,bad=0;

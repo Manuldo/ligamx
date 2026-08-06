@@ -16,30 +16,48 @@ const authLimiter = rateLimit({
 });
 
 function signToken(user) {
-  return jwt.sign({ uid: user._id.toString() }, process.env.JWT_SECRET, {
-    expiresIn: "7d"
-  });
+  return jwt.sign(
+    { uid: user._id.toString(), ver: Number(user.tokenVersion || 0) },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "24h", issuer: "pickazoapp", audience: "pickazoapp-web" }
+  );
+}
+
+function normalizarEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function passwordValido(value) {
+  const n = String(value || "").length;
+  return n >= 8 && n <= 256;
 }
 
 router.post("/register", authLimiter, ah(async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password || password.length < 8) {
-    return res.status(400).json({ error: "Email y password (min 8) requeridos" });
+  const email = normalizarEmail(req.body.email);
+  const password = String(req.body.password || "");
+  if (!email.includes("@") || !passwordValido(password)) {
+    return res.status(400).json({ error: "Email válido y contraseña de 8 a 256 caracteres requeridos" });
   }
-  const existe = await User.findOne({ email: email.toLowerCase() });
+  const existe = await User.findOne({ email });
   if (existe) return res.status(409).json({ error: "Ese email ya esta registrado" });
 
-  const { salt, hash } = User.hashPassword(password);
-  const user = await User.create({ email, salt, passwordHash: hash });
+  const { salt, hash, algo } = await User.hashPassword(password);
+  const user = await User.create({ email, salt, passwordHash: hash, passwordAlgo: algo });
   res.json({ token: signToken(user), user: { email: user.email, isPro: false } });
 }));
 
 router.post("/login", authLimiter, ah(async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email: (email || "").toLowerCase() });
+  const email = normalizarEmail(req.body.email);
+  const password = String(req.body.password || "");
+  const user = await User.findOne({ email });
   // Mensaje generico: no revelar si el email existe
-  if (!user || !user.verifyPassword(password)) {
+  if (!user || !(await user.verifyPassword(password))) {
     return res.status(401).json({ error: "Credenciales invalidas" });
+  }
+  // Migración transparente de hashes PBKDF2 antiguos a scrypt.
+  if ((user.passwordAlgo || "pbkdf2") !== "scrypt") {
+    await user.setPassword(password);
+    await user.save();
   }
   res.json({
     token: signToken(user),
@@ -123,8 +141,8 @@ router.get("/reset/check", ah(async (req, res) => {
 router.post("/reset", resetLimiter, ah(async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ error: "Faltan datos" });
-  if (String(password).length < 8) {
-    return res.status(400).json({ error: "La contraseña necesita al menos 8 caracteres" });
+  if (!passwordValido(password)) {
+    return res.status(400).json({ error: "La contraseña necesita entre 8 y 256 caracteres" });
   }
 
   const doc = await PasswordReset.findOne({ tokenHash: PasswordReset.hashDe(String(token)) });
@@ -135,9 +153,8 @@ router.post("/reset", resetLimiter, ah(async (req, res) => {
   const user = await User.findById(doc.userId);
   if (!user) return res.status(400).json({ error: "Cuenta no encontrada" });
 
-  const { salt, hash } = User.hashPassword(password);
-  user.salt = salt;
-  user.passwordHash = hash;
+  await user.setPassword(String(password));
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
   await user.save();
 
   // Un token, un uso.

@@ -6,8 +6,11 @@ import { ah } from "../asyncHandler.js";
 const router = express.Router();
 
 // Camino B: los parlays los arma el MOTOR (fuente única). Este router solo
-// hace de puente + aplica el muro freemium. Ya no se generan desde la Mongo
-// local del Node; eso quedó atrás cuando los picks migraron al motor.
+// hace de puente + aplica el muro freemium. Node ya no genera parlays desde
+// su Mongo local (los picks migraron al motor, esa colección ya no se llena).
+//
+// Honestidad: el motor entrega edge = N/D (null) mientras no haya momios
+// reales ni probabilidades calibradas. Aquí solo lo transportamos.
 
 function opcionalAuth(req, _res, next) {
   const h = req.headers.authorization || "";
@@ -16,52 +19,51 @@ function opcionalAuth(req, _res, next) {
 }
 
 // Censura las patas de un parlay PRO para un no-suscriptor.
-// Igual criterio que los picks: mostramos que existe y su ventaja,
-// pero lo que se paga (las patas) no sale del server.
+// Mostramos que existe y su momio combinado, pero las patas (lo que se
+// paga) no salen del server sin PRO.
 function censurar(pl) {
   return {
     _id: pl._id,
     numPatas: (pl.patas || []).length,
     momioComb: pl.momioComb,
-    edge: pl.edge,
+    edge: pl.edge,               // N/D igual
+    edgeValido: pl.edgeValido,
     bloqueado: true,
   };
 }
 
 // --- PARLAYS DEL DÍA ---
-// El motor devuelve cada parlay con tier "public" | "pro".
-// Al no-PRO le liberamos los public completos y le censuramos los pro.
 router.get("/hoy", opcionalAuth, ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
 
   let data;
   try {
-    data = await parlaysDelDia(liga, false);
+    data = await parlaysDelDia(liga, false, req.id);
   } catch (err) {
-    // Si el motor no responde, no reventamos la vista: parlays vacío.
-    return res.json({ parlays: [], esPro: false, motorCaido: true });
+    // Si el motor no responde, no reventamos la vista.
+    return res.json({ parlays: [], esPro: false, edgeDisponible: false, motorCaido: true });
   }
 
   const parlays = data.parlays || [];
-  // el motor no persiste _id propio por parlay; damos uno estable por índice
   parlays.forEach((pl, i) => { pl._id = pl._id || `${liga}-${i}`; });
 
   const esPro = !!(req.user && req.user.isProActive());
-  if (esPro) return res.json({ parlays, esPro: true });
+  if (esPro) {
+    return res.json({ parlays, esPro: true, edgeDisponible: !!data.edge_disponible });
+  }
 
   const salida = parlays.map((pl) =>
     pl.tier === "public" ? { ...pl, bloqueado: false } : censurar(pl)
   );
-  res.json({ parlays: salida, esPro: false });
+  res.json({ parlays: salida, esPro: false, edgeDisponible: !!data.edge_disponible });
 }));
 
 // --- PÚBLICO (compat): solo el/los parlay(s) public del día ---
 router.get("/public", ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
   try {
-    const data = await parlaysDelDia(liga, false);
-    const pub = (data.parlays || []).filter((p) => p.tier === "public");
-    res.json(pub);
+    const data = await parlaysDelDia(liga, false, req.id);
+    res.json((data.parlays || []).filter((p) => p.tier === "public"));
   } catch {
     res.json([]);
   }
@@ -71,21 +73,18 @@ router.get("/public", ah(async (req, res) => {
 router.get("/pro", requireAuth, requirePro, ah(async (req, res) => {
   const liga = req.query.liga || "ligamx";
   try {
-    const data = await parlaysDelDia(liga, false);
-    const pro = (data.parlays || []).filter((p) => p.tier === "pro");
-    res.json(pro);
+    const data = await parlaysDelDia(liga, false, req.id);
+    res.json((data.parlays || []).filter((p) => p.tier === "pro"));
   } catch {
     res.json([]);
   }
 }));
 
-// --- ADMIN: forzar regeneración de los parlays del día ---
-// Antes esto los generaba localmente; ahora le pide al motor que regenere
-// (forzar=true ignora su cache y arma con los datos frescos).
+// --- ADMIN: forzar regeneración de los parlays del día en el motor ---
 router.post("/generate", requireAdmin, ah(async (req, res) => {
   const liga = req.body.liga || "ligamx";
   try {
-    const data = await parlaysDelDia(liga, true);
+    const data = await parlaysDelDia(liga, true, req.id);
     res.json({ ok: true, liga, generados: (data.parlays || []).length });
   } catch (err) {
     res.status(502).json({ error: "El motor no pudo generar los parlays", detalle: err.message });

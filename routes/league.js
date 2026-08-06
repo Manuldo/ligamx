@@ -4,16 +4,14 @@ import { requireAuth } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
-const LIGA = "ligamx"; // por ahora pickazoapp es Liga MX
-
 // --- TABLA (requiere login, como en tu app) ---
 router.get("/tabla", requireAuth, ah(async (req, res) => {
   try {
     const liga = req.query.liga || "ligamx";
-    const data = await tablaLiga(liga);
+    const data = await tablaLiga(liga, req.id);
     // adaptar al formato que espera tu frontend
     const tabla = (data.tabla || []).map((f, i) => ({
-      pos: f.posicion || i + 1,
+      pos: f.pos ?? f.posicion ?? i + 1,
       equipo: f.equipo || f.nombre || "",
       color: null,
       jugados: f.jugados ?? f.pj ?? 0,
@@ -37,7 +35,7 @@ router.get("/tabla", requireAuth, ah(async (req, res) => {
 router.get("/jornadas", requireAuth, ah(async (req, res) => {
   try {
     const liga = req.query.liga || "ligamx";
-    const data = await partidosLiga(liga, 400);
+    const data = await partidosLiga(liga, 400, req.id);
     const partidos = (data.partidos || []).map(p => ({
       _id: p.id, local: p.local, visitante: p.visitante,
       kickoff: p.inicio, estado: p.estado, fecha: (p.inicio || "").slice(0, 10),
@@ -60,7 +58,7 @@ router.get("/jornadas", requireAuth, ah(async (req, res) => {
 router.get("/jugadores", requireAuth, ah(async (req, res) => {
   try {
     const liga = req.query.liga || "ligamx";
-    const data = await jugadoresLiga(liga, 60);
+    const data = await jugadoresLiga(liga, 60, req.id);
     const jugadores = (data.jugadores || []).map(j => ({
       nombre: j.nombre || "",
       equipo: j.equipo || "",

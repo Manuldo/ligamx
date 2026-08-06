@@ -4,7 +4,7 @@
 // para que se pueda entregar a mano desde el panel. Asi nadie se queda
 // sin recuperar su cuenta aunque el correo falle.
 
-const FROM = process.env.MAIL_FROM || "Pickazo <onboarding@resend.dev>";
+function fromAddress() { return process.env.MAIL_FROM || "Pickazo <onboarding@resend.dev>"; }
 
 export function correoConfigurado() {
   return !!process.env.RESEND_API_KEY;
@@ -21,7 +21,7 @@ export async function enviarCorreo({ para, asunto, html, texto }) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`
       },
-      body: JSON.stringify({ from: FROM, to: [para], subject: asunto, html, text: texto })
+      body: JSON.stringify({ from: fromAddress(), to: [para], subject: asunto, html, text: texto })
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
