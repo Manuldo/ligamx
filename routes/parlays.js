@@ -46,16 +46,19 @@ router.get("/hoy", opcionalAuth, ah(async (req, res) => {
 
   const parlays = data.parlays || [];
   parlays.forEach((pl, i) => { pl._id = pl._id || `${liga}-${i}`; });
+  // soñadores: siempre públicos (gancho gratis), con _id estable
+  const sonadores = (data.sonadores || []);
+  sonadores.forEach((s) => { s._id = s._id || `${liga}-${s.tipo}`; });
 
   const esPro = !!(req.user && req.user.isProActive());
   if (esPro) {
-    return res.json({ parlays, esPro: true, edgeDisponible: !!data.edge_disponible });
+    return res.json({ parlays, sonadores, esPro: true, edgeDisponible: !!data.edge_disponible });
   }
 
   const salida = parlays.map((pl) =>
     pl.tier === "public" ? { ...pl, bloqueado: false } : censurar(pl)
   );
-  res.json({ parlays: salida, esPro: false, edgeDisponible: !!data.edge_disponible });
+  res.json({ parlays: salida, sonadores, esPro: false, edgeDisponible: !!data.edge_disponible });
 }));
 
 // --- PÚBLICO (compat): solo el/los parlay(s) public del día ---

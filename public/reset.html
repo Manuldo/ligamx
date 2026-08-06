@@ -20,7 +20,7 @@ body{background:var(--bg);color:var(--txt);font-family:Archivo,system-ui,sans-se
 .box{width:100%;max-width:390px}
 .brand{display:flex;align-items:center;gap:9px;justify-content:center;margin-bottom:24px;
   font-weight:900;font-size:17px;letter-spacing:-.3px}
-.mark{width:28px;height:28px;background:var(--red);display:grid;place-items:center;
+.mark{width:30px;height:30px;border-radius:7px;object-fit:cover;display:block;
   font-size:14px;font-weight:900;color:#fff;border-radius:6px}
 .brand span{color:var(--red)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px}
@@ -52,7 +52,7 @@ input:focus{outline:none;border-color:var(--red)}
 </head>
 <body>
 <div class="box">
-  <div class="brand"><span class="mark">P</span>PICKAZO <span>MX</span></div>
+  <div class="brand"><img class="mark" src="/icons/icon-96.png" alt="P">PICKAZO <span>MX</span></div>
   <div class="card" id="card">
     <div class="state"><p style="margin:0">Verificando el enlace…</p></div>
   </div>

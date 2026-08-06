@@ -41,8 +41,8 @@ body.collapsed aside{width:62px}
 .sb-top{display:flex;align-items:center;gap:10px;padding:16px 14px;border-bottom:1px solid var(--line)}
 .sb-logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:16px;
   letter-spacing:-.4px;white-space:nowrap;overflow:hidden}
-.sb-mark{width:28px;height:28px;background:var(--red);flex-shrink:0;
-  display:grid;place-items:center;font-size:14px;font-weight:900;color:#fff}
+.sb-mark{width:30px;height:30px;flex-shrink:0;border-radius:7px;
+  object-fit:cover;display:block}
 .sb-logo span{color:var(--red)}
 body.collapsed .sb-logo em,body.collapsed .sb-logo span{display:none}
 .sb-toggle{margin-left:auto;background:none;border:none;color:var(--dim);
@@ -307,6 +307,60 @@ tbody tr:hover{background:var(--panel2)}
 .an-collapse.closed .an-caret{transform:rotate(-90deg)}
 .an-collapse.closed .an-sec-b{display:none}
 
+/* ===== PARLAYS (rediseño) ===== */
+.pz{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  margin:14px 16px;overflow:hidden;transition:border-color .2s}
+.pz:hover{border-color:var(--dim2)}
+.pz-top{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:linear-gradient(90deg,rgba(236,48,19,.08),transparent);border-bottom:1px solid var(--line)}
+.pz-badge{width:34px;height:34px;border-radius:9px;background:var(--red);color:#fff;
+  display:grid;place-items:center;font-weight:900;font-size:15px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.pz-ttl{flex:1;min-width:0}
+.pz-ttl b{display:block;font-size:14px;font-weight:800}
+.pz-ttl span{font-size:11px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.pz-mom{text-align:right;flex-shrink:0}
+.pz-mom b{display:block;font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--txt);line-height:1}
+.pz-mom span{font-size:9.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.pz-leg{display:flex;gap:12px;padding:11px 16px;border-bottom:1px dashed var(--line);align-items:center}
+.pz-leg-n{width:22px;height:22px;border-radius:6px;background:var(--panel3);color:var(--dim2);
+  display:grid;place-items:center;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.pz-leg-body{flex:1;min-width:0}
+.pz-leg-match{font-size:11px;color:var(--dim2);font-weight:600;margin-bottom:1px}
+.pz-leg-sel{font-size:13.5px;font-weight:700;color:var(--txt)}
+.pz-leg-bar{height:3px;background:var(--panel3);border-radius:2px;margin-top:6px;overflow:hidden}
+.pz-leg-bar i{display:block;height:100%;border-radius:2px;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.pz-leg-mom{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;color:var(--dim);flex-shrink:0}
+.pz-foot{display:flex;gap:20px;padding:12px 16px;align-items:center;flex-wrap:wrap}
+.pz-metric{display:flex;flex-direction:column}
+.pz-metric .k{font-size:9.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.07em;font-weight:800;margin-bottom:2px}
+.pz-metric .v{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:900}
+.pz-verdict{margin-left:auto;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.05em}
+.pz-note{font-size:12.5px;color:var(--dim);line-height:1.5;padding:0 16px 14px}
+.pz-note b{color:var(--txt)}
+.pz-save{padding:10px 16px 14px;display:flex;justify-content:flex-end}
+.pz-banner{font-size:12px;color:var(--dim);padding:2px 16px 14px;line-height:1.5}
+.pz-banner b{color:var(--txt)}
+
+/* soñadores: el gancho grande, más llamativo */
+.pzd{border-radius:16px;margin:14px 16px;overflow:hidden;border:1px solid var(--line)}
+.pzd-seguro{border-color:rgba(34,197,94,.35);background:linear-gradient(160deg,rgba(34,197,94,.07),var(--panel) 55%)}
+.pzd-total{border-color:rgba(236,48,19,.4);background:linear-gradient(160deg,rgba(236,48,19,.09),var(--panel) 55%)}
+.pzd-top{display:flex;align-items:center;gap:12px;padding:15px 17px}
+.pzd-emoji{font-size:24px;flex-shrink:0}
+.pzd-ttl{flex:1;min-width:0}
+.pzd-ttl b{display:block;font-size:16px;font-weight:900;letter-spacing:-.2px}
+.pzd-ttl span{font-size:11.5px;color:var(--dim);font-weight:600}
+.pzd-mom{text-align:right;flex-shrink:0}
+.pzd-mom b{display:block;font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
+.pzd-seguro .pzd-mom b{color:var(--green)}
+.pzd-total .pzd-mom b{color:var(--red)}
+.pzd-mom span{font-size:9.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.pzd-count{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.05em;margin:0 17px 6px}
+.pzd-seguro .pzd-count{background:rgba(34,197,94,.15);color:var(--green)}
+.pzd-total .pzd-count{background:rgba(236,48,19,.15);color:var(--red)}
+
 /* ===== ESTADOS ===== */
 .empty{padding:32px 20px;text-align:center}
 .empty b{display:block;font-weight:700;font-size:14.5px;margin-bottom:4px}
@@ -412,7 +466,7 @@ body.landing .page{padding:0;max-width:none}
 
 <aside>
   <div class="sb-top">
-    <div class="sb-logo"><span class="sb-mark">P</span><em>PICKAZO</em> <span>MX</span></div>
+    <div class="sb-logo"><img class="sb-mark" src="/icons/icon-96.png" alt="Pickazo"><em>PICKAZO</em> <span>MX</span></div>
     <button class="sb-toggle" id="tog" title="Contraer">☰</button>
   </div>
   <div class="sb-nav" id="sbnav">
@@ -920,47 +974,117 @@ async function viewParlays(){
   const liga=LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL;
   const r=await fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()});
   const d=await r.json(); const l=d.parlays||[];
-  // edge honesto: si el motor no lo tiene calibrado, mostramos N/D
-  const edgeCell=(pl)=> (pl.edgeValido && pl.edge!=null)
-    ? `<div class="v mono" style="color:var(--red)">+${pct(pl.edge)}</div>`
-    : `<div class="v mono" style="color:var(--dim)">N/D</div>`;
-  // banner honesto cuando aún no hay edge real
+
+  // color por probabilidad estimada de la pata
+  const colProb=(p)=>{const n=(p||0)*100;return n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');};
+  // color + texto del veredicto
+  const vBadge=(v)=>{
+    if(!v)return"";
+    const u=v.toUpperCase();
+    let bg,fg;
+    if(u.includes("SÓLIDO")||u.includes("SOLIDO")||u.includes("MANDAR")){bg="rgba(34,197,94,.15)";fg="var(--green)";}
+    else if(u.includes("RESERVAS")){bg="rgba(240,180,41,.15)";fg="var(--amber)";}
+    else{bg="rgba(236,48,19,.15)";fg="var(--red)";}
+    return `<span class="pz-verdict" style="background:${bg};color:${fg}">${esc(v)}</span>`;
+  };
+
   const banner = (l.length && !d.edgeDisponible)
-    ? `<p style="font-size:12px;color:var(--dim);padding:0 16px 12px;line-height:1.5">
-        Estos combinados son <b style="color:var(--txt)">análisis</b>, no valor garantizado.
-        Los momios son estimados; la <b style="color:var(--txt)">ventaja real (edge)</b> se
-        activa cuando integremos momios en vivo de tu casa de apuestas.</p>`
+    ? `<p class="pz-banner">Estos combinados son <b>análisis</b>, no valor garantizado.
+        Los momios son estimados; la <b>ventaja real (edge)</b> se activa cuando integremos
+        momios en vivo de tu casa de apuestas.</p>`
     : "";
-  $("#page").innerHTML=`<div class="card">
-    <div class="card-h"><span class="card-t">Parlays del día</span>
-      <span class="card-s">Máximo 3 patas</span></div>
-    ${banner}
-    ${l.length?(d.esPro?l.map((pl,i)=>`<div class="pick">
-      <div class="pick-h"><div class="pick-m">Parlay ${i+1} · ${pl.patas.length} patas</div>
-        <span class="mono" style="font-weight:900;font-size:19px">${dec(pl.momioComb)}</span></div>
-      ${pl.patas.map((x,n)=>`<div style="display:flex;justify-content:space-between;padding:7px 0;
-        border-bottom:1px dashed var(--line);font-size:13px">
-        <span><span class="mono" style="color:var(--dim2);margin-right:8px">${String(n+1).padStart(2,"0")}</span>
-        <b style="font-weight:600">${esc(x.partido)}</b>
-        <span style="color:var(--dim)"> · ${esc(x.mercado)}</span></span>
-        <span class="mono" style="color:var(--dim)">${dec(x.momio)}</span></div>`).join("")}
-      <div class="enums" style="margin-top:11px">
-        <div class="en"><div class="k">Prob. conjunta (est.)</div><div class="v mono">${pct(pl.probConjunta)}</div></div>
-        <div class="en"><div class="k">Ventaja</div>${edgeCell(pl)}</div></div>
-      ${pl.analisisIA?`<p class="pnote">${pl.veredicto?`<b style="color:var(--red)">${esc(pl.veredicto)}</b> · `:""}${esc(pl.analisisIA)}</p>`:""}
-      ${(()=>{const mine=localStorage.getItem("mp_"+pl._id);
-        const snap={patas:pl.patas.map(x=>({partido:x.partido})),momioComb:pl.momioComb,probConjunta:pl.probConjunta,edge:pl.edge};
-        return `<div class="pft"><span></span>
+
+  const cardPro=(pl,i)=>{
+    const mine=localStorage.getItem("mp_"+pl._id);
+    const snap={patas:pl.patas.map(x=>({partido:x.partido})),momioComb:pl.momioComb,probConjunta:pl.probConjunta,edge:pl.edge};
+    const edgeTxt=(pl.edgeValido&&pl.edge!=null)
+      ? `<div class="v" style="color:var(--red)">+${pct(pl.edge)}</div>`
+      : `<div class="v" style="color:var(--dim2)">N/D</div>`;
+    return `<div class="pz">
+      <div class="pz-top">
+        <div class="pz-badge">${i+1}</div>
+        <div class="pz-ttl"><b>Parlay ${i+1}</b><span>${pl.patas.length} patas combinadas</span></div>
+        <div class="pz-mom"><b>${dec(pl.momioComb)}</b><span>momio</span></div>
+      </div>
+      ${pl.patas.map((x,n)=>{const c=colProb(x.probEstimada);const w=Math.min(100,Math.round((x.probEstimada||.5)*100));
+        return `<div class="pz-leg">
+        <div class="pz-leg-n">${String(n+1).padStart(2,"0")}</div>
+        <div class="pz-leg-body">
+          <div class="pz-leg-match">${esc(x.partido)}</div>
+          <div class="pz-leg-sel">${esc(x.mercado)}</div>
+          <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
+        </div>
+        <div class="pz-leg-mom">${dec(x.momio)}</div>
+      </div>`;}).join("")}
+      <div class="pz-foot">
+        <div class="pz-metric"><span class="k">Prob. conjunta</span><div class="v" style="color:var(--txt)">${pct(pl.probConjunta)}</div></div>
+        <div class="pz-metric"><span class="k">Ventaja</span>${edgeTxt}</div>
+        ${vBadge(pl.veredicto)}
+      </div>
+      ${pl.analisisIA?`<p class="pz-note">${esc(pl.analisisIA)}</p>`:""}
+      <div class="pz-save">
         <button class="sm ${mine?"on":""}" data-mine-parlay="${esc(pl._id)}"
-          data-snap='${esc(JSON.stringify(snap))}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>`;})()}
-      </div>`).join("")
-      :l.map(pl=>`<div class="lockrow"><div class="lk-b"><b>Parlay de ${pl.numPatas} patas</b>
-        <div class="lk-blur">Patas reservadas</div></div>
-        <div class="lk-e"><div class="k">Momio</div><div class="v mono">${dec(pl.momioComb)}</div></div>
-        <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`).join(""))
-    :`<div class="empty"><b>Sin parlays hoy</b><span>${d.motorCaido
-        ?"El motor no responde ahora. Intenta en un momento."
-        :"Se necesitan al menos 2 partidos con pick para armar un combinado. Vuelve cuando haya más juegos programados."}</span></div>`}
+          data-snap='${esc(JSON.stringify(snap))}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button>
+      </div>
+    </div>`;
+  };
+
+  const cardLock=(pl)=>`<div class="pz" style="opacity:.9">
+    <div class="pz-top">
+      <div class="pz-badge" style="background:var(--panel3);color:var(--dim2)">🔒</div>
+      <div class="pz-ttl"><b>Parlay de ${pl.numPatas} patas</b><span>Reservado para PRO</span></div>
+      <div class="pz-mom"><b>${dec(pl.momioComb)}</b><span>momio</span></div>
+    </div>
+    <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <span style="font-size:13px;color:var(--dim);filter:blur(.3px)">Patas y análisis reservados · desbloquea para verlas</span>
+      <button class="btn btn-red" data-a="pro" style="flex-shrink:0">Desbloquear PRO</button>
+    </div>
+  </div>`;
+
+  // SOÑADORES: combinados grandes sin límite de patas (gancho gratis)
+  const cardSonador=(s)=>{
+    if(!s)return"";
+    const mine=localStorage.getItem("mp_"+s._id);
+    const snap={patas:s.patas.map(x=>({partido:x.partido})),momioComb:s.momioComb,probConjunta:s.probConjunta,edge:s.edge};
+    const cls=s.tipo==="sonador_seguro"?"pzd-seguro":"pzd-total";
+    const emoji=s.tipo==="sonador_seguro"?"🟢":"🔥";
+    return `<div class="pzd ${cls}">
+      <div class="pzd-top">
+        <div class="pzd-emoji">${emoji}</div>
+        <div class="pzd-ttl"><b>${esc(s.nombre||"Soñador")}</b><span>${esc(s.subtitulo||"")}</span></div>
+        <div class="pzd-mom"><b>${dec(s.momioComb)}</b><span>momio</span></div>
+      </div>
+      <div class="pzd-count">${s.patas.length} patas · ${pct(s.probConjunta)} prob.</div>
+      ${s.patas.map((x,n)=>{const c=colProb(x.probEstimada);const w=Math.min(100,Math.round((x.probEstimada||.5)*100));
+        return `<div class="pz-leg">
+        <div class="pz-leg-n">${String(n+1).padStart(2,"0")}</div>
+        <div class="pz-leg-body">
+          <div class="pz-leg-match">${esc(x.partido)}</div>
+          <div class="pz-leg-sel">${esc(x.mercado)}</div>
+          <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
+        </div>
+        <div class="pz-leg-mom">${dec(x.momio)}</div>
+      </div>`;}).join("")}
+      ${s.analisisIA?`<p class="pz-note">${esc(s.analisisIA)}</p>`:""}
+      <div class="pz-save">
+        <button class="sm ${mine?"on":""}" data-mine-parlay="${esc(s._id)}"
+          data-snap='${esc(JSON.stringify(snap))}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button>
+      </div>
+    </div>`;
+  };
+  const son=d.sonadores||[];
+
+  $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
+    <div class="card-h"><span class="card-t">Parlays del día</span>
+      <span class="card-s">Combinados por IA</span></div>
+    ${banner}
+    ${son.length?`<div style="padding:2px 0 6px">${son.map(cardSonador).join("")}</div>`:""}
+    ${l.length
+      ? (d.esPro ? l.map((pl,i)=>cardPro(pl,i)).join("")
+                 : l.map(pl=>pl.bloqueado?cardLock(pl):cardPro(pl,0)).join(""))
+      : (son.length?"":`<div class="empty"><b>Sin parlays hoy</b><span>${d.motorCaido
+          ?"El motor no responde ahora. Intenta en un momento."
+          :"Se necesitan al menos 2 partidos con pick para armar un combinado. Vuelve cuando haya más juegos programados."}</span></div>`)}
   </div>`;
 }
 /* --- TABLA --- */

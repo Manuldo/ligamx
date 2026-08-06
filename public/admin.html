@@ -27,7 +27,7 @@ button{font-family:inherit;cursor:pointer}
 
 .top{display:flex;align-items:center;gap:12px;padding:13px 22px;
   border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:20}
-.mark{width:26px;height:26px;background:var(--red);display:grid;place-items:center;
+.mark{width:28px;height:28px;border-radius:6px;object-fit:cover;display:block;
   font-weight:900;font-size:13px;color:#fff}
 .ttl{font-weight:900;font-size:15px;letter-spacing:-.2px}
 .ttl em{font-style:normal;color:var(--red)}
@@ -102,7 +102,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 .res.bad{background:rgba(236,48,19,.1);border:1px solid rgba(236,48,19,.3);color:#fca5a5}
 
 .gate{max-width:340px;margin:100px auto;text-align:center;padding:0 20px}
-.gate .m{width:48px;height:48px;background:var(--red);margin:0 auto 16px;display:grid;
+.gate .m{width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 16px;display:block;
   place-items:center;font-size:22px;font-weight:900;color:#fff;border-radius:9px}
 .gate h2{font-weight:900;font-size:23px;letter-spacing:-.03em;margin-bottom:6px}
 .gate p{color:var(--dim);font-size:13.5px;margin-bottom:20px}
@@ -119,7 +119,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 
 <div id="gate">
   <div class="gate">
-    <div class="m">P</div>
+    <img class="m" src="/icons/icon-192.png" alt="Pickazo">
     <h2>Panel maestro</h2>
     <p>Escribe tu llave de administrador para continuar.</p>
     <input type="password" id="key" placeholder="ADMIN_KEY" autocomplete="off">
@@ -130,7 +130,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 
 <div id="app" class="hide">
   <div class="top">
-    <span class="mark">P</span>
+    <img class="mark" src="/icons/icon-96.png" alt="P">
     <span class="ttl">PICKAZO <em>·</em> Panel</span>
     <span class="who" id="today"></span>
     <button class="btn btn-line btn-sm" id="out">Salir</button>
