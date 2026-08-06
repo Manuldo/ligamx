@@ -2,7 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
-import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas, traerAlineacion } from "../lib/motor.js";
+import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas, traerAlineacion, statsPartido } from "../lib/motor.js";
 
 const router = express.Router();
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -77,6 +77,19 @@ router.post("/detalle", requireAuth, requirePro, ah(async (req, res) => {
     });
   } catch (e) {
     console.error("Error detalle:", e.message);
+    res.status(502).json({ error: "El motor no responde" });
+  }
+}));
+
+// --- STATS DEL PARTIDO: goleadores, amonestados, córners (PRO) ---
+router.post("/stats", requireAuth, requirePro, ah(async (req, res) => {
+  const { liga, local, visitante } = parseId(req.body.id || "");
+  if (!local || !visitante) return res.status(400).json({ error: "Partido inválido" });
+  try {
+    const data = await statsPartido(liga, local, visitante, 3, req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error stats:", e.message);
     res.status(502).json({ error: "El motor no responde" });
   }
 }));

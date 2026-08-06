@@ -572,9 +572,11 @@ function motorAnalisisHTML(markdown){
     // DESCARTADOS / DERECHAS — colapsables (cerrados)
     if(tl.includes('descartado')||tl.includes('derecha')){
       const ic=tl.includes('descartado')?'🚫':'✔️';
-      out+=`<div class="an-sec an-collapse closed" onclick="this.classList.toggle('closed')">
-        <div class="an-sec-t">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
-        <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
+      const cuerpoHtml=cuerpo.trim()?inline(cuerpo):'<span style="color:var(--dim2)">Sin elementos en esta sección.</span>';
+      out+=`<div class="an-sec an-collapse closed">
+        <div class="an-sec-t an-collapse-h" style="cursor:pointer;display:flex;align-items:center"
+          onclick="this.parentNode.classList.toggle('closed')">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
+        <div class="an-sec-b">${cuerpoHtml}</div></div>`;continue;
     }
     // otra sección
     out+=`<div class="an-sec"><div class="an-sec-t">${esc(tituloLimpio)}</div>
@@ -1122,7 +1124,10 @@ async function abrirPartido(id){
         <div class="skel"></div></div>
       <div class="card" id="pJugV"><div class="card-h"><span class="card-t">Top ${esc(visitante)}</span></div>
         <div class="skel"></div></div>
-    </div>`;
+    </div>
+    <div class="card" style="margin-top:16px" id="pStats">
+      <div class="card-h"><span class="card-t">Números del partido</span></div>
+      <div class="skel"></div></div>`;
   // Hero con marcador/estado en vivo (consulta el partido actual)
   window._cargarHero=()=>{
     fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()})
@@ -1156,12 +1161,30 @@ async function abrirPartido(id){
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
       <div class="skel"></div><div class="skel" style="width:75%"></div>`;
     fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar})})
-      .then(r=>r.json()).then(d=>{
+      .then(async r=>{
+        let d={}; try{d=await r.json();}catch{}
+        // Si el motor respondió pero SIN análisis (error, límite, sin datos):
+        if(!r.ok || (!d.analisisMarkdown && d.error)){
+          const detalle = d.error || `El motor respondió ${r.status}`;
+          const limite = (d.usados!=null&&d.limite!=null)?` · ${d.usados}/${d.limite} análisis hoy`:"";
+          $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+            <div class="empty"><b>No se pudo analizar</b>
+            <span style="color:var(--dim)">${esc(detalle)}${limite}</span></div>
+            <div style="padding:0 16px 16px;text-align:center">
+              <button class="btn btn-red" onclick="window._cargarAnalisis(true)">↻ Intentar de nuevo</button></div>`;
+          return;
+        }
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
           <span class="card-s">${d.cacheado?"guardado":"actualizado"}</span>
           <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" onclick="window._cargarAnalisis(true)">↻ Refrescar</button></div>
-          ${motorAnalisisHTML(d.analisisMarkdown||d.error||"Sin análisis")}`;
-      }).catch(()=>{$("#pAnalisis").innerHTML=`<div class="empty"><b>No se pudo analizar</b></div>`;});
+          ${motorAnalisisHTML(d.analisisMarkdown||"Sin análisis")}`;
+      }).catch((err)=>{
+        $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+          <div class="empty"><b>No se pudo analizar</b>
+          <span style="color:var(--dim)">Sin conexión con el motor. ${esc(String(err&&err.message||""))}</span></div>
+          <div style="padding:0 16px 16px;text-align:center">
+            <button class="btn btn-red" onclick="window._cargarAnalisis(true)">↻ Intentar de nuevo</button></div>`;
+      });
   };
   window._cargarAnalisis(false);
   // ALINEACIONES (probables siempre, confirmada ~1h antes)
@@ -1187,6 +1210,58 @@ async function abrirPartido(id){
       $("#pJugL").innerHTML=jugadoresCardHTML("Top "+local,(d.local&&d.local.jugadores)||[]);
       $("#pJugV").innerHTML=jugadoresCardHTML("Top "+visitante,(d.visitante&&d.visitante.jugadores)||[]);
     }).catch(()=>{});
+  // NÚMEROS DEL PARTIDO: goleadores, amonestados, córners recientes
+  fetch(`${API}/matches/stats`,{method:"POST",headers:H(),body:JSON.stringify({id})})
+    .then(r=>r.json()).then(d=>{
+      if(!d||!d.ok){$("#pStats").innerHTML=`<div class="card-h"><span class="card-t">Números del partido</span></div>
+        <div class="empty"><span>Sin datos suficientes todavía</span></div>`;return;}
+      $("#pStats").innerHTML=statsPartidoHTML(d,local,visitante);
+    }).catch(()=>{$("#pStats").innerHTML=`<div class="card-h"><span class="card-t">Números del partido</span></div>
+      <div class="empty"><span>No se pudieron cargar</span></div>`;});
+}
+function _statCol(titulo,items,unidad){
+  return `<div style="flex:1;min-width:0">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim2);font-weight:700;margin-bottom:8px">${esc(titulo)}</div>
+    ${items&&items.length?items.map(x=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-weight:600">${esc(x.nombre)}</b>
+        <span style="color:var(--dim)"> ${esc(x.posicion||"")}</span></span>
+      <span class="mono" style="color:var(--txt);font-weight:700">${x.valor}${unidad||""}</span></div>`).join("")
+      :`<div style="font-size:12px;color:var(--dim2)">—</div>`}
+  </div>`;
+}
+function _cornersBox(eq,c){
+  const prom=c&&c.corners&&c.corners.promedioCorners;
+  const filas=(c&&c.corners&&c.corners.partidos)||[];
+  return `<div style="flex:1;min-width:0">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim2);font-weight:700;margin-bottom:8px">
+      Córners ${esc(eq)}${prom!=null?` · prom ${prom}`:""}</div>
+    ${filas.length?filas.slice(0,5).map(f=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12px">
+      <span style="color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">vs ${esc(f.rival||"")}</span>
+      <span class="mono">${f.corners!=null?f.corners+" córners":""}${f.tiros!=null?` · ${f.tiros} tiros`:""}</span></div>`).join("")
+      :`<div style="font-size:12px;color:var(--dim2)">Sin partidos recientes con datos</div>`}
+  </div>`;
+}
+function statsPartidoHTML(d,local,visitante){
+  const L=d.local||{},V=d.visitante||{};
+  return `<div class="card-h"><span class="card-t">Números del partido</span>
+      <span class="card-s">datos recientes</span></div>
+    <div style="padding:4px 16px 16px">
+      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">⚽ Goleadores</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.goleadores,"")}
+        ${_statCol(visitante,V.goleadores,"")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🟨 Más amonestados</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.amonestados,"")}
+        ${_statCol(visitante,V.amonestados,"")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🚩 Córners y tiros (últimos partidos)</div>
+      <div style="display:flex;gap:20px">
+        ${_cornersBox(local,L)}
+        ${_cornersBox(visitante,V)}
+      </div>
+    </div>`;
 }
 function jugadoresCardHTML(titulo,jug){
   return `<div class="card-h"><span class="card-t">${esc(titulo)}</span></div>
