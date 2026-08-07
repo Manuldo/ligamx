@@ -982,7 +982,8 @@ async function viewAnalizar(){
 
 /* --- PARLAYS --- */
 async function viewParlays(){
-  const liga=LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL;
+  // Parlays siempre combina TODAS las ligas del día más cercano con material.
+  const liga="__todas__";
   const r=await fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()});
   const d=await r.json(); const l=d.parlays||[];
 
@@ -1018,10 +1019,11 @@ async function viewParlays(){
         <div class="pz-mom"><b>${dec(pl.momioComb)}</b><span>momio</span></div>
       </div>
       ${pl.patas.map((x,n)=>{const c=colProb(x.probEstimada);const w=Math.min(100,Math.round((x.probEstimada||.5)*100));
+        const lgt=x.liga&&LIGA_NOMBRES[x.liga]?`<span style="font-size:9px;color:var(--dim2);background:var(--panel3);padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:700">${LIGA_FLAGS[x.liga]||""} ${esc(LIGA_NOMBRES[x.liga])}</span>`:"";
         return `<div class="pz-leg">
         <div class="pz-leg-n">${String(n+1).padStart(2,"0")}</div>
         <div class="pz-leg-body">
-          <div class="pz-leg-match">${esc(x.partido)}</div>
+          <div class="pz-leg-match">${esc(x.partido)}${lgt}</div>
           <div class="pz-leg-sel">${esc(x.mercado)}</div>
           <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
         </div>
@@ -1067,10 +1069,11 @@ async function viewParlays(){
       </div>
       <div class="pzd-count">${s.patas.length} patas · ${pct(s.probConjunta)} prob.</div>
       ${s.patas.map((x,n)=>{const c=colProb(x.probEstimada);const w=Math.min(100,Math.round((x.probEstimada||.5)*100));
+        const lgt=x.liga&&LIGA_NOMBRES[x.liga]?`<span style="font-size:9px;color:var(--dim2);background:var(--panel3);padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:700">${LIGA_FLAGS[x.liga]||""} ${esc(LIGA_NOMBRES[x.liga])}</span>`:"";
         return `<div class="pz-leg">
         <div class="pz-leg-n">${String(n+1).padStart(2,"0")}</div>
         <div class="pz-leg-body">
-          <div class="pz-leg-match">${esc(x.partido)}</div>
+          <div class="pz-leg-match">${esc(x.partido)}${lgt}</div>
           <div class="pz-leg-sel">${esc(x.mercado)}</div>
           <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
         </div>
@@ -1084,10 +1087,15 @@ async function viewParlays(){
     </div>`;
   };
   const son=d.sonadores||[];
+  // fecha bonita del día mostrado
+  let diaTxt="Combinados por IA";
+  if(d.diaMostrado){try{const [y,m,dd]=d.diaMostrado.split("-");
+    diaTxt=new Date(+y,+m-1,+dd).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+    diaTxt=diaTxt.charAt(0).toUpperCase()+diaTxt.slice(1);}catch{}}
 
   $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
     <div class="card-h"><span class="card-t">Parlays del día</span>
-      <span class="card-s">Combinados por IA</span></div>
+      <span class="card-s">${esc(diaTxt)} · todas las ligas</span></div>
     ${banner}
     ${son.length?`<div style="padding:2px 0 6px">${son.map(cardSonador).join("")}</div>`:""}
     ${l.length
@@ -1095,7 +1103,7 @@ async function viewParlays(){
                  : l.map(pl=>pl.bloqueado?cardLock(pl):cardPro(pl,0)).join(""))
       : (son.length?"":`<div class="empty"><b>Sin parlays hoy</b><span>${d.motorCaido
           ?"El motor no responde ahora. Intenta en un momento."
-          :"Se necesitan al menos 2 partidos con pick para armar un combinado. Vuelve cuando haya más juegos programados."}</span></div>`)}
+          :"No hay suficientes partidos con pick en los próximos días. Vuelve pronto."}</span></div>`)}
   </div>`;
 }
 /* --- TABLA --- */
