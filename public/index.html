@@ -1243,12 +1243,6 @@ async function abrirPartido(id){
     <div class="card" style="margin-bottom:16px" id="pAlineaciones">
       <div class="card-h"><span class="card-t">Alineaciones</span></div>
       <div class="skel"></div></div>
-    <div class="grid2">
-      <div class="card" id="pJugL"><div class="card-h"><span class="card-t">Top ${esc(local)}</span></div>
-        <div class="skel"></div></div>
-      <div class="card" id="pJugV"><div class="card-h"><span class="card-t">Top ${esc(visitante)}</span></div>
-        <div class="skel"></div></div>
-    </div>
     <div class="card" style="margin-top:16px" id="pStats">
       <div class="card-h"><span class="card-t">Números del partido</span></div>
       <div class="skel"></div></div>`;
@@ -1329,11 +1323,6 @@ async function abrirPartido(id){
           const nota=$("#aliNota");if(nota)nota.textContent=d.nota||"Aún no disponible (se confirma ~1h antes)";}
       }).catch(()=>{if(btn){btn.disabled=false;btn.textContent="🔄 Traer alineación";}});
   };
-  fetch(`${API}/matches/detalle`,{method:"POST",headers:H(),body:JSON.stringify({id})})
-    .then(r=>r.json()).then(d=>{
-      $("#pJugL").innerHTML=jugadoresCardHTML("Top "+local,(d.local&&d.local.jugadores)||[]);
-      $("#pJugV").innerHTML=jugadoresCardHTML("Top "+visitante,(d.visitante&&d.visitante.jugadores)||[]);
-    }).catch(()=>{});
   // NÚMEROS DEL PARTIDO: goleadores, amonestados, córners recientes
   fetch(`${API}/matches/stats`,{method:"POST",headers:H(),body:JSON.stringify({id})})
     .then(r=>r.json()).then(d=>{
@@ -1386,16 +1375,6 @@ function statsPartidoHTML(d,local,visitante){
         ${_cornersBox(visitante,V)}
       </div>
     </div>`;
-}
-function jugadoresCardHTML(titulo,jug){
-  return `<div class="card-h"><span class="card-t">${esc(titulo)}</span></div>
-    ${jug.length?jug.map(j=>`<div class="prow">
-      ${face(j.nombre,j.equipo||"")}
-      <div class="pinfo"><b>${esc(j.nombre)}</b>
-        <span>${esc(j.posicion||"")}${j.partidos?` · ${j.partidos} PJ`:""}</span></div>
-      <div class="pstat"><div class="v mono">${j.rating?Number(j.rating).toFixed(1):(j.goles||0)}</div>
-        <div class="k">${j.rating?"Rating":"Goles"}</div></div>
-    </div>`).join(""):`<div class="empty"><span>Sin datos de jugadores</span></div>`}`;
 }
 function alineacionesHTML(d,local,visitante,id){
   const btnTraer=`<button class="btn btn-line" style="padding:5px 11px;font-size:11px" onclick="window._traerAlineacion(this)">🔄 Traer alineación</button>`;
