@@ -830,13 +830,24 @@ async function viewHoy(){
     if(hayVivo&&view==="hoy")window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);
     return;
   }
-  // traer jornadas (para el selector) y partidos en paralelo
-  const [rp,rj]=await Promise.all([
-    fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()}),
-    fetch(`${API}/matches/jornadas-liga?liga=${liga}`,{headers:H()}).catch(()=>null)
-  ]);
-  const partidos=await rp.json().catch(()=>[]);
-  const jdata=rj?await rj.json().catch(()=>({jornadas:[]})):{jornadas:[]};
+  // traer jornadas (para el selector) y partidos en paralelo.
+  // CACHE por liga (2 min): cambiar entre pestañas ya vistas es instantáneo,
+  // sin re-pegarle al motor cada vez. Datos "en vivo" se refrescan solos.
+  window._ligaCache=window._ligaCache||{};
+  const cacheKey=`hoy:${liga}`;
+  const cached=window._ligaCache[cacheKey];
+  let partidos, jdata;
+  if(cached && (Date.now()-cached.t)<120000){
+    partidos=cached.partidos; jdata=cached.jdata;
+  }else{
+    const [rp,rj]=await Promise.all([
+      fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()}),
+      fetch(`${API}/matches/jornadas-liga?liga=${liga}`,{headers:H()}).catch(()=>null)
+    ]);
+    partidos=await rp.json().catch(()=>[]);
+    jdata=rj?await rj.json().catch(()=>({jornadas:[]})):{jornadas:[]};
+    window._ligaCache[cacheKey]={t:Date.now(),partidos,jdata};
+  }
   const jornadas=jdata.jornadas||[];
 
   // jornada por defecto: la "actual", o la primera próxima
