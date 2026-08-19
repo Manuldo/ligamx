@@ -584,6 +584,7 @@ function face(nombre,equipo){
 function motorAnalisisHTML(markdown,ctx){
   ctx=ctx||{};
   if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
+  window._anSnaps=window._anSnaps||{};
   let h=String(markdown).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   // convierte los PICK con confianza en tarjetas con barra
   function picks(txt){
@@ -594,16 +595,16 @@ function motorAnalisisHTML(markdown,ctx){
         const lbl=n>=78?'Alta':(n>=68?'Media':'Baja');
         const sel=pick.trim();
         // id estable por partido+selección para poder marcar "Lo jugué"
-        const pid="an_"+btoa(unescape(encodeURIComponent((ctx.partido||"")+"|"+sel))).replace(/=/g,"").slice(0,40);
+        const pid="an_"+btoa(unescape(encodeURIComponent((ctx.partido||"")+"|"+sel))).replace(/[^a-zA-Z0-9]/g,"").slice(0,40);
         const mine=localStorage.getItem("mp_"+pid);
-        const snap={patas:[{partido:ctx.partido||""}],partido:ctx.partido||"",mercado:sel,probConjunta:n/100,momioComb:null,edge:null,liga:ctx.liga||"",conf:n};
+        // el snapshot se guarda en memoria, NO en el HTML (evita romper el atributo)
+        window._anSnaps[pid]={patas:[{partido:ctx.partido||""}],partido:ctx.partido||"",mercado:sel,probConjunta:n/100,liga:ctx.liga||"",conf:n};
         return `<div class="an-pick">
           <div class="an-pick-conf" style="color:${col}"><b>${conf}%</b><span>${lbl}</span></div>
           <div class="an-pick-body"><div class="an-pick-sel">${sel}</div>
           <div class="an-pick-why">${razon.trim()}</div>
           <div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div>
-          <div style="margin-top:9px"><button class="sm ${mine?"on":""}" data-mine-analisis="${pid}"
-            data-snap='${JSON.stringify(snap).replace(/'/g,"&#39;")}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>
+          <div style="margin-top:9px"><button class="sm ${mine?"on":""}" data-mine-analisis="${pid}" ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>
           </div>
         </div>`;
       });
@@ -1523,7 +1524,7 @@ document.addEventListener("click",async e=>{
   const bma=e.target.closest("[data-mine-analisis]");
   if(bma){
     const id=bma.dataset.mineAnalisis;bma.disabled=true;
-    let snap={};try{snap=JSON.parse(bma.dataset.snap||"{}");}catch{}
+    const snap=(window._anSnaps&&window._anSnaps[id])||{};
     try{const r=await fetch(`${API}/history/registrar`,{method:"POST",headers:H(),
         body:JSON.stringify({parlayId:id,snapshotParlay:snap})});
       const d=await r.json().catch(()=>({}));
