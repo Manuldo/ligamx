@@ -73,7 +73,13 @@ router.get("/me", requireAuth, ah(async (req, res) => {
   if (!user) return res.status(404).json({ error: "No encontrado" });
   res.json({
     token: signToken(user),   // token nuevo con el estado actualizado
-    user: { email: user.email, isPro: user.isProActive() }
+    user: {
+      email: user.email,
+      isPro: user.isProActive(),
+      cuentaDesde: user.createdAt,
+      proEstado: user.stripeSubscriptionStatus,
+      proVence: user.subscriptionExpiresAt,
+    }
   });
 }));
 

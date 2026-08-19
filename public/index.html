@@ -581,7 +581,8 @@ function face(nombre,equipo){
 }
 
 // ===== ANALISIS DEL MOTOR: markdown -> tarjetas =====
-function motorAnalisisHTML(markdown){
+function motorAnalisisHTML(markdown,ctx){
+  ctx=ctx||{};
   if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
   let h=String(markdown).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   // convierte los PICK con confianza en tarjetas con barra
@@ -591,11 +592,19 @@ function motorAnalisisHTML(markdown){
         const n=parseInt(conf);
         const col=n>=78?'var(--green)':(n>=68?'var(--amber)':'var(--dim2)');
         const lbl=n>=78?'Alta':(n>=68?'Media':'Baja');
+        const sel=pick.trim();
+        // id estable por partido+selección para poder marcar "Lo jugué"
+        const pid="an_"+btoa(unescape(encodeURIComponent((ctx.partido||"")+"|"+sel))).replace(/=/g,"").slice(0,40);
+        const mine=localStorage.getItem("mp_"+pid);
+        const snap={patas:[{partido:ctx.partido||""}],partido:ctx.partido||"",mercado:sel,probConjunta:n/100,momioComb:null,edge:null,liga:ctx.liga||"",conf:n};
         return `<div class="an-pick">
           <div class="an-pick-conf" style="color:${col}"><b>${conf}%</b><span>${lbl}</span></div>
-          <div class="an-pick-body"><div class="an-pick-sel">${pick.trim()}</div>
+          <div class="an-pick-body"><div class="an-pick-sel">${sel}</div>
           <div class="an-pick-why">${razon.trim()}</div>
-          <div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div></div>
+          <div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div>
+          <div style="margin-top:9px"><button class="sm ${mine?"on":""}" data-mine-analisis="${pid}"
+            data-snap='${JSON.stringify(snap).replace(/'/g,"&#39;")}' ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>
+          </div>
         </div>`;
       });
   }
@@ -710,6 +719,7 @@ function sbUser(){
        <div class="sb-user-i"><b>${esc(me.email)}</b>
        ${isPro()?'<em>PRO</em>':'<em style="color:var(--dim2)">Cuenta gratis</em>'}</div>`
     : `<span class="av">?</span><div class="sb-user-i"><b>Sin sesión</b></div>`;
+  if(me){$("#sbuser").style.cursor="pointer";$("#sbuser").setAttribute("data-a","cuenta");}
   $("#tbAct").innerHTML = me
     ? (isPro()?"":'<button class="btn btn-red" data-a="pro">Hazte PRO</button>')
       +'<button class="btn btn-line" data-a="out" style="margin-left:8px">Salir</button>'
@@ -720,6 +730,8 @@ document.addEventListener("click",e=>{
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
   if(a==="out")logout(); if(a==="pro")goPro();
+  if(a==="cuenta")verCuenta();
+  if(a==="portal")abrirPortal();
 });
 
 /* ===== GATE ===== */
@@ -1333,7 +1345,7 @@ async function abrirPartido(id){
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
           <span class="card-s">${d.cacheado?"guardado":"actualizado"}</span>
           <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" onclick="window._cargarAnalisis(true)">↻ Refrescar</button></div>
-          ${motorAnalisisHTML(d.analisisMarkdown||"Sin análisis")}`;
+          ${motorAnalisisHTML(d.analisisMarkdown||"Sin análisis",{partido:local+" vs "+visitante,liga:liga})}`;
       }).catch((err)=>{
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
           <div class="empty"><b>No se pudo analizar</b>
@@ -1486,7 +1498,7 @@ document.addEventListener("click",async e=>{
       box.innerHTML=`<div style="background:var(--panel2);border-bottom:1px solid var(--line)">
         <div style="padding:11px 16px;font-size:10px;font-weight:800;letter-spacing:.11em;
           text-transform:uppercase;color:var(--red)">Análisis Pickazo MX${d.nivel==="premium"?" · A fondo":""}${d.cacheado?" · guardado":""}</div>
-        ${motorAnalisisHTML(d.analisisMarkdown||"")}
+        ${motorAnalisisHTML(d.analisisMarkdown||"",(()=>{const pp=(id||"").split(":");return pp.length>=3?{partido:pp[1]+" vs "+pp[2],liga:pp[0]}:{};})())}
       </div>`;
       an.textContent="✓";
     }catch{an.disabled=false;an.textContent="Analizar";toast("Sin conexión");}
@@ -1506,6 +1518,20 @@ document.addEventListener("click",async e=>{
         if(r.ok)toast("Guardado en tu historial","ok");}
       else{bm.disabled=false;toast(d.error||"No se pudo guardar");}
     }catch{bm.disabled=false;toast("Sin conexión");}
+    return;
+  }
+  const bma=e.target.closest("[data-mine-analisis]");
+  if(bma){
+    const id=bma.dataset.mineAnalisis;bma.disabled=true;
+    let snap={};try{snap=JSON.parse(bma.dataset.snap||"{}");}catch{}
+    try{const r=await fetch(`${API}/history/registrar`,{method:"POST",headers:H(),
+        body:JSON.stringify({parlayId:id,snapshotParlay:snap})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok||r.status===409){localStorage.setItem("mp_"+id,"1");
+        bma.textContent="✓ Lo jugué";bma.classList.add("on");
+        if(r.ok)toast("Guardado en Mis picks","ok");}
+      else{bma.disabled=false;toast(d.error||"No se pudo guardar");}
+    }catch{bma.disabled=false;toast("Sin conexión");}
     return;
   }
   const bmp=e.target.closest("[data-mine-parlay]");
@@ -1534,12 +1560,55 @@ document.addEventListener("click",async e=>{
   }
 });
 
+async function verCuenta(){
+  setView("hoy"); // limpia estado activo del menú
+  const p=$("#page");
+  p.innerHTML=`<div class="pzload"><div class="pzload-ic"><img src="/icons/icon-192.png"></div>
+    <div class="pzload-txt">Cargando tu cuenta<span class="pzload-dots"></span></div></div>`;
+  let u=me||{};
+  try{const r=await fetch(`${API}/auth/me`,{headers:H()});if(r.ok){const d=await r.json();if(d.user)u=d.user;
+    if(d.token){token=d.token;localStorage.setItem("token",token);}
+    me=u;localStorage.setItem("me",JSON.stringify(me));}}catch{}
+  const fmt=(d)=>{try{return new Date(d).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});}catch{return "—";}};
+  const esPro=isPro();
+  $("#tbT").textContent="Mi cuenta";$("#tbS").textContent="";
+  p.innerHTML=`<div class="card">
+    <div class="card-h"><span class="card-t">Mi cuenta</span></div>
+    <div style="padding:18px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+        <span class="av" style="width:52px;height:52px;font-size:22px">${esc((u.email||"?")[0].toUpperCase())}</span>
+        <div><div style="font-weight:800;font-size:16px">${esc(u.email||"")}</div>
+          <div style="font-size:13px;margin-top:2px">${esPro
+            ?'<span style="color:var(--red);font-weight:800">● PRO activo</span>'
+            :'<span style="color:var(--dim2);font-weight:700">Cuenta gratis</span>'}</div></div>
+      </div>
+      <div class="enums" style="border-top:1px solid var(--line);padding-top:16px">
+        <div class="en"><div class="k">Miembro desde</div><div class="v" style="font-size:14px">${fmt(u.cuentaDesde)}</div></div>
+        ${esPro?`<div class="en"><div class="k">Estado suscripción</div><div class="v" style="font-size:14px;color:var(--green)">${esc(u.proEstado||"activa")}</div></div>
+        <div class="en"><div class="k">Renueva/vence</div><div class="v" style="font-size:14px">${fmt(u.proVence)}</div></div>`:""}
+      </div>
+      <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
+        ${esPro
+          ?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>'
+          :'<button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>'}
+        <button class="btn btn-line" onclick="setView('mios')">Ver mis picks</button>
+      </div>
+    </div>
+  </div>`;
+}
 async function goPro(){
   if(!me){openAuth("register");return;}
   try{const r=await fetch(`${API}/payments/checkout`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
     toast(r.status===503?"Los pagos aún no están activos":"No se pudo abrir el pago");
+  }catch{toast("Sin conexión");}
+}
+async function abrirPortal(){
+  try{const r=await fetch(`${API}/payments/portal`,{method:"POST",headers:H()});
+    const d=await r.json().catch(()=>({}));
+    if(d.url){location.href=d.url;return;}
+    toast("No se pudo abrir el portal");
   }catch{toast("Sin conexión");}
 }
 function openAuth(m){
