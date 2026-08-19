@@ -676,12 +676,12 @@ const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar",
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
-  window.setView=setView;
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  $("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];
+  if(TITLES[v]){$("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];}
   render();
 }
+window.setView=setView;
 // Liga abierta en el sidebar (colapsable). Por defecto Liga MX.
 let LIGA_SB_ABIERTA="ligamx";
 function sbLigas(){
@@ -1637,7 +1637,33 @@ function logout(){
   sbUser();gate();toast("Sesión cerrada");
 }
 
+// Al volver de Stripe (?pro=ok) refrescamos el estado sin pedir logout.
+async function checkRetornoPago(){
+  const qs=new URLSearchParams(location.search);
+  if(qs.get("pro")==="ok" && token){
+    toast("Confirmando tu suscripción…");
+    for(let i=0;i<4;i++){
+      try{
+        const r=await fetch(`${API}/auth/me`,{headers:H()});
+        if(r.ok){
+          const d=await r.json();
+          if(d.token){token=d.token;localStorage.setItem("token",token);}
+          if(d.user){me=d.user;localStorage.setItem("me",JSON.stringify(me));}
+          if(d.user&&d.user.isPro){toast("¡Ya eres PRO! 🎉","ok");break;}
+        }
+      }catch{}
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    history.replaceState({},"",location.pathname);
+    sbUser();sbLigas();render();
+  }else if(qs.get("pro")==="cancel"){
+    history.replaceState({},"",location.pathname);
+    toast("Pago cancelado");
+  }
+}
+
 sbUser();sbLigas();render();
+checkRetornoPago();
 </script>
 </body>
 </html>

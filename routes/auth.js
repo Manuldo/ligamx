@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import PasswordReset from "../models/PasswordReset.js";
 import { enviarCorreo, plantillaReset } from "../mailer.js";
 import { ah } from "../asyncHandler.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -65,7 +66,16 @@ router.post("/login", authLimiter, ah(async (req, res) => {
   });
 }));
 
-// ===================== RECUPERACION DE CONTRASEÑA =====================
+// Estado actual del usuario + token fresco. El front lo llama al volver
+// de Stripe (?pro=ok) para reflejar el PRO sin que el usuario cierre sesión.
+router.get("/me", requireAuth, ah(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ error: "No encontrado" });
+  res.json({
+    token: signToken(user),   // token nuevo con el estado actualizado
+    user: { email: user.email, isPro: user.isProActive() }
+  });
+}));
 
 // Limite propio, mas estricto: pedir resets es barato para un atacante
 // y caro para nosotros (cada uno manda un correo).
