@@ -502,6 +502,8 @@ body.landing .page{padding:0;max-width:none}
   </div>
   <div class="sb-bot">
     <div class="sb-user" id="sbuser"></div>
+    <a href="/terminos.html" target="_blank" style="display:block;text-align:center;
+      font-size:11px;color:var(--dim2);text-decoration:none;margin-top:8px">Términos y Condiciones</a>
   </div>
 </aside>
 
@@ -529,6 +531,9 @@ body.landing .page{padding:0;max-width:none}
     <button class="btn btn-red" id="mGo">Entrar</button>
     <div class="mswap" id="mSw">¿Primera vez? <b>Crear cuenta</b></div>
     <div class="mforgot" id="mForgot">¿Olvidaste tu contraseña?</div>
+    <div id="mLegal" style="display:none;font-size:11px;color:var(--dim2);text-align:center;
+      margin-top:14px;line-height:1.5">Al crear tu cuenta confirmas que eres mayor de 18 años y
+      aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a>.</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -694,6 +699,8 @@ const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar",
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
+  // limpiar timers de auto-refresh al cambiar de vista (evita fugas)
+  clearTimeout(window._refreshHoy);clearTimeout(window._heroTimer);
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   if(TITLES[v]){$("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];}
@@ -771,6 +778,11 @@ function gate(){
         </div>
         <button class="land-cta" data-a="up">Crear cuenta y empezar</button>
         <div class="land-sub" data-a="in">¿Ya tienes cuenta? <b>Entrar</b></div>
+        <div style="margin-top:22px;font-size:11.5px;color:var(--dim2);line-height:1.6;max-width:460px">
+          Solo para mayores de 18 años. Pickazo es un servicio de análisis e información
+          deportiva, <b style="color:var(--dim)">no una casa de apuestas</b>. Al crear tu cuenta
+          aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a>.
+        </div>
       </div>
     </div>`;
 }
@@ -868,17 +880,21 @@ async function viewHoy(){
         <span class="card-s">${jugados.length}</span></div>${jugados.map(m=>cardT(m,true)).join("")}</div>`:""}`;
     const hayVivo=proximos.some(m=>m.enVivo);
     clearTimeout(window._refreshHoy);
-    if(hayVivo&&view==="hoy")window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);
+    if(hayVivo&&view==="hoy")window._refreshHoy=setTimeout(()=>{if(view==="hoy"){if(window._ligaCache)delete window._ligaCache["hoy:"+(LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL)];viewHoy();}},60000);
     return;
   }
   // traer jornadas (para el selector) y partidos en paralelo.
-  // CACHE por liga (2 min): cambiar entre pestañas ya vistas es instantáneo,
-  // sin re-pegarle al motor cada vez. Datos "en vivo" se refrescan solos.
+  // CACHE por liga: cambiar entre pestañas ya vistas es instantáneo. PERO si
+  // hay partidos EN VIVO, el cache se ignora (TTL 0) para que los marcadores
+  // estén siempre frescos. En día de juegos esto es crítico.
   window._ligaCache=window._ligaCache||{};
   const cacheKey=`hoy:${liga}`;
   const cached=window._ligaCache[cacheKey];
+  // ¿el cache previo traía algún partido en vivo? entonces no confiar en él
+  const cacheTeniaVivo=cached&&Array.isArray(cached.partidos)&&cached.partidos.some(m=>m&&(m.enVivo||m.estado==="en_vivo"));
+  const ttl=cacheTeniaVivo?0:120000;
   let partidos, jdata;
-  if(cached && (Date.now()-cached.t)<120000){
+  if(cached && ttl>0 && (Date.now()-cached.t)<ttl){
     partidos=cached.partidos; jdata=cached.jdata;
   }else{
     const [rp,rj]=await Promise.all([
@@ -967,7 +983,7 @@ async function viewHoy(){
 
   const hayVivo=proximos.some(m=>m.enVivo||m.estado==="en_vivo");
   clearTimeout(window._refreshHoy);
-  if(hayVivo&&view==="hoy"){window._refreshHoy=setTimeout(()=>{if(view==="hoy")viewHoy();},60000);}
+  if(hayVivo&&view==="hoy"){window._refreshHoy=setTimeout(()=>{if(view==="hoy"){if(window._ligaCache)delete window._ligaCache["hoy:"+(LIGA_ACTUAL==="__todas__"?"ligamx":LIGA_ACTUAL)];viewHoy();}},60000);}
 }
 /* --- ANALIZAR: buscador de partidos --- */
 let _analizarLiga="ligamx", _analizarBusqueda="";
@@ -1701,6 +1717,7 @@ function openAuth(m){
   $("#mGo").textContent=m==="login"?"Entrar":"Crear cuenta";
   $("#mSw").innerHTML=m==="login"?'¿Primera vez? <b>Crear cuenta</b>':'¿Ya tienes cuenta? <b>Entrar</b>';
   $("#mForgot").style.display=m==="login"?"block":"none";
+  { const el=document.getElementById("mLegal"); if(el)el.style.display=m==="login"?"none":"block"; }
   $("#mE").textContent="";$("#mod").classList.add("on");
   setTimeout(()=>$("#mEmail").focus(),80);
 }
