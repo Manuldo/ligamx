@@ -665,7 +665,7 @@ function motorAnalisisHTML(markdown,ctx){
       const cuerpoHtml=cuerpo.trim()?inline(cuerpo):'<span style="color:var(--dim2)">Sin elementos en esta sección.</span>';
       out+=`<div class="an-sec an-collapse closed">
         <div class="an-sec-t an-collapse-h" style="cursor:pointer;display:flex;align-items:center"
-          onclick="this.parentNode.classList.toggle('closed')">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
+          data-toggle="1">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
         <div class="an-sec-b">${cuerpoHtml}</div></div>`;continue;
     }
     // otra sección
@@ -753,11 +753,17 @@ function sbUser(){
     : '<button class="btn btn-red" data-a="in">Entrar</button>';
 }
 document.addEventListener("click",e=>{
+  // toggle de secciones colapsables (DERECHAS/DESCARTADOS) — CSP-safe
+  const tg=e.target.closest("[data-toggle]");
+  if(tg){tg.parentNode.classList.toggle("closed");return;}
   const b=e.target.closest("[data-a]"); if(!b)return;
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
   if(a==="out")logout(); if(a==="pro")goPro();
   if(a==="cuenta")verCuenta();
+  if(a==="volver")volverAHoy();
+  if(a==="reanalizar"&&window._cargarAnalisis)window._cargarAnalisis(true);
+  if(a==="traer-alineacion"&&window._traerAlineacion)window._traerAlineacion(b);
   if(a==="portal")abrirPortal();
 });
 
@@ -1381,7 +1387,7 @@ async function abrirPartido(id){
   $("#tbT").textContent=`${local} vs ${visitante}`;
   $("#tbS").textContent=LIGA_NOMBRES[liga]||liga;
   $("#page").innerHTML=`
-    <button class="btn btn-line" onclick="volverAHoy()" style="margin-bottom:14px">← Volver</button>
+    <button class="btn btn-line" data-a="volver" style="margin-bottom:14px">← Volver</button>
     <div class="match-hero card" style="margin-bottom:16px" id="pHero">
       <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
         <div style="text-align:center">${crest(local,null,true)}
@@ -1442,19 +1448,19 @@ async function abrirPartido(id){
             <div class="empty"><b>No se pudo analizar</b>
             <span style="color:var(--dim)">${esc(detalle)}${limite}</span></div>
             <div style="padding:0 16px 16px;text-align:center">
-              <button class="btn btn-red" onclick="window._cargarAnalisis(true)">↻ Intentar de nuevo</button></div>`;
+              <button class="btn btn-red" data-a="reanalizar">↻ Intentar de nuevo</button></div>`;
           return;
         }
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span>
           <span class="card-s">${d.cacheado?"guardado":"actualizado"}</span>
-          <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" onclick="window._cargarAnalisis(true)">↻ Refrescar</button></div>
+          <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" data-a="reanalizar">↻ Refrescar</button></div>
           ${motorAnalisisHTML(d.analisisMarkdown||"Sin análisis",{partido:local+" vs "+visitante,liga:liga})}`;
       }).catch((err)=>{
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
           <div class="empty"><b>No se pudo analizar</b>
           <span style="color:var(--dim)">Sin conexión con el motor. ${esc(String(err&&err.message||""))}</span></div>
           <div style="padding:0 16px 16px;text-align:center">
-            <button class="btn btn-red" onclick="window._cargarAnalisis(true)">↻ Intentar de nuevo</button></div>`;
+            <button class="btn btn-red" data-a="reanalizar">↻ Intentar de nuevo</button></div>`;
       });
   };
   window._cargarAnalisis(false);
@@ -1530,7 +1536,7 @@ function statsPartidoHTML(d,local,visitante){
     </div>`;
 }
 function alineacionesHTML(d,local,visitante,id){
-  const btnTraer=`<button class="btn btn-line" style="padding:5px 11px;font-size:11px" onclick="window._traerAlineacion(this)">🔄 Traer alineación</button>`;
+  const btnTraer=`<button class="btn btn-line" style="padding:5px 11px;font-size:11px" data-a="traer-alineacion">🔄 Traer alineación</button>`;
   if(!d||!d.hay){
     return `<div class="card-h"><span class="card-t">Alineaciones</span>
       <span class="card-s" style="margin-left:auto">${btnTraer}</span></div>
@@ -1694,7 +1700,7 @@ async function verCuenta(){
         ${esPro
           ?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>'
           :'<button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>'}
-        <button class="btn btn-line" onclick="setView('mios')">Ver mis picks</button>
+        <button class="btn btn-line" data-v="mios">Ver mis picks</button>
       </div>
     </div>
   </div>`;
