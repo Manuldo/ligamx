@@ -707,6 +707,17 @@ function setView(v){
   render();
 }
 window.setView=setView;
+// Volver robusto desde la pantalla de partido: limpia timers de esa vista,
+// invalida nada del cache, y fuerza render de "hoy". A prueba de estados colgados.
+function volverAHoy(){
+  clearTimeout(window._heroTimer);clearTimeout(window._refreshHoy);
+  window._cargarHero=null;
+  view="hoy";
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==="hoy"));
+  if(TITLES.hoy){$("#tbT").textContent=TITLES.hoy[0];$("#tbS").textContent=TITLES.hoy[1];}
+  render();
+}
+window.volverAHoy=volverAHoy;
 // Liga abierta en el sidebar (colapsable). Por defecto Liga MX.
 let LIGA_SB_ABIERTA="ligamx";
 function sbLigas(){
@@ -1370,7 +1381,7 @@ async function abrirPartido(id){
   $("#tbT").textContent=`${local} vs ${visitante}`;
   $("#tbS").textContent=LIGA_NOMBRES[liga]||liga;
   $("#page").innerHTML=`
-    <button class="btn btn-line" onclick="setView('hoy')" style="margin-bottom:14px">← Volver</button>
+    <button class="btn btn-line" onclick="volverAHoy()" style="margin-bottom:14px">← Volver</button>
     <div class="match-hero card" style="margin-bottom:16px" id="pHero">
       <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
         <div style="text-align:center">${crest(local,null,true)}
