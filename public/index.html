@@ -372,6 +372,31 @@ tbody tr:hover{background:var(--panel2)}
 .bld-k{font-size:10px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;font-weight:800}
 .bld-v{font-size:19px;font-weight:900;margin-top:2px}
 
+/* parlay maestro extra */
+.bld-hero{background:linear-gradient(135deg,rgba(139,92,246,.14),var(--panel2) 65%);
+  border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:20px 22px}
+.bld-hero-badge{display:inline-block;background:rgba(139,92,246,.2);color:#a78bfa;font-size:10.5px;
+  font-weight:800;letter-spacing:.1em;padding:5px 11px;border-radius:20px;margin-bottom:10px}
+.bld-hero-t{font-size:21px;font-weight:900;letter-spacing:-.4px;margin-bottom:5px}
+.bld-hero-s{font-size:13px;color:var(--dim);line-height:1.5}.bld-hero-s b{color:var(--txt)}
+.bld-sel-lbl{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--dim2);margin-bottom:10px}
+.bld-ligas{display:flex;flex-wrap:wrap;gap:8px}
+.bld-liga{display:flex;align-items:center;gap:6px;background:var(--panel);border:1.5px solid var(--line);
+  color:var(--dim);padding:8px 13px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .15s}
+.bld-liga.on{border-color:#8b5cf6;color:var(--txt);background:rgba(139,92,246,.1)}
+.bld-liga-fl{font-size:14px}
+.bld-dep{font-size:13px;font-weight:800;color:var(--dim);letter-spacing:.03em;margin:18px 0 10px;text-transform:uppercase}
+.bld-float-metrics{padding-top:10px;border-top:1px solid var(--line)}
+.bld-mrow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--dim);padding:3px 0}
+.bld-mrow b{color:var(--txt);font-family:'JetBrains Mono',monospace}
+.bld-mrow-big{margin-top:4px;padding-top:8px;border-top:1px solid var(--line);font-size:14px}
+.bld-mrow-big b{font-size:20px;font-weight:900}
+.bld-comu{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line)}
+.bld-comu:last-child{border-bottom:none}
+.bld-like{background:var(--panel);border:1px solid var(--line);color:var(--dim);
+  padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.bld-like:hover{border-color:var(--red);color:var(--txt)}
+
 /* soñadores: el gancho grande, más llamativo */
 .pzd{border-radius:16px;margin:14px 16px;overflow:hidden;border:1px solid var(--line)}
 .pzd-seguro{border-color:rgba(34,197,94,.35);background:linear-gradient(160deg,rgba(34,197,94,.07),var(--panel) 55%)}
@@ -806,6 +831,17 @@ document.addEventListener("click",e=>{
     if(chk){chk.classList.remove("on");chk.textContent="";}
     renderBoleto();return;
   }
+  // Parlay Maestro: toggle de liga en el selector
+  const bldl=e.target.closest("[data-bldliga]");
+  if(bldl){
+    const slug=bldl.dataset.bldliga;
+    if(_bldLigas.includes(slug)){ if(_bldLigas.length>1)_bldLigas=_bldLigas.filter(x=>x!==slug); }
+    else _bldLigas.push(slug);
+    viewBuilder();return;
+  }
+  // Parlay Maestro: like a boleto de comunidad
+  const blk=e.target.closest("[data-bldlike]");
+  if(blk){likeBoletoComu(blk.dataset.bldlike,blk);return;}
   const b=e.target.closest("[data-a]"); if(!b)return;
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
@@ -816,6 +852,8 @@ document.addEventListener("click",e=>{
   if(a==="traer-alineacion"&&window._traerAlineacion)window._traerAlineacion(b);
   if(a==="portal")abrirPortal();
   if(a==="guardar-boleto")guardarBoleto();
+  if(a==="publicar-boleto")publicarBoleto();
+  if(a==="copiar-boleto")copiarBoleto();
 });
 
 /* ===== GATE ===== */
@@ -1172,56 +1210,96 @@ async function viewTrack(){
   p.innerHTML=html;
 }
 
-/* --- PARLAY BUILDER (arma tu propio boleto) --- */
+/* --- PARLAY BUILDER MAESTRO (paridad con el motor) --- */
 let _boleto=[]; // patas elegidas
+let _bldLigas=["ligamx"]; // ligas activas en el selector
+const _BLD_LIGAS=[
+  {slug:"ligamx",nom:"Liga MX",fl:"🇲🇽"},{slug:"premier",nom:"Premier",fl:"🏴󠁧󠁢󠁥󠁮󠁧󠁿"},
+  {slug:"laliga",nom:"LaLiga",fl:"🇪🇸"},{slug:"seriea",nom:"Serie A",fl:"🇮🇹"},
+  {slug:"bundesliga",nom:"Bundesliga",fl:"🇩🇪"},{slug:"ligue1",nom:"Ligue 1",fl:"🇫🇷"},
+];
+
 async function viewBuilder(){
   const p=$("#page");
   p.innerHTML=`<div class="pzload"><div class="pzload-ic"><img src="/icons/icon-192.png"></div>
-    <div class="pzload-txt">Cargando picks disponibles<span class="pzload-dots"></span></div></div>`;
-  const ligas=["ligamx","premier","laliga","seriea","bundesliga","ligue1"];
-  let bloques=[];
+    <div class="pzload-txt">Cargando el Maestro<span class="pzload-dots"></span></div></div>`;
+
+  // traer picks del maestro (ligas activas) + comunidad en paralelo
+  let data={deportes:[]},comu={parlays:[]};
   try{
-    const rs=await Promise.all(ligas.map(l=>
-      fetch(`${API}/motor/picks-hoy?liga=${l}`,{headers:H()}).then(r=>r.ok?r.json():null).catch(()=>null)));
-    rs.forEach((d,i)=>{ if(d&&d.partidos) d.partidos.forEach(pt=>{
-      if(pt.picks&&pt.picks.length) bloques.push({liga:ligas[i],partido:pt.partido,picks:pt.picks});
-    });});
+    const [rm,rc]=await Promise.all([
+      fetch(`${API}/motor/maestro?ligas=${_bldLigas.join(",")}`,{headers:H()}).then(r=>r.ok?r.json():{deportes:[]}).catch(()=>({deportes:[]})),
+      fetch(`${API}/motor/comunidad?top=6`,{headers:H()}).then(r=>r.ok?r.json():{parlays:[]}).catch(()=>({parlays:[]})),
+    ]);
+    data=rm||{deportes:[]}; comu=rc||{parlays:[]};
   }catch{}
 
-  if(!bloques.length){
-    p.innerHTML=`<div class="card"><div class="empty"><b>Sin picks disponibles</b>
-      <span>Cuando haya partidos próximos con picks, podrás armar tu boleto aquí.</span></div></div>`;
-    return;
-  }
+  // header + selector de ligas
+  const selector=_BLD_LIGAS.map(l=>{
+    const on=_bldLigas.includes(l.slug);
+    return `<button class="bld-liga ${on?'on':''}" data-bldliga="${l.slug}">
+      <span class="bld-liga-fl">${l.fl}</span> ${esc(l.nom)}</button>`;
+  }).join("");
 
-  const filas=bloques.map(bl=>`
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-h"><span class="card-t" style="font-size:13.5px">${esc(bl.partido)}</span>
-        <span class="card-s">${LIGA_FLAGS[bl.liga]||""} ${esc(LIGA_NOMBRES[bl.liga]||bl.liga)}</span></div>
-      ${bl.picks.map(pk=>{
-        const id=btoa(unescape(encodeURIComponent(bl.partido+"|"+pk.mercado))).replace(/[^a-zA-Z0-9]/g,"").slice(0,32);
-        const n=Math.round((pk.probEstimada||.5)*100);
-        const col=n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');
-        const marcada=_boleto.some(x=>x.id===id);
-        return `<div class="bld-pick" data-bld="${id}"
-          data-partido="${esc(bl.partido)}" data-mercado="${esc(pk.mercado)}"
-          data-momio="${pk.momio||2}" data-prob="${pk.probEstimada||.5}" data-liga="${bl.liga}">
-          <span class="bld-check ${marcada?'on':''}">${marcada?'✓':''}</span>
-          <span class="bld-info"><b>${esc(pk.mercado)}</b>
-            <span class="bld-conf" style="color:${col}">Confianza ${n}%</span></span>
-          <span class="bld-mom mono">${dec(pk.momio||2)}</span>
+  let cuerpo="";
+  const hayPicks=(data.deportes||[]).some(d=>(d.partidos||[]).length);
+  if(!hayPicks){
+    cuerpo=`<div class="card"><div class="empty"><b>Sin picks en estas ligas</b>
+      <span>Elige otras ligas arriba o espera a que haya partidos próximos.</span></div></div>`;
+  }else{
+    cuerpo=(data.deportes||[]).map(dep=>`
+      <div class="bld-dep">${dep.emoji} ${esc(dep.nombre)}</div>
+      ${(dep.partidos||[]).map(pt=>{
+        const liga=pt.liga_slug||pt.liga||"";
+        const hora=pt.inicio?new Date(pt.inicio).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:TZ,hour12:false}):"";
+        return `<div class="card" style="margin-bottom:12px">
+          <div class="card-h"><span class="card-t" style="font-size:13.5px">${esc(pt.partido||"")}</span>
+            <span class="card-s">${esc(pt.liga_nombre||liga)}${hora?" · "+hora:""}</span></div>
+          ${(pt.picks||[]).map(pk=>{
+            const id=btoa(unescape(encodeURIComponent((pt.partido||"")+"|"+pk.mercado))).replace(/[^a-zA-Z0-9]/g,"").slice(0,32);
+            const n=Math.round((pk.probEstimada||.5)*100);
+            const col=n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');
+            const marcada=_boleto.some(x=>x.id===id);
+            return `<div class="bld-pick" data-bld="${id}"
+              data-partido="${esc(pt.partido||"")}" data-mercado="${esc(pk.mercado)}"
+              data-momio="${pk.momio||2}" data-prob="${pk.probEstimada||.5}" data-liga="${liga}">
+              <span class="bld-check ${marcada?'on':''}">${marcada?'✓':''}</span>
+              <span class="bld-info"><b>${esc(pk.mercado)}</b>
+                <span class="bld-conf" style="color:${col}">Confianza ${n}%</span></span>
+              <span class="bld-mom mono">${dec(pk.momio||2)}</span>
+            </div>`;
+          }).join("")}
         </div>`;
       }).join("")}
-    </div>`).join("");
+    `).join("");
+  }
+
+  // sección comunidad
+  const comuHTML=(comu.parlays&&comu.parlays.length)?`
+    <div class="bld-dep" style="margin-top:24px">🔥 Parlays más gustados</div>
+    <div class="card"><div style="padding:4px 0">
+      ${comu.parlays.map(b=>`
+        <div class="bld-comu">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13.5px">${esc(b.nombre||"Boleto")}</div>
+            <div style="font-size:11.5px;color:var(--dim2)">${esc(b.autor||"Anónimo")} · ${(b.patas||[]).length} patas · momio ${dec((b.metricas&&b.metricas.momioComb)||0)}</div>
+          </div>
+          <button class="bld-like" data-bldlike="${esc(b.id||b._id||"")}">🤍 ${b.likes||0}</button>
+        </div>`).join("")}
+    </div></div>`:"";
 
   p.innerHTML=`
-    <div class="card" style="margin-bottom:12px">
-      <div style="padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.5">
-        Marca las patas que quieras y arma tu boleto. El sistema calcula el momio combinado
-        y te avisa si dos patas <b style="color:var(--txt)">chocan entre sí</b>. Tú decides.
-      </div>
+    <div class="bld-hero">
+      <div class="bld-hero-badge">⭐ PARLAY MAESTRO</div>
+      <div class="bld-hero-t">Combina todos los deportes</div>
+      <div class="bld-hero-s">Mezcla picks de las ligas que quieras en un solo boleto. Tú eliges qué entra. <b>El que estudia cobra.</b></div>
     </div>
-    ${filas}
+    <div class="card" style="margin:14px 0"><div style="padding:14px 16px">
+      <div class="bld-sel-lbl">¿Qué ligas entran?</div>
+      <div class="bld-ligas">${selector}</div>
+    </div></div>
+    ${cuerpo}
+    ${comuHTML}
     <div id="bldBoleto"></div>`;
   renderBoleto();
 }
@@ -1229,28 +1307,34 @@ async function viewBuilder(){
 function renderBoleto(){
   const cont=$("#bldBoleto"); if(!cont)return;
   if(!_boleto.length){
-    cont.innerHTML=`<div class="bld-float"><div class="bld-float-h">Tu boleto</div>
+    cont.innerHTML=`<div class="bld-float"><div class="bld-float-h">Tu boleto Maestro · 0 patas</div>
       <div class="bld-float-empty">Marca picks para armar tu parlay</div></div>`;
     return;
   }
   let momio=1,prob=1;
   _boleto.forEach(x=>{momio*=Math.max(x.momio,1);prob*=Math.min(Math.max(x.prob,0),1);});
+  const probImp=momio>0?1/momio:0;
   const porPartido={};_boleto.forEach(x=>{porPartido[x.partido]=(porPartido[x.partido]||0)+1;});
-  const choque=Object.entries(porPartido).filter(([,n])=>n>1).map(([p])=>p);
+  const choque=Object.values(porPartido).some(n=>n>1);
   cont.innerHTML=`<div class="bld-float">
-    <div class="bld-float-h">Tu boleto · ${_boleto.length} pata${_boleto.length>1?'s':''}</div>
+    <div class="bld-float-h">⭐ Boleto Maestro · ${_boleto.length} pata${_boleto.length>1?'s':''}</div>
     <div class="bld-float-legs">
       ${_boleto.map(x=>`<div class="bld-leg">
         <span class="bld-leg-x" data-bldrm="${x.id}">✕</span>
         <span class="bld-leg-t"><b>${esc(x.mercado)}</b><span>${esc(x.partido)}</span></span>
         <span class="mono">${dec(x.momio)}</span></div>`).join("")}
     </div>
-    ${choque.length?`<div class="bld-warn">⚠️ Tienes 2+ patas del mismo partido. Pueden estar correlacionadas.</div>`:""}
-    <div class="bld-float-foot">
-      <div><div class="bld-k">Momio combinado</div><div class="bld-v mono" style="color:var(--red)">${dec(momio)}</div></div>
-      <div><div class="bld-k">Prob. estimada</div><div class="bld-v mono">${pct(prob)}</div></div>
+    ${choque?`<div class="bld-warn">⚠️ Tienes 2+ patas del mismo partido. Pueden estar correlacionadas.</div>`:""}
+    <div class="bld-float-metrics">
+      <div class="bld-mrow"><span>Probabilidad conjunta</span><b>${pct(prob)}</b></div>
+      <div class="bld-mrow"><span>Edge (valor)</span><b style="color:var(--dim2)">N/D</b></div>
+      <div class="bld-mrow bld-mrow-big"><span>Momio combinado</span><b style="color:var(--green)">${dec(momio)}</b></div>
     </div>
     <button class="btn btn-red" data-a="guardar-boleto" style="width:100%;margin-top:10px">Guardar en Mis picks</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-line" data-a="publicar-boleto" style="flex:1">⭐ Publicar a la banda</button>
+      <button class="btn btn-line" data-a="copiar-boleto" style="flex:1">Copiar boleto</button>
+    </div>
   </div>`;
 }
 
@@ -1268,6 +1352,40 @@ async function guardarBoleto(){
       _boleto=[];renderBoleto();
       document.querySelectorAll(".bld-check.on").forEach(c=>{c.classList.remove("on");c.textContent="";});}
     else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo guardar");}
+  }catch{toast("Sin conexión");}
+}
+
+async function publicarBoleto(){
+  if(!_boleto.length){toast("Marca al menos una pata");return;}
+  if(!me){toast("Entra para publicar tu boleto");openAuth("login");return;}
+  const nombre=prompt("Ponle un nombre a tu boleto (ej. El Bombazo del Finde):","Mi boleto Maestro");
+  if(nombre===null)return;
+  const patas=_boleto.map(x=>({partido:x.partido,mercado:x.mercado,momio:x.momio,probEstimada:x.prob,liga:x.liga}));
+  try{
+    const r=await fetch(`${API}/motor/guardar-boleto`,{method:"POST",headers:H(),
+      body:JSON.stringify({nombre,patas,liga:"varias"})});
+    if(r.ok){toast("¡Publicado a la banda! ⭐","ok");}
+    else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo publicar");}
+  }catch{toast("Sin conexión");}
+}
+
+function copiarBoleto(){
+  if(!_boleto.length){toast("Marca al menos una pata");return;}
+  let momio=1;_boleto.forEach(x=>{momio*=Math.max(x.momio,1);});
+  const txt="🎫 Mi Parlay Maestro (Pickazo MX)\n"+
+    _boleto.map(x=>`• ${x.mercado} — ${x.partido} (${dec(x.momio)})`).join("\n")+
+    `\n\nMomio combinado: ${dec(momio)}\nEl que estudia cobra. pickazoapp.com`;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast("¡Boleto copiado! 📋","ok")).catch(()=>toast("No se pudo copiar"));
+  }else{toast("Copia manual no disponible");}
+}
+
+async function likeBoletoComu(id,btn){
+  if(!id)return;
+  if(!me){toast("Entra para dar like");return;}
+  try{
+    const r=await fetch(`${API}/motor/like-boleto`,{method:"POST",headers:H(),body:JSON.stringify({id})});
+    if(r.ok){const n=parseInt((btn.textContent.match(/\d+/)||[0])[0])+1;btn.textContent="❤️ "+n;btn.disabled=true;}
   }catch{toast("Sin conexión");}
 }
 

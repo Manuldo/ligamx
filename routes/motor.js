@@ -2,7 +2,7 @@
 // Usa TUS middlewares reales: requireAuth, requirePro, requireAdmin.
 
 import express from "express";
-import { analizarPartido, picksDelDia } from "../lib/motor.js";
+import { analizarPartido, picksDelDia, parlayMaestro, parlayComunidad, guardarBoletoComunidad, likeBoleto } from "../lib/motor.js";
 import { requireAuth, requirePro, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -68,6 +68,67 @@ router.post("/generar-picks-dia", requireAdmin, async (req, res) => {
     res.json({ ok: true, generados: data });
   } catch (e) {
     console.error("Error generar-picks-dia:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * GET /api/motor/maestro?ligas=ligamx,laliga
+ * Parlay Maestro: picks de varias ligas. GRATIS (el gancho).
+ */
+router.get("/maestro", async (req, res) => {
+  try {
+    const ligas = req.query.ligas || "ligamx";
+    const data = await parlayMaestro(ligas, 4, req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error maestro:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * GET /api/motor/comunidad — parlays más gustados de la banda.
+ */
+router.get("/comunidad", async (req, res) => {
+  try {
+    const data = await parlayComunidad(Number(req.query.top) || 8, req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error comunidad:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/guardar-boleto — publicar boleto a la comunidad (login).
+ */
+router.post("/guardar-boleto", requireAuth, async (req, res) => {
+  try {
+    const { nombre, patas, liga } = req.body;
+    if (!Array.isArray(patas) || !patas.length) {
+      return res.status(400).json({ error: "El boleto necesita al menos una pata" });
+    }
+    const autor = req.user?.email ? req.user.email.split("@")[0] : "Anónimo";
+    const data = await guardarBoletoComunidad({ nombre, patas, liga, autor }, req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error guardar-boleto:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/like-boleto — dar like (login).
+ */
+router.post("/like-boleto", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "Falta id" });
+    const data = await likeBoleto(id, req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error like-boleto:", e.message);
     res.status(502).json({ error: "El motor no responde ahora" });
   }
 });
