@@ -348,6 +348,30 @@ tbody tr:hover{background:var(--panel2)}
 .tk-v{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
 .tk-k{font-size:10px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin-top:5px}
 
+/* parlay builder */
+.bld-pick{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;transition:background .12s}
+.bld-pick:hover{background:var(--panel3)}
+.bld-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--dim2);flex-shrink:0;
+  display:grid;place-items:center;font-size:12px;font-weight:900;color:#fff;transition:all .15s}
+.bld-check.on{background:var(--green);border-color:var(--green)}
+.bld-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bld-info b{font-size:13.5px;font-weight:700}
+.bld-conf{font-size:11px;font-weight:700}
+.bld-mom{font-size:15px;font-weight:800;color:var(--dim);flex-shrink:0}
+.bld-float{position:sticky;bottom:16px;background:var(--panel2);border:1px solid var(--red);
+  border-radius:14px;padding:14px 16px;margin-top:16px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.bld-float-h{font-weight:800;font-size:14px;margin-bottom:10px}
+.bld-float-empty{color:var(--dim2);font-size:13px;text-align:center;padding:10px 0}
+.bld-float-legs{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:180px;overflow-y:auto}
+.bld-leg{display:flex;align-items:center;gap:9px;font-size:12.5px}
+.bld-leg-x{color:var(--red);cursor:pointer;font-weight:900;flex-shrink:0;width:18px;text-align:center}
+.bld-leg-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.bld-leg-t b{font-weight:600}.bld-leg-t span{color:var(--dim2);font-size:11px}
+.bld-warn{background:rgba(240,180,41,.12);color:var(--amber);font-size:11.5px;padding:8px 10px;border-radius:8px;margin-bottom:10px;line-height:1.4}
+.bld-float-foot{display:flex;gap:20px;padding-top:10px;border-top:1px solid var(--line)}
+.bld-k{font-size:10px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.bld-v{font-size:19px;font-weight:900;margin-top:2px}
+
 /* soñadores: el gancho grande, más llamativo */
 .pzd{border-radius:16px;margin:14px 16px;overflow:hidden;border:1px solid var(--line)}
 .pzd-seguro{border-color:rgba(34,197,94,.35);background:linear-gradient(160deg,rgba(34,197,94,.07),var(--panel) 55%)}
@@ -494,6 +518,7 @@ body.landing .page{padding:0;max-width:none}
     <button class="sb-item on" data-v="hoy"><span class="ic">◎</span><span>Picks de hoy</span></button>
     <button class="sb-item" data-v="analizar"><span class="ic">⚡</span><span>Analizar</span></button>
     <button class="sb-item" data-v="parlays"><span class="ic">◆</span><span>Parlays</span></button>
+    <button class="sb-item" data-v="builder"><span class="ic">🎫</span><span>Arma tu parlay</span></button>
     <button class="sb-item" data-v="track"><span class="ic">📊</span><span>Track record</span></button>
     <div class="sb-sec">Ligas</div>
     <div id="sbLigas"></div>
@@ -696,6 +721,7 @@ document.addEventListener("click",e=>{
 
 const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados por IA"],
   track:["Track record","Resultados verificados"],
+  builder:["Arma tu parlay","Elige tus patas y arma tu boleto"],
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
@@ -756,6 +782,30 @@ document.addEventListener("click",e=>{
   // toggle de secciones colapsables (DERECHAS/DESCARTADOS) — CSP-safe
   const tg=e.target.closest("[data-toggle]");
   if(tg){tg.parentNode.classList.toggle("closed");return;}
+  // Parlay Builder: marcar/desmarcar una pata
+  const bp=e.target.closest("[data-bld]");
+  if(bp){
+    const id=bp.dataset.bld;
+    const i=_boleto.findIndex(x=>x.id===id);
+    if(i>=0){_boleto.splice(i,1);
+      bp.querySelector(".bld-check").classList.remove("on");
+      bp.querySelector(".bld-check").textContent="";}
+    else{_boleto.push({id,partido:bp.dataset.partido,mercado:bp.dataset.mercado,
+      momio:Number(bp.dataset.momio),prob:Number(bp.dataset.prob),liga:bp.dataset.liga});
+      bp.querySelector(".bld-check").classList.add("on");
+      bp.querySelector(".bld-check").textContent="✓";}
+    renderBoleto();return;
+  }
+  // Parlay Builder: quitar pata desde el boleto
+  const brm=e.target.closest("[data-bldrm]");
+  if(brm){
+    const id=brm.dataset.bldrm;
+    _boleto=_boleto.filter(x=>x.id!==id);
+    // desmarcar también en la lista
+    const chk=document.querySelector(`[data-bld="${id}"] .bld-check`);
+    if(chk){chk.classList.remove("on");chk.textContent="";}
+    renderBoleto();return;
+  }
   const b=e.target.closest("[data-a]"); if(!b)return;
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
@@ -765,6 +815,7 @@ document.addEventListener("click",e=>{
   if(a==="reanalizar"&&window._cargarAnalisis)window._cargarAnalisis(true);
   if(a==="traer-alineacion"&&window._traerAlineacion)window._traerAlineacion(b);
   if(a==="portal")abrirPortal();
+  if(a==="guardar-boleto")guardarBoleto();
 });
 
 /* ===== GATE ===== */
@@ -820,6 +871,7 @@ async function render(){
     if(view==="hoy")await viewHoy();
     else if(view==="analizar")await viewAnalizar();
     else if(view==="parlays")await viewParlays();
+    else if(view==="builder")await viewBuilder();
     else if(view==="track")await viewTrack();
     else if(view==="tabla")await viewTabla();
     else if(view==="jornada")await viewJornada();
@@ -1118,6 +1170,105 @@ async function viewTrack(){
     </div>`;
   }
   p.innerHTML=html;
+}
+
+/* --- PARLAY BUILDER (arma tu propio boleto) --- */
+let _boleto=[]; // patas elegidas
+async function viewBuilder(){
+  const p=$("#page");
+  p.innerHTML=`<div class="pzload"><div class="pzload-ic"><img src="/icons/icon-192.png"></div>
+    <div class="pzload-txt">Cargando picks disponibles<span class="pzload-dots"></span></div></div>`;
+  const ligas=["ligamx","premier","laliga","seriea","bundesliga","ligue1"];
+  let bloques=[];
+  try{
+    const rs=await Promise.all(ligas.map(l=>
+      fetch(`${API}/motor/picks-hoy?liga=${l}`,{headers:H()}).then(r=>r.ok?r.json():null).catch(()=>null)));
+    rs.forEach((d,i)=>{ if(d&&d.partidos) d.partidos.forEach(pt=>{
+      if(pt.picks&&pt.picks.length) bloques.push({liga:ligas[i],partido:pt.partido,picks:pt.picks});
+    });});
+  }catch{}
+
+  if(!bloques.length){
+    p.innerHTML=`<div class="card"><div class="empty"><b>Sin picks disponibles</b>
+      <span>Cuando haya partidos próximos con picks, podrás armar tu boleto aquí.</span></div></div>`;
+    return;
+  }
+
+  const filas=bloques.map(bl=>`
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h"><span class="card-t" style="font-size:13.5px">${esc(bl.partido)}</span>
+        <span class="card-s">${LIGA_FLAGS[bl.liga]||""} ${esc(LIGA_NOMBRES[bl.liga]||bl.liga)}</span></div>
+      ${bl.picks.map(pk=>{
+        const id=btoa(unescape(encodeURIComponent(bl.partido+"|"+pk.mercado))).replace(/[^a-zA-Z0-9]/g,"").slice(0,32);
+        const n=Math.round((pk.probEstimada||.5)*100);
+        const col=n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');
+        const marcada=_boleto.some(x=>x.id===id);
+        return `<div class="bld-pick" data-bld="${id}"
+          data-partido="${esc(bl.partido)}" data-mercado="${esc(pk.mercado)}"
+          data-momio="${pk.momio||2}" data-prob="${pk.probEstimada||.5}" data-liga="${bl.liga}">
+          <span class="bld-check ${marcada?'on':''}">${marcada?'✓':''}</span>
+          <span class="bld-info"><b>${esc(pk.mercado)}</b>
+            <span class="bld-conf" style="color:${col}">Confianza ${n}%</span></span>
+          <span class="bld-mom mono">${dec(pk.momio||2)}</span>
+        </div>`;
+      }).join("")}
+    </div>`).join("");
+
+  p.innerHTML=`
+    <div class="card" style="margin-bottom:12px">
+      <div style="padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.5">
+        Marca las patas que quieras y arma tu boleto. El sistema calcula el momio combinado
+        y te avisa si dos patas <b style="color:var(--txt)">chocan entre sí</b>. Tú decides.
+      </div>
+    </div>
+    ${filas}
+    <div id="bldBoleto"></div>`;
+  renderBoleto();
+}
+
+function renderBoleto(){
+  const cont=$("#bldBoleto"); if(!cont)return;
+  if(!_boleto.length){
+    cont.innerHTML=`<div class="bld-float"><div class="bld-float-h">Tu boleto</div>
+      <div class="bld-float-empty">Marca picks para armar tu parlay</div></div>`;
+    return;
+  }
+  let momio=1,prob=1;
+  _boleto.forEach(x=>{momio*=Math.max(x.momio,1);prob*=Math.min(Math.max(x.prob,0),1);});
+  const porPartido={};_boleto.forEach(x=>{porPartido[x.partido]=(porPartido[x.partido]||0)+1;});
+  const choque=Object.entries(porPartido).filter(([,n])=>n>1).map(([p])=>p);
+  cont.innerHTML=`<div class="bld-float">
+    <div class="bld-float-h">Tu boleto · ${_boleto.length} pata${_boleto.length>1?'s':''}</div>
+    <div class="bld-float-legs">
+      ${_boleto.map(x=>`<div class="bld-leg">
+        <span class="bld-leg-x" data-bldrm="${x.id}">✕</span>
+        <span class="bld-leg-t"><b>${esc(x.mercado)}</b><span>${esc(x.partido)}</span></span>
+        <span class="mono">${dec(x.momio)}</span></div>`).join("")}
+    </div>
+    ${choque.length?`<div class="bld-warn">⚠️ Tienes 2+ patas del mismo partido. Pueden estar correlacionadas.</div>`:""}
+    <div class="bld-float-foot">
+      <div><div class="bld-k">Momio combinado</div><div class="bld-v mono" style="color:var(--red)">${dec(momio)}</div></div>
+      <div><div class="bld-k">Prob. estimada</div><div class="bld-v mono">${pct(prob)}</div></div>
+    </div>
+    <button class="btn btn-red" data-a="guardar-boleto" style="width:100%;margin-top:10px">Guardar en Mis picks</button>
+  </div>`;
+}
+
+async function guardarBoleto(){
+  if(!_boleto.length){toast("Marca al menos una pata");return;}
+  let momio=1,prob=1;
+  _boleto.forEach(x=>{momio*=Math.max(x.momio,1);prob*=Math.min(Math.max(x.prob,0),1);});
+  const id="bld_"+Date.now();
+  const snap={patas:_boleto.map(x=>({partido:x.partido,mercado:x.mercado,momio:x.momio,liga:x.liga})),
+    momioComb:Number(momio.toFixed(2)),probConjunta:Number(prob.toFixed(4)),edge:null,tipo:"builder"};
+  try{
+    const r=await fetch(`${API}/history/registrar`,{method:"POST",headers:H(),
+      body:JSON.stringify({parlayId:id,snapshotParlay:snap})});
+    if(r.ok||r.status===409){toast("¡Boleto guardado en Mis picks! 🎫","ok");
+      _boleto=[];renderBoleto();
+      document.querySelectorAll(".bld-check.on").forEach(c=>{c.classList.remove("on");c.textContent="";});}
+    else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo guardar");}
+  }catch{toast("Sin conexión");}
 }
 
 /* --- PARLAYS --- */
