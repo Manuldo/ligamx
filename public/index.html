@@ -981,25 +981,22 @@ async function viewHoy(){
   if(liga==="__todas__"){
     const r=await fetch(`${API}/matches/todas`,{headers:H()});
     const partidos=await r.json().catch(()=>[]);
-    // ¿ya empezó? usa la función global
-    const proximos=partidos.filter(p=>p.estado!=="finalizado"&&!yaEmpezo(p));
-    const jugados=partidos.filter(p=>p.estado==="finalizado"||(p.estado!=="en_vivo"&&!p.enVivo&&yaEmpezo(p)))
+    const proximos=partidos.filter(p=>p.estado!=="finalizado");
+    const jugados=partidos.filter(p=>p.estado==="finalizado")
       .sort((a,b)=>new Date(b.kickoff||0)-new Date(a.kickoff||0)).slice(0,20);
     $("#tbS").textContent=`${proximos.length} próximos · todas las ligas`;
     const cardT=(m,fin)=>{
       const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
       const vivo=m.enVivo||m.estado==="en_vivo";
-      // empezó pero no está marcado vivo/final: lo tratamos como "en juego/jugado", sin botón Analizar
-      const arranco=yaEmpezo(m)&&!vivo&&m.estado!=="finalizado";
       let centro=vivo?`<span class="jm-mid mono" style="color:var(--txt)">${m.golesLocal??0}-${m.golesVisitante??0}${m.minuto?`<span class="jm-min">⚡${esc(String(m.minuto))}'</span>`:""}</span>`
         :fin?`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`:`<span class="jm-mid mono">${hora||"vs"}</span>`;
-      let badge=vivo?`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`:fin?`<span class="badge-fin">FINAL</span>`:(arranco?`<span class="badge-fin">EN JUEGO</span>`:`<span class="badge-liga">${esc(m.ligaNombre||m.liga||"")}</span>`);
+      let badge=vivo?`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`:fin?`<span class="badge-fin">FINAL</span>`:`<span class="badge-liga">${esc(m.ligaNombre||m.liga||"")}</span>`;
       return `<div class="jm">
         <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
         ${centro}
         <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
         ${badge}
-        ${(!fin&&!arranco)?`<button class="jm-an" data-partido="${esc(m._id)}">${vivo?"Ver":"Analizar"} →</button>`:(vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Ver →</button>`:"")}
+        ${!fin?`<button class="jm-an" data-partido="${esc(m._id)}">${vivo?"Ver":"Analizar"} →</button>`:""}
       </div>`;
     };
     // agrupar por día
@@ -1076,17 +1073,15 @@ async function viewHoy(){
     else if(fin){centro=`<span class="jm-mid mono sc">${m.golesLocal??"-"} - ${m.golesVisitante??"-"}</span>`;}
     else{centro=`<span class="jm-mid mono">${hora||"vs"}</span>`;}
     let badge="";
-    const arranco=yaEmpezo(m)&&!vivo&&!fin;
     if(vivo)badge=`<span class="badge-live"><span class="dot-live"></span>EN VIVO</span>`;
     else if(fin)badge=`<span class="badge-fin">FINAL</span>`;
-    else if(arranco)badge=`<span class="badge-fin">EN JUEGO</span>`;
     else if(m.kickoff&&fechaMX(m.kickoff)===hoyMX())badge=`<span class="badge-hoy">HOY</span>`;
     return `<div class="jm">
       <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
       ${centro}
       <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
       ${badge}
-      ${!fin&&!vivo&&!arranco?`<button class="jm-an" data-partido="${esc(m._id)}">Analizar →</button>`:""}
+      ${!fin&&!vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Analizar →</button>`:""}
       ${vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Ver →</button>`:""}
     </div>`;
   };
@@ -1587,14 +1582,13 @@ async function viewTabla(){
 /* --- JORNADAS --- */
 function jmRow(m,conAnalisis){
   const fin=m.estado==="finalizado";
-  const arranco=yaEmpezo(m)&&!fin&&m.estado!=="en_vivo"&&!m.enVivo;
   const hora=m.kickoff?new Date(m.kickoff).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ}):"";
   const safe="m"+Math.abs([...String(m._id)].reduce((a,c)=>(a*31+c.charCodeAt(0))|0,7));
   return `<div class="jm">
     <div class="jm-side"><span class="jm-name">${esc(m.local)}</span>${crest(m.local)}</div>
-    <span class="jm-mid mono ${fin?"sc":""}">${fin?`${m.golesLocal} - ${m.golesVisitante}`:(arranco?`<span style="color:var(--dim2);font-size:11px">EN JUEGO</span>`:hora||"vs")}</span>
+    <span class="jm-mid mono ${fin?"sc":""}">${fin?`${m.golesLocal} - ${m.golesVisitante}`:hora||"vs"}</span>
     <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
-    ${conAnalisis&&!fin&&!arranco?`<button class="jm-an" data-an="${esc(m._id)}" data-box="${safe}">Analizar</button>`:""}
+    ${conAnalisis&&!fin?`<button class="jm-an" data-an="${esc(m._id)}" data-box="${safe}">Analizar</button>`:""}
   </div><div id="an-${safe}"></div>`;
 }
 async function viewJornada(){
