@@ -1275,14 +1275,15 @@ async function viewBuilder(){
   }else{
     cuerpo=(data.deportes||[]).map(dep=>`
       <div class="bld-dep">${dep.emoji} ${esc(dep.nombre)}</div>
-      ${(dep.partidos||[]).map(pt=>{
+      ${(dep.partidos||[]).map((pt,pi)=>{
         const liga=pt.liga_slug||pt.liga||"";
         const hora=pt.inicio?new Date(pt.inicio).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:TZ,hour12:false}):"";
         return `<div class="card" style="margin-bottom:12px">
           <div class="card-h"><span class="card-t" style="font-size:13.5px">${esc(pt.partido||"")}</span>
             <span class="card-s">${esc(pt.liga_nombre||liga)}${hora?" · "+hora:""}</span></div>
-          ${(pt.picks||[]).map(pk=>{
-            const id=btoa(unescape(encodeURIComponent((pt.partido||"")+"|"+pk.mercado))).replace(/[^a-zA-Z0-9]/g,"").slice(0,32);
+          ${(pt.picks||[]).map((pk,ki)=>{
+            // ID ÚNICO garantizado: deporte+partido+pick por índice (nunca colisiona).
+            const id="bp_"+esc(dep.deporte||"")+"_"+pi+"_"+ki;
             const n=Math.round((pk.probEstimada||.5)*100);
             const col=n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');
             const marcada=_boleto.some(x=>x.id===id);
