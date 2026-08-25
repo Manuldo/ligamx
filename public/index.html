@@ -627,6 +627,22 @@ const hoyMX=()=>fechaMX(new Date());
 const pct=n=>(Number(n)*100).toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const H=()=>{const h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;return h;};
+// Detecta sesión expirada de forma global: si el servidor responde 401 con
+// token inválido, avisa una sola vez y manda a entrar de nuevo (sin atorar).
+let _sesionExpirada=false;
+function manejarExpiracion(resp,data){
+  if(resp&&resp.status===401&&!_sesionExpirada){
+    const msg=(data&&(data.error||"")).toLowerCase();
+    if(msg.includes("token")||msg.includes("expir")||msg.includes("inválid")||msg.includes("invalid")||msg.includes("sesión")){
+      _sesionExpirada=true;
+      toast("Tu sesión expiró, entra de nuevo");
+      setTimeout(()=>{token=null;me=null;localStorage.removeItem("token");localStorage.removeItem("me");
+        _sesionExpirada=false;sbUser();openAuth("login");},900);
+      return true;
+    }
+  }
+  return false;
+}
 const isPro=()=>!!(me&&me.isPro);
 
 function toast(m,k){const t=$("#toast");t.textContent=m;t.className="toast on "+(k||"");
@@ -833,7 +849,7 @@ document.addEventListener("click",e=>{
       bp.querySelector(".bld-check").classList.remove("on");
       bp.querySelector(".bld-check").textContent="";}
     else{_boleto.push({id,partido:bp.dataset.partido,mercado:bp.dataset.mercado,
-      momio:Number(bp.dataset.momio),prob:Number(bp.dataset.prob),liga:bp.dataset.liga});
+      momio:Number(bp.dataset.momio),prob:Number(bp.dataset.prob),liga:bp.dataset.bldligaslug});
       bp.querySelector(".bld-check").classList.add("on");
       bp.querySelector(".bld-check").textContent="✓";}
     renderBoleto();return;
@@ -1289,7 +1305,7 @@ async function viewBuilder(){
             const marcada=_boleto.some(x=>x.id===id);
             return `<div class="bld-pick" data-bld="${id}"
               data-partido="${esc(pt.partido||"")}" data-mercado="${esc(pk.mercado)}"
-              data-momio="${pk.momio||2}" data-prob="${pk.probEstimada||.5}" data-liga="${liga}">
+              data-momio="${pk.momio||2}" data-prob="${pk.probEstimada||.5}" data-bldligaslug="${liga}">
               <span class="bld-check ${marcada?'on':''}">${marcada?'✓':''}</span>
               <span class="bld-info"><b>${esc(pk.mercado)}</b>
                 <span class="bld-conf" style="color:${col}">Confianza ${n}%</span></span>
@@ -1388,7 +1404,7 @@ async function guardarBoleto(){
     if(r.ok||r.status===409){toast("¡Boleto guardado en Mis picks! 🎫","ok");
       _boleto=[];renderBoleto();
       document.querySelectorAll(".bld-check.on").forEach(c=>{c.classList.remove("on");c.textContent="";});}
-    else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo guardar");}
+    else{const d=await r.json().catch(()=>({}));if(!manejarExpiracion(r,d))toast(d.error||"No se pudo guardar");}
   }catch{toast("Sin conexión");}
 }
 
@@ -1402,7 +1418,7 @@ async function publicarBoleto(){
     const r=await fetch(`${API}/motor/guardar-boleto`,{method:"POST",headers:H(),
       body:JSON.stringify({nombre,patas,liga:"varias"})});
     if(r.ok){toast("¡Publicado a la banda! ⭐","ok");}
-    else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo publicar");}
+    else{const d=await r.json().catch(()=>({}));if(!manejarExpiracion(r,d))toast(d.error||"No se pudo publicar");}
   }catch{toast("Sin conexión");}
 }
 
