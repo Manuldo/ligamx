@@ -63,6 +63,12 @@ body.collapsed .sb-sec{opacity:0;height:14px;padding:6px}
 .ic{width:19px;flex-shrink:0;display:grid;place-items:center;font-size:15px}
 body.collapsed .sb-item span{display:none}
 .sb-bot{padding:12px 8px;border-top:1px solid var(--line)}
+.sb-cred{padding:10px 10px 12px;margin-bottom:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+.sb-cred-top{display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;font-weight:800}
+.sb-cred-top b{font-size:16px;font-family:'JetBrains Mono',monospace;color:var(--txt)}
+.sb-cred-bar{height:6px;background:var(--panel3);border-radius:4px;margin:7px 0 5px;overflow:hidden}
+.sb-cred-bar i{display:block;height:100%;border-radius:4px;transition:width .5s,background .3s;width:0}
+.sb-cred-sub{font-size:10px;color:var(--dim2)}
 .sb-user{display:flex;align-items:center;gap:10px;padding:8px 10px;overflow:hidden}
 .av{width:28px;height:28px;background:var(--panel3);flex-shrink:0;display:grid;
   place-items:center;font-weight:800;font-size:12px;color:var(--txt)}
@@ -558,6 +564,11 @@ body.landing .page{padding:0;max-width:none}
     <button class="sb-item" data-v="mios"><span class="ic">✦</span><span>Mis picks</span></button>
   </div>
   <div class="sb-bot">
+    <div class="sb-cred" id="sbCred" style="display:none">
+      <div class="sb-cred-top"><span>Qué tan bien vamos</span><b id="sbCredPct">—</b></div>
+      <div class="sb-cred-bar"><i id="sbCredFill"></i></div>
+      <div class="sb-cred-sub" id="sbCredSub">Historial verificado</div>
+    </div>
     <div class="sb-user" id="sbuser"></div>
     <a href="/terminos.html" target="_blank" style="display:block;text-align:center;
       font-size:11px;color:var(--dim2);text-decoration:none;margin-top:8px">Términos y Condiciones</a>
@@ -791,6 +802,27 @@ function yaEmpezo(m){
   return t<=Date.now();
 }
 window.yaEmpezo=yaEmpezo;
+// Barra de credibilidad siempre visible: la app dice qué tan bien va.
+async function cargarCredibilidad(){
+  try{
+    const r=await fetch(`${API}/track/resumen`,{headers:H()});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d||d.total<1)return; // sin datos aún, no mostrar
+    const pct=d.tasaAcierto!=null?Math.round(d.tasaAcierto*100):null;
+    if(pct==null)return;
+    const cont=$("#sbCred");if(!cont)return;
+    cont.style.display="block";
+    $("#sbCredPct").textContent=pct+"%";
+    const fill=$("#sbCredFill");
+    fill.style.width=Math.min(100,pct)+"%";
+    // color: verde si vamos bien, ámbar parejo, rojo mal
+    const col=pct>=58?"var(--green)":(pct>=48?"var(--amber)":"var(--red)");
+    fill.style.background=col;
+    const est=pct>=58?"Vamos ganando 🔥":(pct>=48?"Parejo, con ventaja":"Racha fría");
+    $("#sbCredSub").textContent=`${est} · ${d.total} picks`;
+  }catch{}
+}
 // Volver robusto desde la pantalla de partido: limpia timers de esa vista,
 // invalida nada del cache, y fuerza render de "hoy". A prueba de estados colgados.
 function volverAHoy(){
@@ -909,19 +941,20 @@ function gate(){
       </video>
       <div class="land-bg"></div>
       <div class="land-in">
-        <div class="land-badge"><span class="d"></span> Acceso privado</div>
+        <div class="land-badge"><span class="d"></span> La app del apostador informado</div>
         <h1 class="land-h1">El que estudia cobra. El que adivina reza.</h1>
-        <p class="land-p">Crea tu cuenta y activa PRO para desbloquear los picks del día,
-          los parlays combinados por IA y el historial verificado.</p>
+        <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
+          para que TÚ decidas: picks del día, parlays por IA e historial verificado. No apostamos por ti —
+          te damos la ventaja del que sabe.</p>
         <div class="land-grid">
+          <div class="lc"><b>Información, no corazonadas</b>
+            <span>Vendemos datos y análisis. La jugada la haces tú.</span></div>
+          <div class="lc"><b>Parlays por IA</b>
+            <span>Combinados armados con datos, no adivinanza.</span></div>
+          <div class="lc"><b>Historial verificado</b>
+            <span>La app misma te dice qué tan creíble es. Sin editar.</span></div>
           <div class="lc"><b>Ventaja matemática</b>
             <span>Solo picks donde la prob. real supera lo que paga la casa.</span></div>
-          <div class="lc"><b>Parlays por IA</b>
-            <span>Combinados armados con datos, no corazonada.</span></div>
-          <div class="lc"><b>Historial verificado</b>
-            <span>Cada pick se marca acierto o fallo, sin editar después.</span></div>
-          <div class="lc"><b>Picks del día</b>
-            <span>Solo los de mayor ventaja, filtrados antes de cada jornada.</span></div>
         </div>
         <button class="land-cta" data-a="up">Crear cuenta y empezar</button>
         <div class="land-sub" data-a="in">¿Ya tienes cuenta? <b>Entrar</b></div>
@@ -2163,6 +2196,7 @@ async function checkRetornoPago(){
 
 sbUser();sbLigas();render();
 checkRetornoPago();
+cargarCredibilidad();
 </script>
 </body>
 </html>

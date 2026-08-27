@@ -64,4 +64,49 @@ router.get("/usuario", requireAdmin, ah(async (req, res) => {
   });
 }));
 
+/**
+ * GET /api/admin/metricas
+ * Header: x-admin-key: TU_ADMIN_KEY
+ * Panel de negocio: usuarios, PRO, ingresos estimados, conversión.
+ * Los números REALES para tus reportes mensuales y el inversionista.
+ */
+router.get("/metricas", requireAdmin, ah(async (req, res) => {
+  const PRECIO = 299; // precio mensual PRO en MXN
+  const ahora = new Date();
+  const hoy0 = new Date(ahora); hoy0.setHours(0, 0, 0, 0);
+  const hace7 = new Date(ahora.getTime() - 7 * 864e5);
+  const hace30 = new Date(ahora.getTime() - 30 * 864e5);
+
+  const [total, proActivos, nuevosHoy, nuevos7, nuevos30, proMes] = await Promise.all([
+    User.countDocuments({}),
+    User.countDocuments({ isPro: true, subscriptionExpiresAt: { $gt: ahora } }),
+    User.countDocuments({ createdAt: { $gte: hoy0 } }),
+    User.countDocuments({ createdAt: { $gte: hace7 } }),
+    User.countDocuments({ createdAt: { $gte: hace30 } }),
+    User.countDocuments({ isPro: true, subscriptionExpiresAt: { $gt: ahora }, createdAt: { $gte: hace30 } }),
+  ]);
+
+  const conversion = total > 0 ? proActivos / total : 0;
+  const mrr = proActivos * PRECIO;           // ingreso recurrente mensual estimado
+  const arr = mrr * 12;                       // anualizado
+
+  // serie de registros por día (últimos 14 días) para una mini gráfica
+  const serie = [];
+  for (let i = 13; i >= 0; i--) {
+    const d0 = new Date(ahora.getTime() - i * 864e5); d0.setHours(0, 0, 0, 0);
+    const d1 = new Date(d0.getTime() + 864e5);
+    const n = await User.countDocuments({ createdAt: { $gte: d0, $lt: d1 } });
+    serie.push({ dia: d0.toISOString().slice(5, 10), registros: n });
+  }
+
+  res.json({
+    usuarios: { total, nuevosHoy, nuevos7, nuevos30 },
+    pro: { activos: proActivos, nuevos30: proMes },
+    conversion: Math.round(conversion * 1000) / 10, // % con 1 decimal
+    ingresos: { precio: PRECIO, mrr, arr, moneda: "MXN" },
+    serieRegistros: serie,
+    generado: ahora.toISOString(),
+  });
+}));
+
 export default router;

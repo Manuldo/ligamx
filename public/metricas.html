@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Métricas · Pickazo MX</title>
+<style>
+:root{--bg:#0e0f13;--panel:#15171d;--panel2:#1b1e26;--panel3:#232733;
+  --txt:#eceef4;--dim:#8d93a3;--dim2:#5f6474;--line:#252935;--red:#ec3013;--green:#22c55e;--amber:#f0b429;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:Archivo,system-ui,sans-serif;padding:24px 18px 60px}
+.wrap{max-width:900px;margin:0 auto}
+.top{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.top img{width:32px;height:32px;border-radius:8px}
+.top b{font-weight:900;font-size:17px}.top b span{color:var(--red)}
+h1{font-size:22px;font-weight:900;margin:14px 0 3px}
+.sub{color:var(--dim2);font-size:13px;margin-bottom:22px}
+.gate{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:420px;margin:40px auto}
+.gate h2{font-size:16px;margin-bottom:12px}
+.gate input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+  padding:11px 13px;border-radius:9px;font-size:14px;margin-bottom:12px;font-family:monospace}
+.btn{background:var(--red);color:#fff;border:none;padding:11px 18px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;width:100%}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.metric .k{font-size:10.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.07em;font-weight:800}
+.metric .v{font-size:30px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1.1;margin-top:6px}
+.metric .s{font-size:11.5px;color:var(--dim);margin-top:4px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h3{font-size:14px;margin-bottom:14px}
+.bars{display:flex;align-items:flex-end;gap:5px;height:120px}
+.bar{flex:1;background:var(--red);border-radius:3px 3px 0 0;min-height:2px;position:relative;transition:height .3s}
+.bar span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:8.5px;color:var(--dim2)}
+.err{color:var(--red);font-size:13px;margin-top:8px}
+.hl{color:var(--green)}
+.money{color:var(--green)}
+.refresh{background:var(--panel3);border:1px solid var(--line);color:var(--dim);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;float:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><img src="/icons/icon-96.png" alt=""><b>PICKAZO <span>MX</span></b></div>
+
+  <div id="gate" class="gate">
+    <h2>Panel de métricas</h2>
+    <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Ingresa tu clave de administrador para ver los números.</p>
+    <input type="password" id="key" placeholder="ADMIN_KEY" autocomplete="off">
+    <button class="btn" onclick="cargar()">Entrar</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="dash" style="display:none">
+    <h1>Métricas del negocio <button class="refresh" onclick="cargar()">↻ Actualizar</button></h1>
+    <div class="sub" id="gen"></div>
+
+    <div class="grid">
+      <div class="metric"><div class="k">Usuarios totales</div><div class="v" id="m-total">—</div><div class="s" id="m-nuevos">—</div></div>
+      <div class="metric"><div class="k">PRO activos</div><div class="v hl" id="m-pro">—</div><div class="s" id="m-pronew">—</div></div>
+      <div class="metric"><div class="k">Conversión</div><div class="v" id="m-conv">—</div><div class="s">gratis → PRO</div></div>
+      <div class="metric"><div class="k">Ingreso mensual</div><div class="v money" id="m-mrr">—</div><div class="s">MRR estimado</div></div>
+      <div class="metric"><div class="k">Ingreso anual</div><div class="v money" id="m-arr">—</div><div class="s">ARR proyectado</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Registros (últimos 14 días)</h3>
+      <div class="bars" id="bars"></div>
+    </div>
+
+    <div class="card">
+      <h3>Crecimiento</h3>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div><div style="font-size:11px;color:var(--dim2)">HOY</div><div style="font-size:22px;font-weight:900;font-family:monospace" id="g-hoy">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim2)">7 DÍAS</div><div style="font-size:22px;font-weight:900;font-family:monospace" id="g-7">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim2)">30 DÍAS</div><div style="font-size:22px;font-weight:900;font-family:monospace" id="g-30">—</div></div>
+        <div><div style="font-size:11px;color:var(--dim2)">PRO NUEVOS (30D)</div><div style="font-size:22px;font-weight:900;font-family:monospace;color:var(--green)" id="g-pro30">—</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt=n=>new Intl.NumberFormat("es-MX").format(n);
+const money=n=>"$"+new Intl.NumberFormat("es-MX").format(n);
+async function cargar(){
+  const key=document.getElementById("key").value.trim()||sessionStorage.getItem("ak");
+  if(!key){document.getElementById("err").textContent="Ingresa la clave";return;}
+  try{
+    const r=await fetch("/api/admin/metricas",{headers:{"x-admin-key":key}});
+    if(r.status===401||r.status===403){document.getElementById("err").textContent="Clave incorrecta";return;}
+    if(!r.ok){document.getElementById("err").textContent="Error "+r.status;return;}
+    const d=await r.json();
+    sessionStorage.setItem("ak",key);
+    document.getElementById("gate").style.display="none";
+    document.getElementById("dash").style.display="block";
+    // métricas
+    document.getElementById("m-total").textContent=fmt(d.usuarios.total);
+    document.getElementById("m-nuevos").textContent="+"+fmt(d.usuarios.nuevos30)+" este mes";
+    document.getElementById("m-pro").textContent=fmt(d.pro.activos);
+    document.getElementById("m-pronew").textContent="+"+fmt(d.pro.nuevos30)+" este mes";
+    document.getElementById("m-conv").textContent=d.conversion+"%";
+    document.getElementById("m-mrr").textContent=money(d.ingresos.mrr);
+    document.getElementById("m-arr").textContent=money(d.ingresos.arr);
+    document.getElementById("g-hoy").textContent="+"+fmt(d.usuarios.nuevosHoy);
+    document.getElementById("g-7").textContent="+"+fmt(d.usuarios.nuevos7);
+    document.getElementById("g-30").textContent="+"+fmt(d.usuarios.nuevos30);
+    document.getElementById("g-pro30").textContent="+"+fmt(d.pro.nuevos30);
+    document.getElementById("gen").textContent="Actualizado: "+new Date(d.generado).toLocaleString("es-MX");
+    // barras
+    const serie=d.serieRegistros||[];
+    const max=Math.max(1,...serie.map(s=>s.registros));
+    document.getElementById("bars").innerHTML=serie.map(s=>
+      `<div class="bar" style="height:${Math.round(s.registros/max*100)}%" title="${s.registros} registros">
+        <span>${s.dia}</span></div>`).join("");
+  }catch(e){document.getElementById("err").textContent="Sin conexión";}
+}
+// auto-cargar si ya hay clave en sesión
+if(sessionStorage.getItem("ak"))cargar();
+</script>
+</body>
+</html>
