@@ -20,7 +20,7 @@ function signToken(user) {
   return jwt.sign(
     { uid: user._id.toString(), ver: Number(user.tokenVersion || 0) },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "24h", issuer: "pickazoapp", audience: "pickazoapp-web" }
+    { expiresIn: process.env.JWT_EXPIRES_IN || "30d", issuer: "pickazoapp", audience: "pickazoapp-web" }
   );
 }
 

@@ -1793,6 +1793,13 @@ async function abrirPartido(id){
     fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar})})
       .then(async r=>{
         let d={}; try{d=await r.json();}catch{}
+        // Sesión expirada: avisar bonito y mandar a re-login (no error feo)
+        if(manejarExpiracion(r,d)){
+          $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+            <div class="empty"><b>Tu sesión expiró</b>
+            <span style="color:var(--dim)">Vuelve a entrar para analizar. Te llevamos al inicio…</span></div>`;
+          return;
+        }
         // Si el motor respondió pero SIN análisis (error, límite, sin datos):
         if(!r.ok || (!d.analisisMarkdown && d.error)){
           const detalle = d.error || `El motor respondió ${r.status}`;
