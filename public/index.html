@@ -2038,7 +2038,12 @@ async function verCuenta(){
   try{const r=await fetch(`${API}/auth/me`,{headers:H()});if(r.ok){const d=await r.json();if(d.user)u=d.user;
     if(d.token){token=d.token;localStorage.setItem("token",token);}
     me=u;localStorage.setItem("me",JSON.stringify(me));}}catch{}
-  const fmt=(d)=>{try{return new Date(d).toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});}catch{return "—";}};
+  const fmt=(d)=>{
+    if(!d)return "—";
+    const fecha=new Date(d);
+    if(isNaN(fecha.getTime()))return "—";
+    return fecha.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+  };
   const esPro=isPro();
   $("#tbT").textContent="Mi cuenta";$("#tbS").textContent="";
   p.innerHTML=`<div class="card">
@@ -2077,7 +2082,10 @@ async function abrirPortal(){
   try{const r=await fetch(`${API}/payments/portal`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
-    toast("No se pudo abrir el portal");
+    if(manejarExpiracion(r,d))return;
+    if(r.status===400)toast("Tu PRO no viene de Stripe, no hay portal que gestionar");
+    else if(r.status===503)toast("Los pagos aún no están activos");
+    else toast(d.error||"No se pudo abrir el portal");
   }catch{toast("Sin conexión");}
 }
 function openAuth(m){
