@@ -40,6 +40,7 @@ router.get("/jornadas", requireAuth, ah(async (req, res) => {
       _id: p.id, local: p.local, visitante: p.visitante,
       kickoff: p.inicio, estado: p.estado, fecha: (p.inicio || "").slice(0, 10),
       golesLocal: p.golesLocal, golesVisitante: p.golesVisitante, jornada: p.jornada,
+      enVivo: p.enVivo, minuto: p.minuto,
     }));
     // agrupamos: los no finalizados = jornada actual; los finalizados = previas
     const prox = partidos.filter(p => p.estado !== "finalizado");

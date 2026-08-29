@@ -28,6 +28,7 @@ router.get("/", ah(async (req, res) => {
       _id: p.id, local: p.local, visitante: p.visitante,
       kickoff: p.inicio, estado: p.estado, jornada: p.jornada,
       golesLocal: p.golesLocal, golesVisitante: p.golesVisitante, liga: p.liga,
+      enVivo: p.enVivo, minuto: p.minuto,
     })));
   } catch (e) {
     console.error("Error partidos:", e.message);
