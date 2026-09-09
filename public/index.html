@@ -681,6 +681,12 @@ function motorAnalisisHTML(markdown,ctx){
   ctx=ctx||{};
   if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
   window._anSnaps=window._anSnaps||{};
+  // Normaliza picks en formato "### ... Pick N — Mercado" + "> Confianza: ... (X%)"
+  // + "> razón" al formato estándar "**PICK:** Mercado · **Confianza:** X%".
+  markdown=String(markdown).replace(
+    /###\s*[^\n]*?Pick\s*\d*\s*[—:-]*\s*(.+?)\n>\s*Confianza:[^\n(]*\((\d+)%\)\s*\n>\s*(.+?)(?=\n(?:###|---|\n)|$)/gis,
+    (m,merc,conf,razon)=>`**PICK:** ${merc.replace(/\*\*/g,'').trim()} · **Confianza:** ${conf}%\n${razon.replace(/\n>\s*/g,' ').replace(/\*\*/g,'').trim()}\n`
+  );
   let h=String(markdown).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   // convierte los PICK con confianza en tarjetas con barra
   function picks(txt){
