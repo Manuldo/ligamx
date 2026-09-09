@@ -615,8 +615,9 @@ const cache={};
 // Ligas disponibles (el motor las tiene). El selector deja cambiar.
 let LIGA_ACTUAL="ligamx";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
-  seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",nfl:"NFL"};
-const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",nfl:"🏈"};
+  seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",
+  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"⭐",leaguescup:"🌐",nfl:"🏈"};
 function ligaSelectorHTML(){
   return `<div class="liga-sel">
     <button class="liga-chip ${LIGA_ACTUAL==="__todas__"?"on":""}" data-liga="__todas__"><span>🌍</span> Todas</button>
