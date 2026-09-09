@@ -1910,6 +1910,28 @@ function _cornersBox(eq,c){
 }
 function statsPartidoHTML(d,local,visitante){
   const L=d.local||{},V=d.visitante||{};
+  // NFL: pasadores, corredores, receptores (yardas promedio por juego)
+  if(d.deporte==="americano"){
+    return `<div class="card-h"><span class="card-t">Números del partido</span>
+      <span class="card-s">yardas prom/juego</span></div>
+    <div style="padding:4px 16px 16px">
+      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">🎯 Pases (yardas)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.pasadores," yd")}
+        ${_statCol(visitante,V.pasadores," yd")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🏃 Carreras (yardas)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.corredores," yd")}
+        ${_statCol(visitante,V.corredores," yd")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🙌 Recepciones (yardas)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.receptores," yd")}
+        ${_statCol(visitante,V.receptores," yd")}
+      </div>
+    </div>`;
+  }
   return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">datos recientes</span></div>
     <div style="padding:4px 16px 16px">
