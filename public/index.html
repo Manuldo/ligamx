@@ -1653,6 +1653,23 @@ async function viewTabla(){
   if(!t.length){$("#page").innerHTML=`<div class="card"><div class="empty">
     <b>Tabla no disponible</b><span>Se carga desde la cuenta maestra antes de cada jornada.</span>
     </div></div>`;return;}
+  // NFL: tabla con récord (W-L) en vez de goles/puntos
+  if(LIGA_SB_ABIERTA==="nfl"){
+    $("#page").innerHTML=`<div class="card">
+      <div class="card-h"><span class="card-t">Tabla NFL</span>
+        <span class="card-s">${t.length} equipos</span></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>#</th><th>Equipo</th><th>JJ</th><th>Récord</th><th>Dif</th></tr></thead>
+        <tbody>${t.map(f=>`<tr>
+          <td class="pos mono">${f.pos}</td>
+          <td><div class="tm">${crest(f.equipo,f.color)}<span>${esc(f.equipo)}</span></div></td>
+          <td class="mono">${f.jugados}</td>
+          <td class="pts mono">${esc(f.record||(f.ganados+"-"+f.perdidos))}</td>
+          <td class="mono" style="color:${f.dif>0?"var(--green)":f.dif<0?"var(--red)":"var(--dim)"}">${f.dif>0?"+":""}${f.dif}</td>
+        </tr>`).join("")}</tbody>
+      </table></div></div>`;
+    return;
+  }
   $("#page").innerHTML=`<div class="card">
     <div class="card-h"><span class="card-t">Tabla de posiciones</span>
       <span class="card-s">${t.length} equipos</span></div>

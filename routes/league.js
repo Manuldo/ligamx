@@ -10,20 +10,24 @@ router.get("/tabla", requireAuth, ah(async (req, res) => {
     const liga = req.query.liga || "ligamx";
     const data = await tablaLiga(liga, req.id);
     // adaptar al formato que espera tu frontend
-    const tabla = (data.tabla || []).map((f, i) => ({
-      pos: f.pos ?? f.posicion ?? i + 1,
-      equipo: f.equipo || f.nombre || "",
-      color: null,
-      jugados: f.jugados ?? f.pj ?? 0,
-      ganados: f.ganados ?? f.g ?? 0,
-      empatados: f.empatados ?? f.e ?? 0,
-      perdidos: f.perdidos ?? f.p ?? 0,
-      golesFavor: f.golesFavor ?? f.gf ?? 0,
-      golesContra: f.golesContra ?? f.gc ?? 0,
-      dif: (f.golesFavor ?? f.gf ?? 0) - (f.golesContra ?? f.gc ?? 0),
-      puntos: f.puntos ?? f.pts ?? 0,
-      forma: f.forma || [],
-    }));
+    const tabla = (data.tabla || []).map((f, i) => {
+      const sd = f.sportData || {};
+      return {
+        pos: f.pos ?? f.posicion ?? i + 1,
+        equipo: f.equipo || f.nombre || "",
+        color: null,
+        jugados: f.jugados ?? f.pj ?? 0,
+        ganados: f.ganados ?? f.g ?? 0,
+        empatados: f.empatados ?? f.e ?? 0,
+        perdidos: f.perdidos ?? f.p ?? 0,
+        golesFavor: f.golesFavor ?? f.gf ?? 0,
+        golesContra: f.golesContra ?? f.gc ?? 0,
+        dif: sd.dif ?? ((f.golesFavor ?? f.gf ?? 0) - (f.golesContra ?? f.gc ?? 0)),
+        puntos: sd.puntos ?? f.puntos ?? f.pts ?? 0,
+        record: sd.record || null,   // NFL: "6-1"
+        forma: f.forma || [],
+      };
+    });
     res.json(tabla);
   } catch (e) {
     console.error("Error tabla:", e.message);
