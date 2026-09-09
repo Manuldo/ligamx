@@ -615,8 +615,8 @@ const cache={};
 // Ligas disponibles (el motor las tiene). El selector deja cambiar.
 let LIGA_ACTUAL="ligamx";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
-  seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1"};
-const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷"};
+  seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",nfl:"NFL"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",nfl:"🏈"};
 function ligaSelectorHTML(){
   return `<div class="liga-sel">
     <button class="liga-chip ${LIGA_ACTUAL==="__todas__"?"on":""}" data-liga="__todas__"><span>🌍</span> Todas</button>
@@ -710,6 +710,34 @@ function motorAnalisisHTML(markdown,ctx){
     .replace(/`(.+?)`/g,'<span class="mono">$1</span>')
     .replace(/^\s*[-*] (.+)$/gm,'<div class="an-li">$1</div>')
     .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+  // Convierte una tabla markdown de picks (| Mercado | Confianza | Justif |)
+  // en tarjetas con barra de confianza. Devuelve '' si no hay tabla.
+  function tablaPicksNFL(txt){
+    const lineas=txt.split('\n').filter(l=>l.trim().startsWith('|'));
+    if(lineas.length<2)return null;
+    // quitar la fila separadora (|---|---|)
+    const filas=lineas.filter(l=>!/^\s*\|[\s|:-]+\|\s*$/.test(l));
+    if(filas.length<2)return null; // necesita encabezado + al menos 1 dato
+    const celdas=l=>l.split('|').slice(1,-1).map(c=>c.trim());
+    const datos=filas.slice(1); // saltar encabezado
+    let out='';
+    datos.forEach(fila=>{
+      const c=celdas(fila);
+      if(c.length<2)return;
+      const merc=c[0], confRaw=c[1], razon=c[2]||'';
+      const nm=(confRaw.match(/(\d+)\s*%/)||[])[1];
+      const n=nm?parseInt(nm):null;
+      const col=n==null?'var(--dim2)':(n>=72?'var(--green)':(n>=62?'var(--amber)':'var(--dim2)'));
+      const lbl=n==null?'':(n>=72?'Alta':(n>=62?'Media':'Baja'));
+      out+=`<div class="an-pick">
+        <div class="an-pick-conf" style="color:${col}"><b>${n!=null?n+'%':'—'}</b><span>${lbl}</span></div>
+        <div class="an-pick-body"><div class="an-pick-sel">${inline(merc)}</div>
+        <div class="an-pick-why">${inline(razon)}</div>
+        ${n!=null?`<div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div>`:''}
+        </div></div>`;
+    });
+    return out||null;
+  }
   h=h.replace(/^# .+$/gm,'');
   const partes=h.split(/^## /gm);
   let out='';
@@ -727,6 +755,13 @@ function motorAnalisisHTML(markdown,ctx){
     }
     if(titulo.includes('🔥')||tl.includes('estakazo')){
       out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+    }
+    // PICKS SUGERIDOS (NFL y otros) — tabla markdown → tarjetas con barra
+    if(tl.includes('pick')){
+      const tp=tablaPicksNFL(cuerpo);
+      if(tp){
+        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${tp}`;continue;
+      }
     }
     // LECTURA — tarjeta azul
     if(tl.includes('lectura')){
