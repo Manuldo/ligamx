@@ -762,11 +762,15 @@ function motorAnalisisHTML(markdown,ctx){
     if(titulo.includes('🔥')||tl.includes('estakazo')){
       out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
-    // PICKS SUGERIDOS (NFL y otros) — tabla markdown → tarjetas con barra
+    // PICKS SUGERIDOS (NFL y otros) — tabla markdown O formato **PICK:** → tarjetas
     if(tl.includes('pick')){
       const tp=tablaPicksNFL(cuerpo);
       if(tp){
         out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${tp}`;continue;
+      }
+      // si no es tabla, probar el formato **PICK:** ... **Confianza:** X%
+      if(/\*\*PICK:\*\*/i.test(cuerpo)){
+        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
       }
     }
     // LECTURA — tarjeta azul
