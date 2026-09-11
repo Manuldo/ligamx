@@ -298,15 +298,19 @@ tbody tr:hover{background:var(--panel2)}
 .an-model-esta{color:var(--red);background:linear-gradient(90deg,rgba(236,48,19,.1),transparent);
   border-left:3px solid var(--red)}
 /* pick con barra de confianza */
-.an-pick{display:flex;gap:13px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:flex-start}
-.an-pick-conf{flex-shrink:0;width:52px;text-align:center;padding-top:2px}
-.an-pick-conf b{display:block;font-size:19px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
-.an-pick-conf span{font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--dim2)}
-.an-pick-body{flex:1;min-width:0}
-.an-pick-sel{font-weight:700;font-size:14px;margin-bottom:3px}
-.an-pick-why{font-size:12.5px;color:var(--dim);line-height:1.45}
-.an-pick-bar{height:3px;background:var(--panel3);border-radius:2px;margin-top:8px;overflow:hidden}
-.an-pick-bar i{display:block;height:100%;border-radius:2px}
+.an-pick{display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:13px;margin:10px 0;overflow:hidden}
+.an-pick-conf{width:74px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px 0}
+.an-pick-conf.hi{background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(34,197,94,.04))}
+.an-pick-conf.mid{background:linear-gradient(135deg,rgba(240,180,41,.14),rgba(240,180,41,.03))}
+.an-pick-conf.lo{background:var(--panel3)}
+.an-pick-conf b{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:21px;line-height:1}
+.an-pick-conf.hi b{color:var(--green)}
+.an-pick-conf.mid b{color:var(--amber)}
+.an-pick-conf.lo b{color:var(--dim)}
+.an-pick-conf span{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim2);margin-top:4px}
+.an-pick-body{flex:1;min-width:0;padding:13px 16px;border-left:1px solid var(--line)}
+.an-pick-sel{font-weight:700;font-size:15px;margin-bottom:4px}
+.an-pick-why{font-size:12.5px;color:var(--dim);line-height:1.5}
 /* colapsables */
 .an-collapse{cursor:pointer;user-select:none}
 .an-caret{margin-left:auto;transition:transform .2s;color:var(--dim2)}
@@ -703,11 +707,10 @@ function motorAnalisisHTML(markdown,ctx){
         // el snapshot se guarda en memoria, NO en el HTML (evita romper el atributo)
         window._anSnaps[pid]={patas:[{partido:ctx.partido||""}],partido:ctx.partido||"",mercado:sel,probConjunta:n/100,liga:ctx.liga||"",conf:n};
         return `<div class="an-pick">
-          <div class="an-pick-conf" style="color:${col}"><b>${conf}%</b><span>${lbl}</span></div>
+          <div class="an-pick-conf ${n>=72?'hi':n>=62?'mid':'lo'}"><b>${conf}%</b><span>${lbl}</span></div>
           <div class="an-pick-body"><div class="an-pick-sel">${sel}</div>
           <div class="an-pick-why">${razon.trim()}</div>
-          <div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div>
-          <div style="margin-top:9px"><button class="sm ${mine?"on":""}" data-mine-analisis="${pid}" ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>
+          <div style="margin-top:10px"><button class="sm ${mine?"on":""}" data-mine-analisis="${pid}" ${mine?"disabled":""}>${mine?"✓ Lo jugué":"Lo jugué"}</button></div>
           </div>
         </div>`;
       });
@@ -737,10 +740,9 @@ function motorAnalisisHTML(markdown,ctx){
       const col=n==null?'var(--dim2)':(n>=72?'var(--green)':(n>=62?'var(--amber)':'var(--dim2)'));
       const lbl=n==null?'':(n>=72?'Alta':(n>=62?'Media':'Baja'));
       out+=`<div class="an-pick">
-        <div class="an-pick-conf" style="color:${col}"><b>${n!=null?n+'%':'—'}</b><span>${lbl}</span></div>
+        <div class="an-pick-conf ${n==null?'lo':n>=72?'hi':n>=62?'mid':'lo'}"><b>${n!=null?n+'%':'—'}</b><span>${lbl}</span></div>
         <div class="an-pick-body"><div class="an-pick-sel">${inline(merc)}</div>
         <div class="an-pick-why">${inline(razon)}</div>
-        ${n!=null?`<div class="an-pick-bar"><i style="width:${Math.min(100,n)}%;background:${col}"></i></div>`:''}
         </div></div>`;
     });
     return out||null;
@@ -1815,9 +1817,9 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="skel"></div><div class="skel" style="width:75%"></div></div>
-    <div class="card" style="margin-bottom:16px" id="pAlineaciones">
+    ${liga==="nfl"?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
       <div class="card-h"><span class="card-t">Alineaciones</span></div>
-      <div class="skel"></div></div>
+      <div class="skel"></div></div>`}
     <div class="card" style="margin-top:16px" id="pStats">
       <div class="card-h"><span class="card-t">Números del partido</span></div>
       <div class="skel"></div></div>`;
@@ -1887,11 +1889,12 @@ async function abrirPartido(id){
       });
   };
   window._cargarAnalisis(false);
-  // ALINEACIONES (probables siempre, confirmada ~1h antes)
+  // ALINEACIONES (probables siempre, confirmada ~1h antes) — no aplica a NFL
   window._cargarAlineaciones=()=>{
+    if(liga==="nfl")return;
     fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
-      .then(r=>r.json()).then(d=>{$("#pAlineaciones").innerHTML=alineacionesHTML(d,local,visitante,id);})
-      .catch(()=>{$("#pAlineaciones").innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
+      .then(r=>r.json()).then(d=>{const el=$("#pAlineaciones");if(el)el.innerHTML=alineacionesHTML(d,local,visitante,id);})
+      .catch(()=>{const el=$("#pAlineaciones");if(el)el.innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
         <div class="empty"><span>No disponibles ahora</span></div>`;});
   };
   window._cargarAlineaciones();
