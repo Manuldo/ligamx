@@ -1889,13 +1889,17 @@ async function abrirPartido(id){
       });
   };
   window._cargarAnalisis(false);
-  // ALINEACIONES (probables siempre, confirmada ~1h antes) — no aplica a NFL
+  // ALINEACIONES — solo se muestran si HAY datos confiables; si no, se oculta
   window._cargarAlineaciones=()=>{
     if(liga==="nfl")return;
     fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
-      .then(r=>r.json()).then(d=>{const el=$("#pAlineaciones");if(el)el.innerHTML=alineacionesHTML(d,local,visitante,id);})
-      .catch(()=>{const el=$("#pAlineaciones");if(el)el.innerHTML=`<div class="card-h"><span class="card-t">Alineaciones</span></div>
-        <div class="empty"><span>No disponibles ahora</span></div>`;});
+      .then(r=>r.json()).then(d=>{
+        const el=$("#pAlineaciones");if(!el)return;
+        if(!d||!d.hay){el.style.display="none";return;}  // sin datos → ocultar todo
+        el.style.display="";
+        el.innerHTML=alineacionesHTML(d,local,visitante,id);
+      })
+      .catch(()=>{const el=$("#pAlineaciones");if(el)el.style.display="none";});
   };
   window._cargarAlineaciones();
   // botón traer alineación de ESTE partido
