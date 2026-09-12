@@ -1078,8 +1078,12 @@ async function viewHoy(){
   if(liga==="__todas__"){
     const r=await fetch(`${API}/matches/todas`,{headers:H()});
     const partidos=await r.json().catch(()=>[]);
-    const proximos=partidos.filter(p=>p.estado!=="finalizado");
-    const jugados=partidos.filter(p=>p.estado==="finalizado")
+    const _ahora=Date.now();
+    // Próximo = no finalizado, O con fecha futura aunque el estado esté mal.
+    // Rescata partidos futuros que el scraper marcó 'finalizado' por error.
+    const esFuturo=(p)=>{const t=p.kickoff?new Date(p.kickoff).getTime():0;return t&&t>_ahora;};
+    const proximos=partidos.filter(p=>p.estado!=="finalizado"||esFuturo(p));
+    const jugados=partidos.filter(p=>p.estado==="finalizado"&&!esFuturo(p))
       .sort((a,b)=>new Date(b.kickoff||0)-new Date(a.kickoff||0)).slice(0,20);
     $("#tbS").textContent=`${proximos.length} próximos · todas las ligas`;
     const cardT=(m,fin)=>{
