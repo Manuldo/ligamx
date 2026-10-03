@@ -620,8 +620,8 @@ const cache={};
 let LIGA_ACTUAL="ligamx";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
   seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",
-  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL"};
-const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"⭐",leaguescup:"🌐",nfl:"🏈"};
+  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL",mlb:"MLB"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"⭐",leaguescup:"🌐",nfl:"🏈",mlb:"⚾"};
 function ligaSelectorHTML(){
   return `<div class="liga-sel">
     <button class="liga-chip ${LIGA_ACTUAL==="__todas__"?"on":""}" data-liga="__todas__"><span>🌍</span> Todas</button>
@@ -1660,10 +1660,10 @@ async function viewTabla(){
   if(!t.length){$("#page").innerHTML=`<div class="card"><div class="empty">
     <b>Tabla no disponible</b><span>Se carga desde la cuenta maestra antes de cada jornada.</span>
     </div></div>`;return;}
-  // NFL: tabla con récord (W-L) en vez de goles/puntos
-  if(LIGA_SB_ABIERTA==="nfl"){
+  // NFL/MLB: tabla con récord (W-L) en vez de goles/puntos
+  if(LIGA_SB_ABIERTA==="nfl"||LIGA_SB_ABIERTA==="mlb"){
     $("#page").innerHTML=`<div class="card">
-      <div class="card-h"><span class="card-t">Tabla NFL</span>
+      <div class="card-h"><span class="card-t">Tabla ${LIGA_NOMBRES[LIGA_SB_ABIERTA]||LIGA_SB_ABIERTA.toUpperCase()}</span>
         <span class="card-s">${t.length} equipos</span></div>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>#</th><th>Equipo</th><th>JJ</th><th>Récord</th><th>Dif</th></tr></thead>
@@ -1821,7 +1821,7 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="skel"></div><div class="skel" style="width:75%"></div></div>
-    ${liga==="nfl"?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
+    ${(liga==="nfl"||liga==="mlb")?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
       <div class="card-h"><span class="card-t">Alineaciones</span></div>
       <div class="skel"></div></div>`}
     <div class="card" style="margin-top:16px" id="pStats">
@@ -1895,7 +1895,7 @@ async function abrirPartido(id){
   window._cargarAnalisis(false);
   // ALINEACIONES — solo se muestran si HAY datos confiables; si no, se oculta
   window._cargarAlineaciones=()=>{
-    if(liga==="nfl")return;
+    if(liga==="nfl"||liga==="mlb")return;
     fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
       .then(r=>r.json()).then(d=>{
         const el=$("#pAlineaciones");if(!el)return;
@@ -1973,6 +1973,33 @@ function statsPartidoHTML(d,local,visitante){
       <div style="display:flex;gap:20px">
         ${_statCol(local,L.receptores," yd")}
         ${_statCol(visitante,V.receptores," yd")}
+      </div>
+    </div>`;
+  }
+  // MLB: jonrones/impulsadas (bateo) y ponches/ERA (pitcheo), acumulado de temporada
+  if(d.deporte==="beisbol"){
+    return `<div class="card-h"><span class="card-t">Números del partido</span>
+      <span class="card-s">temporada acumulada</span></div>
+    <div style="padding:4px 16px 16px">
+      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">⚾ Jonrones (HR)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.jonrones," HR")}
+        ${_statCol(visitante,V.jonrones," HR")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🏃 Impulsadas (RBI)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.impulsadas," CI")}
+        ${_statCol(visitante,V.impulsadas," CI")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 Ponches (pitcheo)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.ponches," K")}
+        ${_statCol(visitante,V.ponches," K")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🧊 ERA (promedio)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.era,"")}
+        ${_statCol(visitante,V.era,"")}
       </div>
     </div>`;
   }
