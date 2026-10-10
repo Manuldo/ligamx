@@ -44,6 +44,7 @@ router.get("/hoy", opcionalAuth, ah(async (req, res) => {
       edge: p.edge,
       verdicto: p.verdicto,
       votos: p.votos,
+      pickLock: p.pickLock,
       bloqueado: true
     };
   });

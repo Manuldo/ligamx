@@ -180,6 +180,10 @@ tbody tr:hover{background:var(--panel2)}
 .vd-MANDAR{background:var(--red);color:#fff}
 .vd-RESERVAS{background:var(--panel3);color:var(--dim)}
 .vd-EVITAR{background:var(--dim2);color:#fff}
+.pick-lock{position:relative;box-shadow:0 0 0 2px #f0c040 inset}
+.lk-badge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;
+  letter-spacing:.06em;padding:3px 8px;border-radius:4px;background:#f0c040;color:#1a1200;
+  margin-bottom:6px}
 .ebar{height:4px;background:var(--panel3);border-radius:2px;margin-top:11px;overflow:hidden}
 .efill{height:100%;background:var(--red);width:0;transition:width .8s cubic-bezier(.22,1,.36,1)}
 .enums{display:flex;gap:20px;margin-top:10px}
@@ -620,8 +624,8 @@ const cache={};
 let LIGA_ACTUAL="ligamx";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
   seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",
-  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL",mlb:"MLB"};
-const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"⭐",leaguescup:"🌐",nfl:"🏈",mlb:"⚾"};
+  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🏴",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"⭐",leaguescup:"🌐",nfl:"🏈"};
 function ligaSelectorHTML(){
   return `<div class="liga-sel">
     <button class="liga-chip ${LIGA_ACTUAL==="__todas__"?"on":""}" data-liga="__todas__"><span>🌍</span> Todas</button>
@@ -1047,7 +1051,8 @@ async function render(){
 function pickCard(p){
   const voted=localStorage.getItem("v_"+p._id),mine=localStorage.getItem("m_"+p._id);
   const w=Math.min(100,Math.max(3,(p.edge/0.15)*100));
-  return `<div class="pick">
+  return `<div class="pick${p.pickLock?" pick-lock":""}">
+    ${p.pickLock?`<div class="lk-badge">🔒 PICK LOCK · la jugada más viable de hoy</div>`:""}
     <div class="pick-h"><div><div class="pick-m">${esc(p.partido)}</div>
       <div class="pick-k">${esc(p.mercado)}</div></div>
       <span class="vd vd-${esc(p.verdicto)}">${esc(p.verdicto)}</span></div>
@@ -1066,7 +1071,9 @@ function pickCard(p){
       </div></div></div>`;
 }
 function lockRow(p){
-  return `<div class="lockrow"><div class="lk-b"><b>${esc(p.partido)}</b>
+  return `<div class="lockrow${p.pickLock?" pick-lock":""}">
+    ${p.pickLock?`<div class="lk-badge">🔒 PICK LOCK</div>`:""}
+    <div class="lk-b"><b>${esc(p.partido)}</b>
     <div class="lk-blur">Mercado y momio reservados</div></div>
     <div class="lk-e"><div class="k">Ventaja</div><div class="v mono">+${pct(p.edge)}</div></div>
     <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`;
@@ -1634,6 +1641,28 @@ async function viewParlays(){
     </div>`;
   };
   const son=d.sonadores||[];
+  const pl_=d.pickLock;
+  const cardPickLock=(pk)=>{
+    const c=colProb(pk.probEstimada);
+    const w=Math.min(100,Math.round((pk.probEstimada||.5)*100));
+    const lgt=pk.liga&&LIGA_NOMBRES[pk.liga]?`<span style="font-size:9px;color:var(--dim2);background:var(--panel3);padding:1px 6px;border-radius:10px;margin-left:6px;font-weight:700">${LIGA_FLAGS[pk.liga]||""} ${esc(LIGA_NOMBRES[pk.liga])}</span>`:"";
+    return `<div class="pz pick-lock" style="margin-bottom:10px">
+      <div class="lk-badge" style="margin:10px 0 0 14px">🔒 PICK LOCK · la jugada más viable de hoy</div>
+      <div class="pz-leg" style="border-top:none">
+        <div class="pz-leg-body">
+          <div class="pz-leg-match">${esc(pk.partido)}${lgt}</div>
+          <div class="pz-leg-sel">${esc(pk.mercado)}</div>
+          <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
+        </div>
+        <div class="pz-leg-mom">${dec(pk.momio)}</div>
+      </div>
+      <div class="pz-foot">
+        <div class="pz-metric"><span class="k">Prob. estimada</span><div class="v" style="color:var(--txt)">${pct(pk.probEstimada)}</div></div>
+        <div class="pz-metric"><span class="k">Ventaja estimada</span><div class="v" style="color:var(--red)">+${pct(pk.edge)}</div></div>
+      </div>
+      ${!pk.momioReal?`<p class="pz-note" style="color:var(--dim2)">Momio estimado — todavía sin momios reales de casa de apuestas.</p>`:""}
+    </div>`;
+  };
   // fecha bonita del día mostrado
   let diaTxt="Combinados por IA";
   if(d.diaMostrado){try{const [y,m,dd]=d.diaMostrado.split("-");
@@ -1644,6 +1673,7 @@ async function viewParlays(){
     <div class="card-h"><span class="card-t">Parlays del día</span>
       <span class="card-s">${esc(diaTxt)} · todas las ligas</span></div>
     ${banner}
+    ${pl_?`<div style="padding:2px 0 6px">${cardPickLock(pl_)}</div>`:""}
     ${son.length?`<div style="padding:2px 0 6px">${son.map(cardSonador).join("")}</div>`:""}
     ${l.length
       ? (d.esPro ? l.map((pl,i)=>cardPro(pl,i)).join("")
@@ -1660,10 +1690,10 @@ async function viewTabla(){
   if(!t.length){$("#page").innerHTML=`<div class="card"><div class="empty">
     <b>Tabla no disponible</b><span>Se carga desde la cuenta maestra antes de cada jornada.</span>
     </div></div>`;return;}
-  // NFL/MLB: tabla con récord (W-L) en vez de goles/puntos
-  if(LIGA_SB_ABIERTA==="nfl"||LIGA_SB_ABIERTA==="mlb"){
+  // NFL: tabla con récord (W-L) en vez de goles/puntos
+  if(LIGA_SB_ABIERTA==="nfl"){
     $("#page").innerHTML=`<div class="card">
-      <div class="card-h"><span class="card-t">Tabla ${LIGA_NOMBRES[LIGA_SB_ABIERTA]||LIGA_SB_ABIERTA.toUpperCase()}</span>
+      <div class="card-h"><span class="card-t">Tabla NFL</span>
         <span class="card-s">${t.length} equipos</span></div>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>#</th><th>Equipo</th><th>JJ</th><th>Récord</th><th>Dif</th></tr></thead>
@@ -1821,7 +1851,7 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="skel"></div><div class="skel" style="width:75%"></div></div>
-    ${(liga==="nfl"||liga==="mlb")?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
+    ${liga==="nfl"?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
       <div class="card-h"><span class="card-t">Alineaciones</span></div>
       <div class="skel"></div></div>`}
     <div class="card" style="margin-top:16px" id="pStats">
@@ -1895,7 +1925,7 @@ async function abrirPartido(id){
   window._cargarAnalisis(false);
   // ALINEACIONES — solo se muestran si HAY datos confiables; si no, se oculta
   window._cargarAlineaciones=()=>{
-    if(liga==="nfl"||liga==="mlb")return;
+    if(liga==="nfl")return;
     fetch(`${API}/matches/alineaciones`,{method:"POST",headers:H(),body:JSON.stringify({id})})
       .then(r=>r.json()).then(d=>{
         const el=$("#pAlineaciones");if(!el)return;
@@ -1973,33 +2003,6 @@ function statsPartidoHTML(d,local,visitante){
       <div style="display:flex;gap:20px">
         ${_statCol(local,L.receptores," yd")}
         ${_statCol(visitante,V.receptores," yd")}
-      </div>
-    </div>`;
-  }
-  // MLB: jonrones/impulsadas (bateo) y ponches/ERA (pitcheo), acumulado de temporada
-  if(d.deporte==="beisbol"){
-    return `<div class="card-h"><span class="card-t">Números del partido</span>
-      <span class="card-s">temporada acumulada</span></div>
-    <div style="padding:4px 16px 16px">
-      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">⚾ Jonrones (HR)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.jonrones," HR")}
-        ${_statCol(visitante,V.jonrones," HR")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🏃 Impulsadas (RBI)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.impulsadas," CI")}
-        ${_statCol(visitante,V.impulsadas," CI")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 Ponches (pitcheo)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.ponches," K")}
-        ${_statCol(visitante,V.ponches," K")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🧊 ERA (promedio)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.era,"")}
-        ${_statCol(visitante,V.era,"")}
       </div>
     </div>`;
   }

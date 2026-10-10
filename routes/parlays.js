@@ -50,15 +50,19 @@ router.get("/hoy", opcionalAuth, ah(async (req, res) => {
   const sonadores = (data.sonadores || []);
   sonadores.forEach((s) => { s._id = s._id || `${liga}-${s.tipo}`; });
 
+  // Pick Lock: una sola jugada, no un parlay — es análisis gratis para
+  // todos (igual que los soñadores), nunca se censura.
+  const pickLock = data.pickLock || null;
+
   const esPro = !!(req.user && req.user.isProActive());
   if (esPro) {
-    return res.json({ parlays, sonadores, esPro: true, edgeDisponible: !!data.edge_disponible });
+    return res.json({ parlays, sonadores, pickLock, esPro: true, edgeDisponible: !!data.edge_disponible });
   }
 
   const salida = parlays.map((pl) =>
     pl.tier === "public" ? { ...pl, bloqueado: false } : censurar(pl)
   );
-  res.json({ parlays: salida, sonadores, esPro: false, edgeDisponible: !!data.edge_disponible });
+  res.json({ parlays: salida, sonadores, pickLock, esPro: false, edgeDisponible: !!data.edge_disponible });
 }));
 
 // --- PÚBLICO (compat): solo el/los parlay(s) public del día ---

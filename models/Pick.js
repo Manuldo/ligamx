@@ -11,6 +11,7 @@ const pickSchema = new mongoose.Schema({
   verdicto: { type: String, enum: ["MANDAR", "RESERVAS", "EVITAR"], default: "MANDAR" },
   analisis: { type: String, default: "" },               // texto del analisis
   tier: { type: String, enum: ["public", "pro"], required: true, index: true },
+  pickLock: { type: Boolean, default: false, index: true }, // la jugada mas viable del dia (mayor edge, ya con momio real/estimado)
   votos: { type: Number, default: 0 },                   // contador denormalizado
   activo: { type: Boolean, default: true },
   resultado: { type: String, enum: ["pendiente","acierto","fallo","nulo"], default: "pendiente" },

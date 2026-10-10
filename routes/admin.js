@@ -42,8 +42,12 @@ router.post("/publish", requireAdmin, ah(async (req, res) => {
   // Desactiva los picks previos de la fecha para republicar limpio
   await Pick.updateMany({ fecha }, { activo: false });
 
+  // Pick Lock: la jugada MAS viable del dia. top3 ya viene ordenado por
+  // edge descendente (mayor valor primero), asi que es simplemente el #1 —
+  // no hace falta un criterio nuevo, ya estaba calculado, solo faltaba
+  // marcarlo para que el front lo distinga del resto.
   const creados = await Pick.insertMany(
-    top3.map((c) => ({
+    top3.map((c, i) => ({
       fecha,
       partido: c.partido,
       mercado: c.mercado,
@@ -54,6 +58,7 @@ router.post("/publish", requireAdmin, ah(async (req, res) => {
       verdicto: c.verdicto || "MANDAR",
       analisis: c.analisis || "",
       tier: c.tier === "pro" ? "pro" : "public",
+      pickLock: i === 0,
       votos: 0,
       activo: true
     }))
