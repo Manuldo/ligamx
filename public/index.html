@@ -531,6 +531,11 @@ body.landing .page{padding:0;max-width:none}
 .ls-card b{display:block;font-weight:800;font-size:12.5px;color:#f3f2f2}
 .ls-card span{display:block;font-size:10px;color:#9c9691;line-height:1.35;margin-top:2px}
 @media(max-width:560px){.land-sports{grid-template-columns:1fr 1fr}}
+/* ===== HOME (dentro de la app) ===== */
+.home-in{max-width:760px;margin:0 auto;padding:4px 0 10px}
+.home-in .land-hero{border-radius:16px;margin-bottom:22px}
+.home-in .land-sports{grid-template-columns:repeat(3,1fr);margin-bottom:6px}
+@media(max-width:700px){.home-in .land-sports{grid-template-columns:1fr 1fr}}
 .land-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
   letter-spacing:.09em;text-transform:uppercase;color:#cfcac6;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 16px;margin-bottom:22px}
@@ -613,8 +618,9 @@ body.landing .page{padding:0;max-width:none}
     <button class="sb-toggle" id="tog" title="Contraer">☰</button>
   </div>
   <div class="sb-nav" id="sbnav">
+    <button class="sb-item on" data-v="home"><span class="ic">⌂</span><span>Home</span></button>
     <div class="sb-sec">Análisis</div>
-    <button class="sb-item on" data-v="hoy"><span class="ic">◎</span><span>Picks de hoy</span></button>
+    <button class="sb-item" data-v="hoy"><span class="ic">◎</span><span>Picks de hoy</span></button>
     <button class="sb-item" data-v="analizar"><span class="ic">⚡</span><span>Analizar</span></button>
     <button class="sb-item" data-v="parlays"><span class="ic">◆</span><span>Parlays</span></button>
     <button class="sb-item" data-v="builder"><span class="ic">🎫</span><span>Arma tu parlay</span></button>
@@ -672,7 +678,7 @@ body.landing .page{padding:0;max-width:none}
 const API="/api";
 let token=localStorage.getItem("token");
 let me=JSON.parse(localStorage.getItem("me")||"null");
-let view="hoy", mode="login";
+let view="home", mode="login";
 const cache={};
 // Ligas disponibles (el motor las tiene). El selector deja cambiar.
 let LIGA_ACTUAL="ligamx";
@@ -882,14 +888,17 @@ window.addEventListener("resize",syncMobile);syncMobile();
 
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-v]"); if(!b)return;
+  if(b.dataset.goLiga){LIGA_ACTUAL=b.dataset.goLiga;JORNADA_SEL=null;}
   setView(b.dataset.v);
   if(isMobile()){document.body.classList.remove("mopen");$("#scrim").classList.remove("on");}
 });
 
-const TITLES={hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados por IA"],
+const TITLES={home:["Inicio","Lo que pasa hoy en Pickazo"],
+  hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados por IA"],
   track:["Track record","Resultados verificados"],
   builder:["Arma tu parlay","Elige tus patas y arma tu boleto"],
   tabla:["Tabla de posiciones",""],jornada:["Jornadas",""],jugadores:["Jugadores",""],
+  noticias:["Noticias","Lo último de las ligas"],
   mios:["Mis picks","Los que marcaste como jugados"]};
 function setView(v){
   // limpiar timers de auto-refresh al cambiar de vista (evita fugas)
@@ -1038,29 +1047,10 @@ document.addEventListener("click",e=>{
 });
 
 /* ===== GATE ===== */
-async function gate(){
-  // La landing ocupa toda la pantalla: sin sidebar ni topbar.
+function gate(){
+  // La landing ocupa toda la pantalla: sin sidebar ni topbar. Esta es la
+  // pantalla pre-login; el hero/logo/links vive en viewHome(), adentro.
   document.body.classList.add("landing");
-  // Hero rotativo: tiro de las noticias (endpoint público, no necesita
-  // sesión) para que la portada se sienta viva con lo que pasó hoy, no
-  // con 3 fotos fijas de hace un año.
-  let heroImgs=[];
-  try{
-    const r=await fetch(`${API}/news`);
-    const d=await r.json();
-    heroImgs=(d.noticias||[]).filter(n=>n.imagen).slice(0,6);
-  }catch{}
-  const heroHTML=`<div class="land-hero" id="landHero">
-    ${heroImgs.map((n,i)=>`<div class="land-hero-slide ${i===0?"on":""}" style="background-image:url('${esc(n.imagen)}')"></div>`).join("")}
-    <div class="land-hero-grad"></div>
-    <img class="land-hero-logo" src="/icons/pickazo-logo-full.png" alt="Pickazo">
-  </div>`;
-  const sportsHTML=`<div class="land-sports">
-    <button class="ls-card" data-a="up"><span class="ls-ic">⚽</span><b>Fútbol</b><span>Liga MX, Champions, Premier y más</span></button>
-    <button class="ls-card" data-a="up"><span class="ls-ic">🏈</span><b>NFL</b><span>Picks semana a semana</span></button>
-    <button class="ls-card" data-a="up"><span class="ls-ic">⚾</span><b>MLB</b><span>Jonrones, ERA y más</span></button>
-    <button class="ls-card" data-v="noticias"><span class="ls-ic">📰</span><b>Noticias</b><span>Lo último, en un solo lugar — sin cuenta</span></button>
-  </div>`;
   $("#page").innerHTML=`
     <div class="land">
       <video class="land-vid" autoplay muted loop playsinline preload="metadata"
@@ -1069,13 +1059,11 @@ async function gate(){
       </video>
       <div class="land-bg"></div>
       <div class="land-in">
-        ${heroHTML}
         <div class="land-badge"><span class="d"></span> La app del apostador informado</div>
         <h1 class="land-h1">El que estudia cobra. El que adivina reza.</h1>
         <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
           para que TÚ decidas: picks del día, parlays por IA e historial verificado. No apostamos por ti —
           te damos la ventaja del que sabe.</p>
-        ${sportsHTML}
         <div class="land-grid">
           <div class="lc"><b>Información, no corazonadas</b>
             <span>Vendemos datos y análisis. La jugada la haces tú.</span></div>
@@ -1095,21 +1083,49 @@ async function gate(){
         </div>
       </div>
     </div>`;
-  clearInterval(window._landHeroTimer);
+}
+
+/* ===== HOME (dentro de la app, ya con sesión) ===== */
+async function viewHome(){
+  // Hero rotativo con lo que pasó hoy en las ligas (mismo endpoint público
+  // de Noticias) + logo de Pickazo al centro + accesos directos a las
+  // secciones. Esta es la primera pantalla que ve un usuario con sesión.
+  let heroImgs=[];
+  try{
+    const r=await fetch(`${API}/news`);
+    const d=await r.json();
+    heroImgs=(d.noticias||[]).filter(n=>n.imagen).slice(0,6);
+  }catch{}
+  const heroHTML=`<div class="land-hero" id="homeHero">
+    ${heroImgs.map((n,i)=>`<div class="land-hero-slide ${i===0?"on":""}" style="background-image:url('${esc(n.imagen)}')"></div>`).join("")}
+    <div class="land-hero-grad"></div>
+    <img class="land-hero-logo" src="/icons/pickazo-logo-full.png" alt="Pickazo">
+  </div>`;
+  $("#page").innerHTML=`
+    <div class="home-in">
+      ${heroHTML}
+      <div class="land-sports">
+        <button class="ls-card" data-v="hoy" data-go-liga="ligamx"><span class="ls-ic">⚽</span><b>Fútbol</b><span>Liga MX, Champions, Premier y más</span></button>
+        <button class="ls-card" data-v="hoy" data-go-liga="nfl"><span class="ls-ic">🏈</span><b>NFL</b><span>Picks semana a semana</span></button>
+        <button class="ls-card" data-v="hoy" data-go-liga="mlb"><span class="ls-ic">⚾</span><b>MLB</b><span>Jonrones, ERA y más</span></button>
+        <button class="ls-card" data-v="noticias"><span class="ls-ic">📰</span><b>Noticias</b><span>Lo último de las ligas</span></button>
+        <button class="ls-card" data-v="parlays"><span class="ls-ic">◆</span><b>Parlays</b><span>Combinados por IA</span></button>
+        <button class="ls-card" data-v="track"><span class="ls-ic">📊</span><b>Track record</b><span>Resultados verificados</span></button>
+      </div>
+    </div>`;
+  clearInterval(window._homeHeroTimer);
   if(heroImgs.length>1){
     let hi=0;
-    window._landHeroTimer=setInterval(()=>{
+    window._homeHeroTimer=setInterval(()=>{
       hi=(hi+1)%heroImgs.length;
-      document.querySelectorAll("#landHero .land-hero-slide").forEach((el,idx)=>el.classList.toggle("on",idx===hi));
+      document.querySelectorAll("#homeHero .land-hero-slide").forEach((el,idx)=>el.classList.toggle("on",idx===hi));
     },4000);
   }
 }
 
 /* ===== RENDER ===== */
 async function render(){
-  // Noticias no tiene nada que proteger (es un endpoint público) — se puede
-  // ver sin cuenta. Todo lo demás sigue atrás del login.
-  if(!me&&view!=="noticias"){await gate();return;}
+  if(!me){await gate();return;}
   document.body.classList.remove("landing");
   const p=$("#page");
   const _msgs=["Cargando la data más fresca","Consultando el motor Pickazo","Analizando los números","Casi listo"];
@@ -1120,7 +1136,8 @@ async function render(){
     <div class="pzload-sub">El que estudia cobra</div>
   </div>`;
   try{
-    if(view==="hoy")await viewHoy();
+    if(view==="home")await viewHome();
+    else if(view==="hoy")await viewHoy();
     else if(view==="analizar")await viewAnalizar();
     else if(view==="parlays")await viewParlays();
     else if(view==="builder")await viewBuilder();
@@ -1866,15 +1883,9 @@ async function viewNoticias(){
     <div class="news-hero-dots">${hero.map((_,i)=>
       `<button class="news-hero-dot ${i===0?"on":""}" data-hero-dot="${i}"></button>`).join("")}</div>
   </div>`:"";
-  const guestBanner=!me?`<div class="pz-banner" style="margin:12px 16px 0;display:flex;align-items:center;
-      justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <span>Estás viendo esto sin cuenta. Los picks, parlays y análisis están adentro — gratis para empezar.</span>
-      <button class="btn btn-red" data-a="up" style="flex-shrink:0">Crear cuenta</button>
-    </div>`:"";
   $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
     <div class="card-h"><span class="card-t">Noticias</span>
       <span class="card-s">${filtradas.length} notas · fuentes externas</span></div>
-    ${guestBanner}
     <div style="padding:0 16px 12px">${chips}</div>
     ${heroHTML}
     ${resto.length
@@ -2556,8 +2567,8 @@ $("#mGo").onclick=async()=>{
 };
 function logout(){
   token=null;me=null;localStorage.removeItem("token");localStorage.removeItem("me");
-  view="hoy";
-  document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==="hoy"));
+  view="home";
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==="home"));
   sbUser();gate();toast("Sesión cerrada");
 }
 
