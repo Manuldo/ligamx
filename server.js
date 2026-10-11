@@ -24,6 +24,7 @@ import historyRoutes from "./routes/history.js";
 import recordRoutes from "./routes/record.js";
 import leagueRoutes from "./routes/league.js";
 import motorRoutes from "./routes/motor.js";
+import newsRoutes from "./routes/news.js";
 import { motorVivo } from "./lib/motor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -133,6 +134,7 @@ app.use("/api/history", historyRoutes);
 app.use("/api/record", recordRoutes);
 app.use("/api/league", leagueRoutes);
 app.use("/api/motor", motorRoutes);
+app.use("/api/news", newsRoutes);
 
 app.use(express.static(path.join(__dirname, "public"), {
   etag: true,

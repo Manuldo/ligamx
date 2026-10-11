@@ -321,6 +321,20 @@ tbody tr:hover{background:var(--panel2)}
 .an-collapse.closed .an-caret{transform:rotate(-90deg)}
 .an-collapse.closed .an-sec-b{display:none}
 
+/* ===== NOTICIAS ===== */
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:14px;padding:0 16px 16px}
+.news-card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;transition:border-color .2s,transform .15s}
+.news-card:hover{border-color:var(--dim2);transform:translateY(-2px)}
+.news-img{width:100%;aspect-ratio:16/9;background-color:var(--panel3);background-size:cover;background-position:center}
+.news-body{padding:12px 14px;display:flex;flex-direction:column;gap:5px}
+.news-src{font-size:10.5px;color:var(--dim2);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.news-title{font-size:14px;font-weight:800;line-height:1.3;color:var(--txt)}
+.news-desc{font-size:12.5px;color:var(--dim);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.news-link{font-size:11.5px;font-weight:700;color:var(--red);margin-top:4px}
+
 /* ===== PARLAYS (rediseño) ===== */
 .pz{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   margin:14px 16px;overflow:hidden;transition:border-color .2s}
@@ -566,6 +580,7 @@ body.landing .page{padding:0;max-width:none}
     <button class="sb-item" data-v="parlays"><span class="ic">◆</span><span>Parlays</span></button>
     <button class="sb-item" data-v="builder"><span class="ic">🎫</span><span>Arma tu parlay</span></button>
     <button class="sb-item" data-v="track"><span class="ic">📊</span><span>Track record</span></button>
+    <button class="sb-item" data-v="noticias"><span class="ic">📰</span><span>Noticias</span></button>
     <div class="sb-sec">Ligas</div>
     <div id="sbLigas"></div>
     <div class="sb-sec">Personal</div>
@@ -1043,6 +1058,7 @@ async function render(){
     else if(view==="jornada")await viewJornada();
     else if(view==="jugadores")await viewJugadores();
     else if(view==="mios")await viewMios();
+    else if(view==="noticias")await viewNoticias();
   }catch(err){
     p.innerHTML=`<div class="card"><div class="empty"><b>No se pudo cargar</b>
       <span>Revisa tu conexión e intenta de nuevo.</span></div></div>`;
@@ -1540,8 +1556,13 @@ async function likeBoletoComu(id,btn){
 async function viewParlays(){
   // Parlays siempre combina TODAS las ligas del día más cercano con material.
   const liga="__todas__";
-  const r=await fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()});
+  const [r,rPicks]=await Promise.all([
+    fetch(`${API}/parlays/hoy?liga=${encodeURIComponent(liga)}`,{headers:H()}),
+    fetch(`${API}/picks/hoy`,{headers:H()}).catch(()=>null)
+  ]);
   const d=await r.json(); const l=d.parlays||[];
+  const dp=rPicks?await rPicks.json().catch(()=>({picks:[]})):{picks:[]};
+  const picksManuales=dp.picks||[];
 
   // color por probabilidad estimada de la pata
   const colProb=(p)=>{const n=(p||0)*100;return n>=70?'var(--green)':(n>=55?'var(--amber)':'var(--dim2)');};
@@ -1665,6 +1686,45 @@ async function viewParlays(){
       ${!pk.momioReal?`<p class="pz-note" style="color:var(--dim2)">Momio estimado — todavía sin momios reales de casa de apuestas.</p>`:""}
     </div>`;
   };
+  // PICKS MANUALES — los que el equipo arma a mano en el panel admin
+  // (/admin/publish → Pick.js). Antes no se mostraban en ningún lado;
+  // ahora salen en su propia sección, separados de los parlays del motor.
+  const cardManual=(p)=>{
+    const bloqueado=!!p.bloqueado;
+    const lockBadge=p.pickLock?`<div class="lk-badge" style="margin:10px 0 0 14px">📌 PICK DEL EQUIPO</div>`:"";
+    if(bloqueado){
+      return `<div class="pz" style="opacity:.9">
+        ${lockBadge}
+        <div class="pz-top">
+          <div class="pz-badge" style="background:var(--panel3);color:var(--dim2)">🔒</div>
+          <div class="pz-ttl"><b>${esc(p.partido||"Pick del equipo")}</b><span>Mercado y momio reservados PRO</span></div>
+        </div>
+        <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <span style="font-size:13px;color:var(--dim)">Ventaja ${p.edge!=null?("+"+pct(p.edge)):"—"} · ${esc(p.verdicto||"")}</span>
+          <button class="btn btn-red" data-a="pro" style="flex-shrink:0">Desbloquear PRO</button>
+        </div>
+      </div>`;
+    }
+    const c=colProb(p.probEstimada);
+    const w=Math.min(100,Math.round((p.probEstimada||.5)*100));
+    return `<div class="pz" style="margin-bottom:10px">
+      ${lockBadge}
+      <div class="pz-leg" style="border-top:none">
+        <div class="pz-leg-body">
+          <div class="pz-leg-match">${esc(p.partido)}</div>
+          <div class="pz-leg-sel">${esc(p.mercado)}</div>
+          <div class="pz-leg-bar"><i style="width:${w}%;background:${c}"></i></div>
+        </div>
+        <div class="pz-leg-mom">${dec(p.momio)}</div>
+      </div>
+      <div class="pz-foot">
+        <div class="pz-metric"><span class="k">Prob. estimada</span><div class="v" style="color:var(--txt)">${pct(p.probEstimada)}</div></div>
+        <div class="pz-metric"><span class="k">Ventaja</span><div class="v" style="color:var(--red)">+${pct(p.edge)}</div></div>
+        ${vBadge(p.verdicto)}
+      </div>
+      ${p.analisis?`<p class="pz-note">${esc(p.analisis)}</p>`:""}
+    </div>`;
+  };
   // fecha bonita del día mostrado
   let diaTxt="Combinados por IA";
   if(d.diaMostrado){try{const [y,m,dd]=d.diaMostrado.split("-");
@@ -1676,6 +1736,7 @@ async function viewParlays(){
       <span class="card-s">${esc(diaTxt)} · todas las ligas</span></div>
     ${banner}
     ${pl_?`<div style="padding:2px 0 6px">${cardPickLock(pl_)}</div>`:""}
+    ${picksManuales.length?`<div style="padding:2px 0 6px">${picksManuales.map(cardManual).join("")}</div>`:""}
     ${son.length?`<div style="padding:2px 0 6px">${son.map(cardSonador).join("")}</div>`:""}
     ${l.length
       ? (d.esPro ? l.map((pl,i)=>cardPro(pl,i)).join("")
@@ -1685,6 +1746,50 @@ async function viewParlays(){
           :"No hay suficientes partidos con pick en los próximos días. Vuelve pronto."}</span></div>`)}
   </div>`;
 }
+/* --- NOTICIAS --- */
+let NOTICIAS_FILTRO="todas";
+async function viewNoticias(){
+  const r=await fetch(`${API}/news`,{headers:H()});
+  const d=await r.json().catch(()=>({noticias:[]}));
+  const todas=d.noticias||[];
+  const CATS=[["todas","🌍","Todas"],["futbol","⚽","Fútbol"],["nfl","🏈","NFL"],["mlb","⚾","MLB"]];
+  const chips=`<div class="liga-sel">${CATS.map(([k,ic,nom])=>
+    `<button class="liga-chip ${NOTICIAS_FILTRO===k?"on":""}" data-noticias-filtro="${k}">
+      <span>${ic}</span> ${nom}</button>`).join("")}</div>`;
+  const filtradas=NOTICIAS_FILTRO==="todas"?todas:todas.filter(n=>n.liga===NOTICIAS_FILTRO);
+  const tiempo=(iso)=>{
+    if(!iso)return"";
+    const ms=Date.now()-new Date(iso).getTime();
+    const h=Math.floor(ms/3600000);
+    if(h<1)return"Hace un momento";
+    if(h<24)return`Hace ${h}h`;
+    const dd=Math.floor(h/24);
+    return`Hace ${dd}d`;
+  };
+  const cardNoticia=(n)=>`<a class="news-card" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer nofollow">
+    ${n.imagen?`<div class="news-img" style="background-image:url('${esc(n.imagen)}')"></div>`:""}
+    <div class="news-body">
+      <div class="news-src">${esc(n.fuente)}${n.fecha?` · ${tiempo(n.fecha)}`:""}</div>
+      <div class="news-title">${esc(n.titulo)}</div>
+      ${n.descripcion?`<div class="news-desc">${esc(n.descripcion)}</div>`:""}
+      <div class="news-link">Leer en ${esc(n.fuente)} ↗</div>
+    </div>
+  </a>`;
+  $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
+    <div class="card-h"><span class="card-t">Noticias</span>
+      <span class="card-s">${filtradas.length} notas · fuentes externas</span></div>
+    <div style="padding:0 16px 12px">${chips}</div>
+    ${filtradas.length
+      ?`<div class="news-grid">${filtradas.map(cardNoticia).join("")}</div>`
+      :`<div class="empty"><b>Sin noticias todavía</b><span>Vuelve en un rato, estamos actualizando las fuentes.</span></div>`}
+  </div>`;
+}
+document.addEventListener("click",e=>{
+  const nf=e.target.closest("[data-noticias-filtro]");
+  if(!nf)return;
+  NOTICIAS_FILTRO=nf.dataset.noticiasFiltro;
+  viewNoticias();
+});
 /* --- TABLA --- */
 async function viewTabla(){
   const r=await fetch(`${API}/league/tabla?liga=${LIGA_SB_ABIERTA}`,{headers:H()});
