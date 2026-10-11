@@ -10,49 +10,56 @@ function hoy() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Tu disparas esto desde el backend con tu analisis ya hecho.
-// Recibe candidatos, filtra momio >= 1.70, ordena por edge (valor real),
-// toma Top 3 y los publica. Reparte tier public/pro segun mandes.
+// Tu disparas esto desde el panel con el pick que TÚ decidiste publicar a
+// mano ("Pick del equipo"). Es una llamada discrecional, no el motor
+// algorítmico: ya no exigimos momio >= 1.70 ni edge > 0 para aceptarlo —
+// esos filtros eran del diseño original (candidatos algorítmicos de donde
+// se escogía el top 3) y bloqueaban cualquier pick manual razonable
+// (favoritos con momio bajo, o sin una "probEstimada" bien calculada).
+// Si mandas probEstimada, igual se calcula edge solo para mostrarlo en la
+// tarjeta; si no, simplemente no se muestra ventaja.
 //
 // body: {
 //   fecha?: "YYYY-MM-DD",
-//   candidatos: [{ partido, mercado, momio, probEstimada, verdicto, analisis, tier }]
+//   candidatos: [{ partido, mercado, momio, probEstimada?, verdicto, analisis, tier }]
 // }
 router.post("/publish", requireAdmin, ah(async (req, res) => {
   const fecha = req.body.fecha || hoy();
   const candidatos = req.body.candidatos || [];
 
-  // Filtro de precio: piso 1.70 decimal
-  const conValor = candidatos
-    .filter((c) => c.momio >= 1.7)
+  const validos = candidatos
+    .filter((c) => c.partido && c.mercado && c.momio > 0)
     .map((c) => {
       const probImplicita = 1 / c.momio;
-      return { ...c, probImplicita, edge: c.probEstimada - probImplicita };
+      const tieneProb = c.probEstimada != null && c.probEstimada > 0;
+      return {
+        ...c,
+        probImplicita,
+        edge: tieneProb ? c.probEstimada - probImplicita : null,
+      };
     })
-    // Valor real = edge positivo, ordenado de mayor a menor
-    .filter((c) => c.edge > 0)
-    .sort((a, b) => b.edge - a.edge);
+    // Si varios traen probEstimada, los de mayor ventaja van primero;
+    // los que no, se quedan en el orden en que los capturaste.
+    .sort((a, b) => (b.edge ?? -Infinity) - (a.edge ?? -Infinity));
 
-  // Top 3 de mayor valor
-  const top3 = conValor.slice(0, 3);
-  if (top3.length === 0) {
-    return res.status(422).json({ error: "Ningun candidato con valor positivo y momio >= 1.70" });
+  // Tope razonable para no saturar la tarjeta "Pick del equipo" de la app.
+  const top = validos.slice(0, 5);
+  if (top.length === 0) {
+    return res.status(422).json({ error: "Llena al menos un candidato con partido, mercado y momio." });
   }
 
   // Desactiva los picks previos de la fecha para republicar limpio
   await Pick.updateMany({ fecha }, { activo: false });
 
-  // Pick Lock: la jugada MAS viable del dia. top3 ya viene ordenado por
-  // edge descendente (mayor valor primero), asi que es simplemente el #1 —
-  // no hace falta un criterio nuevo, ya estaba calculado, solo faltaba
-  // marcarlo para que el front lo distinga del resto.
+  // Pick Lock: el primero de la lista que publicaste — tú decides cuál es
+  // el más importante con el orden en que lo capturas.
   const creados = await Pick.insertMany(
-    top3.map((c, i) => ({
+    top.map((c, i) => ({
       fecha,
       partido: c.partido,
       mercado: c.mercado,
       momio: c.momio,
-      probEstimada: c.probEstimada,
+      probEstimada: c.probEstimada ?? null,
       probImplicita: c.probImplicita,
       edge: c.edge,
       verdicto: c.verdicto || "MANDAR",

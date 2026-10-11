@@ -213,7 +213,6 @@ function candHTML(c,i){
   const momio=parseFloat(c.momio)||0, prob=parseFloat(c.probEstimada)||0;
   const imp=momio>0?1/momio:0;
   const edge=prob-imp;
-  const pasa=momio>=1.70&&edge>0;
   return `<div class="cand">
     <div class="cand-h"><span class="cand-n">CANDIDATO ${i+1}</span>
       <button class="cand-x" data-del="${i}" title="Quitar">×</button></div>
@@ -226,7 +225,7 @@ function candHTML(c,i){
     <div class="row r4">
       <div><label class="f">Momio (decimal)</label>
         <input data-f="momio" data-i="${i}" value="${esc(c.momio)}" placeholder="1.85" inputmode="decimal"></div>
-      <div><label class="f">Prob. estimada (0-1)</label>
+      <div><label class="f">Prob. estimada (0-1, opcional)</label>
         <input data-f="probEstimada" data-i="${i}" value="${esc(c.probEstimada)}" placeholder="0.62" inputmode="decimal"></div>
       <div><label class="f">Verdicto</label>
         <select data-f="verdicto" data-i="${i}">
@@ -242,8 +241,8 @@ function candHTML(c,i){
       <input data-f="analisis" data-i="${i}" value="${esc(c.analisis)}" placeholder="Por qué este pick"></div>
     <div class="calc">
       <div>Paga la casa<b class="mono">${momio>0?pct(imp):"—"}</b></div>
-      <div>Ventaja<b class="mono ${edge>0?"ok":"no"}">${momio>0&&prob>0?(edge>0?"+":"")+pct(edge):"—"}</b></div>
-      <div>Filtro<b class="mono ${pasa?"ok":"no"}">${!momio||!prob?"—":pasa?"Pasa":momio<1.70?"Momio < 1.70":"Sin ventaja"}</b></div>
+      <div>Ventaja<b class="mono ${edge>0?"ok":""}">${momio>0&&prob>0?(edge>0?"+":"")+pct(edge):"— (opcional)"}</b></div>
+      <div>Se publica<b class="mono ${c.partido&&c.mercado&&momio>0?"ok":"no"}">${c.partido&&c.mercado&&momio>0?"Sí":"Falta partido/mercado/momio"}</b></div>
     </div>
   </div>`;
 }
@@ -252,11 +251,12 @@ function vPublicar(){
   $("#page").innerHTML=`
     <div class="card">
       <div class="card-h"><span class="card-t">Publicar picks del día</span>
-        <span class="card-s">Se filtran por momio ≥ 1.70 y ventaja &gt; 0 · aparecen en "Parlays del día" como Pick del equipo</span></div>
+        <span class="card-s">Publicas lo que tú decidas — sin filtro de momio ni ventaja · aparecen en "Parlays del día" como Pick del equipo</span></div>
       <div class="card-b">
-        <p class="hint">Escribe tu probabilidad estimada como decimal (0.62 = 62%). La ventaja
-          se calcula sola: <code>tu probabilidad − 1/momio</code>. Solo los tres de mayor
-          ventaja se publican.</p>
+        <p class="hint">Partido, mercado y momio son lo único obligatorio. La probabilidad estimada
+          es opcional — solo sirve para mostrar una ventaja calculada (<code>tu probabilidad − 1/momio</code>)
+          en la tarjeta; si la dejas vacía, el pick se publica igual, sin ese dato. El primero de la
+          lista queda marcado como Pick Lock. Máximo 5 por fecha.</p>
         <div class="row r2">
           <div><label class="f">Fecha</label><input type="date" id="pubFecha" value="${hoy()}"></div>
           <div style="display:flex;align-items:flex-end">
@@ -275,14 +275,15 @@ document.addEventListener("input",e=>{
   const f=e.target.closest("[data-f]"); if(!f)return;
   const i=+f.dataset.i;
   cands[i][f.dataset.f]=f.value;
-  if(["momio","probEstimada"].includes(f.dataset.f)){
+  if(["momio","probEstimada","partido","mercado"].includes(f.dataset.f)){
     // recalcular solo el bloque de ese candidato, sin perder el foco
     const c=cands[i],m=parseFloat(c.momio)||0,p=parseFloat(c.probEstimada)||0;
-    const imp=m>0?1/m:0,ed=p-imp,pasa=m>=1.70&&ed>0;
+    const imp=m>0?1/m:0,ed=p-imp;
+    const listo=!!(c.partido&&c.mercado&&m>0);
     const box=f.closest(".cand").querySelector(".calc");
     box.innerHTML=`<div>Paga la casa<b class="mono">${m>0?pct(imp):"—"}</b></div>
-      <div>Ventaja<b class="mono ${ed>0?"ok":"no"}">${m>0&&p>0?(ed>0?"+":"")+pct(ed):"—"}</b></div>
-      <div>Filtro<b class="mono ${pasa?"ok":"no"}">${!m||!p?"—":pasa?"Pasa":m<1.70?"Momio < 1.70":"Sin ventaja"}</b></div>`;
+      <div>Ventaja<b class="mono ${ed>0?"ok":""}">${m>0&&p>0?(ed>0?"+":"")+pct(ed):"— (opcional)"}</b></div>
+      <div>Se publica<b class="mono ${listo?"ok":"no"}">${listo?"Sí":"Falta partido/mercado/momio"}</b></div>`;
   }
 });
 document.addEventListener("change",e=>{
@@ -302,11 +303,11 @@ document.addEventListener("click",e=>{
 document.addEventListener("click",async e=>{
   if(e.target.id!=="doPub")return;
   const b=e.target,out=$("#pubRes");
-  const listos=cands.filter(c=>c.partido&&c.mercado&&parseFloat(c.momio)>0&&parseFloat(c.probEstimada)>0)
+  const listos=cands.filter(c=>c.partido&&c.mercado&&parseFloat(c.momio)>0)
     .map(c=>({partido:c.partido.trim(),mercado:c.mercado.trim(),
-      momio:parseFloat(c.momio),probEstimada:parseFloat(c.probEstimada),
+      momio:parseFloat(c.momio),probEstimada:parseFloat(c.probEstimada)||null,
       verdicto:c.verdicto,tier:c.tier,analisis:(c.analisis||"").trim()}));
-  if(!listos.length){out.className="res bad";out.textContent="Llena al menos un candidato completo.";return;}
+  if(!listos.length){out.className="res bad";out.textContent="Llena al menos un candidato con partido, mercado y momio.";return;}
   b.disabled=true;b.textContent="Publicando…";
   try{
     const r=await fetch(`${API}/admin/publish`,{method:"POST",headers:AH(),
@@ -314,7 +315,7 @@ document.addEventListener("click",async e=>{
     const d=await r.json().catch(()=>({}));
     if(r.ok){out.className="res ok";
       out.innerHTML=`Publicados <b>${d.publicados}</b> picks para ${esc(d.fecha)}.<br>`+
-        (d.picks||[]).map(p=>`• ${esc(p.partido)} — ${esc(p.mercado)} (ventaja +${pct(p.edge)}, ${p.tier})`).join("<br>");
+        (d.picks||[]).map(p=>`• ${esc(p.partido)} — ${esc(p.mercado)}${p.edge!=null?` (ventaja +${pct(p.edge)})`:""}, ${p.tier}`).join("<br>");
       toast("Picks publicados","ok");
     }else{out.className="res bad";out.textContent=d.error||"No se pudo publicar.";}
   }catch{out.className="res bad";out.textContent="Sin conexión.";}
@@ -336,30 +337,57 @@ document.addEventListener("click",async e=>{
 });
 
 /* ===== 2. CERRAR RESULTADOS ===== */
+let PENDIENTES_MOTOR=[];
 async function vCerrar(){
-  $("#page").innerHTML=`<div class="card"><div class="card-h">
+  $("#page").innerHTML=`<div class="card" style="margin-bottom:16px"><div class="card-h">
     <span class="card-t">Cerrar resultados</span>
-    <span class="card-s">Marca acierto o fallo · actualiza tu track record</span></div>
-    <div id="cerrarList"><div class="empty">Cargando…</div></div></div>`;
+    <span class="card-s">Picks publicados a mano · marca acierto o fallo</span></div>
+    <div id="cerrarList"><div class="empty">Cargando…</div></div></div>
+    <div class="card"><div class="card-h">
+    <span class="card-t">Pendientes de "Lo jugué"</span>
+    <span class="card-s">Lo que la gente marcó en Parlays/Pick Lock/Soñadores — esto SÍ mueve el track record individual de cada usuario</span></div>
+    <div id="cerrarMotorList"><div class="empty">Cargando…</div></div></div>`;
   try{
     const r=await fetch(`${API}/admin/picks`,{headers:AH()});
     const l=await r.json();
-    if(!l.length){$("#cerrarList").innerHTML=`<div class="empty">No hay picks publicados todavía.</div>`;return;}
-    $("#cerrarList").innerHTML=l.map(p=>`<div class="prow">
-      <span class="tag t-${esc(p.tier)}">${p.tier==="pro"?"PRO":"Público"}</span>
-      <div class="pinfo"><b>${esc(p.partido)}</b>
-        <span>${esc(p.mercado)} · ${esc(p.fecha)} · ${dec(p.momio)} · ventaja +${pct(p.edge)}</span></div>
-      ${p.resultado&&p.resultado!=="pendiente"
-        ? `<span class="tag t-${esc(p.resultado)}">${esc(p.resultado)}</span>`
-        : `<div style="display:flex;gap:5px">
-            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="acierto"
-              style="border-color:rgba(34,197,94,.4);color:var(--green)">Acierto</button>
-            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="fallo"
-              style="border-color:rgba(236,48,19,.4);color:var(--red)">Fallo</button>
-            <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="nulo">Nulo</button>
-          </div>`}
-    </div>`).join("");
+    if(!l.length){$("#cerrarList").innerHTML=`<div class="empty">No hay picks publicados todavía.</div>`;}
+    else{
+      $("#cerrarList").innerHTML=l.map(p=>`<div class="prow">
+        <span class="tag t-${esc(p.tier)}">${p.tier==="pro"?"PRO":"Público"}</span>
+        <div class="pinfo"><b>${esc(p.partido)}</b>
+          <span>${esc(p.mercado)} · ${esc(p.fecha)} · ${dec(p.momio)}${p.edge!=null?` · ventaja +${pct(p.edge)}`:""}</span></div>
+        ${p.resultado&&p.resultado!=="pendiente"
+          ? `<span class="tag t-${esc(p.resultado)}">${esc(p.resultado)}</span>`
+          : `<div style="display:flex;gap:5px">
+              <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="acierto"
+                style="border-color:rgba(34,197,94,.4);color:var(--green)">Acierto</button>
+              <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="fallo"
+                style="border-color:rgba(236,48,19,.4);color:var(--red)">Fallo</button>
+              <button class="btn btn-line btn-sm" data-close="${p._id}" data-r="nulo">Nulo</button>
+            </div>`}
+      </div>`).join("");
+    }
   }catch{$("#cerrarList").innerHTML=`<div class="empty">No se pudo cargar.</div>`;}
+  try{
+    const r2=await fetch(`${API}/history/pendientes-motor`,{headers:AH()});
+    PENDIENTES_MOTOR=await r2.json();
+    if(!PENDIENTES_MOTOR.length){
+      $("#cerrarMotorList").innerHTML=`<div class="empty">No hay nada pendiente — o nadie ha marcado "Lo jugué" todavía.</div>`;
+      return;
+    }
+    $("#cerrarMotorList").innerHTML=PENDIENTES_MOTOR.map((p,i)=>`<div class="prow">
+      <span class="tag">${esc(p.personas)}👤</span>
+      <div class="pinfo"><b>${esc(p.partido)}</b>
+        <span>${esc(p.mercado)} · ${esc(p.fecha)}${p.momio?` · ${dec(p.momio)}`:""}</span></div>
+      <div style="display:flex;gap:5px">
+        <button class="btn btn-line btn-sm" data-close-manual="${i}" data-r="acierto"
+          style="border-color:rgba(34,197,94,.4);color:var(--green)">Acierto</button>
+        <button class="btn btn-line btn-sm" data-close-manual="${i}" data-r="fallo"
+          style="border-color:rgba(236,48,19,.4);color:var(--red)">Fallo</button>
+        <button class="btn btn-line btn-sm" data-close-manual="${i}" data-r="nulo">Nulo</button>
+      </div>
+    </div>`).join("");
+  }catch{$("#cerrarMotorList").innerHTML=`<div class="empty">No se pudo cargar.</div>`;}
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-close]"); if(!b)return;
@@ -369,6 +397,18 @@ document.addEventListener("click",async e=>{
       body:JSON.stringify({pickId:b.dataset.close,resultado:b.dataset.r})});
     if(r.ok){toast(`Marcado como ${b.dataset.r}`,"ok");vCerrar();}
     else{const d=await r.json().catch(()=>({}));toast(d.error||"No se pudo cerrar");b.disabled=false;}
+  }catch{toast("Sin conexión");b.disabled=false;}
+});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-close-manual]"); if(!b)return;
+  const p=PENDIENTES_MOTOR[+b.dataset.closeManual]; if(!p)return;
+  b.disabled=true;
+  try{
+    const r=await fetch(`${API}/history/cerrar-manual`,{method:"POST",headers:AH(),
+      body:JSON.stringify({fecha:p.fecha,partido:p.partido,mercado:p.mercado,resultado:b.dataset.r})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){toast(`${d.actualizados} registro(s) marcados como ${b.dataset.r}`,"ok");vCerrar();}
+    else{toast(d.error||"No se pudo cerrar");b.disabled=false;}
   }catch{toast("Sin conexión");b.disabled=false;}
 });
 

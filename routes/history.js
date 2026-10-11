@@ -152,4 +152,65 @@ router.post("/cerrar", requireAdmin, ah(async (req, res) => {
   res.json({ ok: true, actualizados: r.modifiedCount });
 }));
 
+// --- PENDIENTES DEL MOTOR (Camino B): parlays/picks que el usuario marcó
+// "Lo jugué" desde Parlays/Pick Lock/Soñadores. Esos vienen sin pickId ni
+// parlayId (el motor no vive en esta Mongo, solo guardamos el snapshot que
+// el usuario vio) — por eso NUNCA aparecían en "Cerrar resultados": esa
+// pantalla solo listaba picks publicados a mano. Agrupamos por lo que
+// identifica la jugada (fecha + partido + mercado) para poder cerrarlos
+// todos de un jalón, aunque los haya marcado mucha gente.
+router.get("/pendientes-motor", requireAdmin, ah(async (req, res) => {
+  const grupos = await UserPick.aggregate([
+    { $match: { pickId: null, parlayId: null, resultado: "pendiente" } },
+    {
+      $group: {
+        _id: { fecha: "$fecha", partido: "$snapshot.partido", mercado: "$snapshot.mercado" },
+        personas: { $sum: 1 },
+        momio: { $first: "$snapshot.momio" },
+        probEstimada: { $first: "$snapshot.probEstimada" },
+        creado: { $min: "$createdAt" },
+      },
+    },
+    { $sort: { creado: -1 } },
+    { $limit: 150 },
+  ]);
+  res.json(
+    grupos.map((g) => ({
+      fecha: g._id.fecha,
+      partido: g._id.partido,
+      mercado: g._id.mercado,
+      personas: g.personas,
+      momio: g.momio,
+      probEstimada: g.probEstimada,
+    }))
+  );
+}));
+
+// --- CERRAR un grupo de pendientes del motor por fecha+partido+mercado ---
+router.post("/cerrar-manual", requireAdmin, ah(async (req, res) => {
+  const { fecha, partido, mercado, resultado } = req.body;
+  if (!["acierto", "fallo", "nulo"].includes(resultado)) {
+    return res.status(400).json({ error: "Resultado inválido" });
+  }
+  if (!fecha || !partido || !mercado) {
+    return res.status(400).json({ error: "Falta fecha, partido o mercado" });
+  }
+
+  const r = await UserPick.updateMany(
+    {
+      pickId: null,
+      parlayId: null,
+      resultado: "pendiente",
+      fecha,
+      "snapshot.partido": partido,
+      "snapshot.mercado": mercado,
+    },
+    { $set: { resultado, cerradoAt: new Date() } }
+  );
+
+  invalidarRecord();
+
+  res.json({ ok: true, actualizados: r.modifiedCount });
+}));
+
 export default router;
