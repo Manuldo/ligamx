@@ -1782,12 +1782,21 @@ async function viewComunidad(){
 }
 
 async function likeBoletoComu(id,btn){
-  if(!id)return;
+  // Antes esto fallaba en silencio: si el boleto no traía id (bug ya
+  // corregido en el motor) o el servidor rechazaba el like, el botón no
+  // hacía nada y no se veía ningún error. Ahora siempre avisa qué pasó.
+  if(!id){toast("Este boleto no se puede likear (actualiza el motor y vuelve a intentar)");return;}
   if(!me){toast("Entra para dar like");return;}
+  btn.disabled=true;
   try{
     const r=await fetch(`${API}/motor/like-boleto`,{method:"POST",headers:H(),body:JSON.stringify({id})});
-    if(r.ok){const n=parseInt((btn.textContent.match(/\d+/)||[0])[0])+1;btn.textContent="❤️ "+n;btn.disabled=true;}
-  }catch{toast("Sin conexión");}
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d.ok!==false){
+      const n=parseInt((btn.textContent.match(/\d+/)||[0])[0])+1;btn.textContent="❤️ "+n;
+    }else{
+      btn.disabled=false;toast(d.error||"No se pudo dar like");
+    }
+  }catch{btn.disabled=false;toast("Sin conexión");}
 }
 
 /* --- PARLAYS --- */
