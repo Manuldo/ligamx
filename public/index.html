@@ -76,6 +76,12 @@ body.collapsed .sb-item span{display:none}
 .sb-user-i b{display:block;font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis}
 .sb-user-i em{font-style:normal;font-size:10.5px;color:var(--red);font-weight:800;letter-spacing:.06em}
 body.collapsed .sb-user-i{display:none}
+/* Retraído: la lista de ligas y el pie también deben quedar solo-ícono,
+   no a medias (se veía roto con letras sueltas sangrando) */
+body.collapsed .sb-liga-name,body.collapsed .sb-liga-caret{display:none}
+body.collapsed .sb-liga-head{justify-content:center;padding:9px 0}
+body.collapsed .sb-liga-sub{display:none}
+body.collapsed .sb-cred,body.collapsed .sb-bot>a{display:none}
 
 /* ===== MAIN ===== */
 .wrap{margin-left:var(--sbw);transition:margin-left .22s cubic-bezier(.4,0,.2,1);min-height:100vh}
@@ -322,6 +328,21 @@ tbody tr:hover{background:var(--panel2)}
 .an-collapse.closed .an-sec-b{display:none}
 
 /* ===== NOTICIAS ===== */
+.news-hero{position:relative;margin:0 16px 16px;border-radius:16px;overflow:hidden;
+  aspect-ratio:16/7;background:var(--panel3);min-height:220px}
+.news-hero-slide{position:absolute;inset:0;display:block;background-size:cover;background-position:center;
+  opacity:0;transition:opacity .6s ease;text-decoration:none}
+.news-hero-slide.on{opacity:1;z-index:1}
+.news-hero-grad{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.82) 0%,rgba(0,0,0,.25) 55%,transparent 100%)}
+.news-hero-txt{position:absolute;left:0;right:0;bottom:0;padding:22px 24px 30px;display:flex;flex-direction:column;gap:6px}
+.news-hero-src{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--red)}
+.news-hero-title{font-size:22px;font-weight:900;line-height:1.25;color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.4);max-width:85%}
+.news-hero-dots{position:absolute;right:18px;bottom:16px;display:flex;gap:6px;z-index:2}
+.news-hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);
+  border:none;padding:0;cursor:pointer;transition:background .2s,width .2s}
+.news-hero-dot.on{background:#fff;width:18px;border-radius:4px}
+@media(max-width:640px){.news-hero{aspect-ratio:4/5}.news-hero-title{font-size:17px;max-width:100%}}
 .news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:14px;padding:0 16px 16px}
 .news-card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);
@@ -1775,14 +1796,49 @@ async function viewNoticias(){
       <div class="news-link">Leer en ${esc(n.fuente)} ↗</div>
     </div>
   </a>`;
+  // HERO: las notas con imagen más recientes, en un carrusel grande que
+  // rota solo — esto es lo que hace que se sienta "landing" y no lista
+  // plana. El resto (con y sin imagen) va abajo en la cuadrícula normal.
+  const conImagen=filtradas.filter(n=>n.imagen);
+  const hero=conImagen.slice(0,5);
+  const heroIds=new Set(hero.map(n=>n.link));
+  const resto=filtradas.filter(n=>!heroIds.has(n.link));
+  const slideHero=(n,i)=>`<a class="news-hero-slide ${i===0?"on":""}" href="${esc(n.link)}"
+    target="_blank" rel="noopener noreferrer nofollow" style="background-image:url('${esc(n.imagen)}')" data-hero-i="${i}">
+    <div class="news-hero-grad"></div>
+    <div class="news-hero-txt">
+      <span class="news-hero-src">${esc(n.fuente)}${n.fecha?` · ${tiempo(n.fecha)}`:""}</span>
+      <span class="news-hero-title">${esc(n.titulo)}</span>
+    </div>
+  </a>`;
+  const heroHTML=hero.length?`<div class="news-hero" id="newsHero">
+    ${hero.map(slideHero).join("")}
+    <div class="news-hero-dots">${hero.map((_,i)=>
+      `<button class="news-hero-dot ${i===0?"on":""}" data-hero-dot="${i}"></button>`).join("")}</div>
+  </div>`:"";
   $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
     <div class="card-h"><span class="card-t">Noticias</span>
       <span class="card-s">${filtradas.length} notas · fuentes externas</span></div>
     <div style="padding:0 16px 12px">${chips}</div>
-    ${filtradas.length
-      ?`<div class="news-grid">${filtradas.map(cardNoticia).join("")}</div>`
-      :`<div class="empty"><b>Sin noticias todavía</b><span>Vuelve en un rato, estamos actualizando las fuentes.</span></div>`}
+    ${heroHTML}
+    ${resto.length
+      ?`<div class="news-grid">${resto.map(cardNoticia).join("")}</div>`
+      :(hero.length?"":`<div class="empty"><b>Sin noticias todavía</b><span>Vuelve en un rato, estamos actualizando las fuentes.</span></div>`)}
   </div>`;
+  // rotación automática del hero cada 5s + control manual por los puntos
+  clearInterval(window._newsHeroTimer);
+  if(hero.length>1){
+    let hi=0;
+    const mostrar=(n)=>{
+      hi=((n%hero.length)+hero.length)%hero.length;
+      document.querySelectorAll("#newsHero .news-hero-slide").forEach((el,idx)=>el.classList.toggle("on",idx===hi));
+      document.querySelectorAll("#newsHero .news-hero-dot").forEach((el,idx)=>el.classList.toggle("on",idx===hi));
+    };
+    window._newsHeroTimer=setInterval(()=>{if(view==="noticias")mostrar(hi+1);},5000);
+    document.querySelectorAll("#newsHero .news-hero-dot").forEach(btn=>{
+      btn.addEventListener("click",(e)=>{e.preventDefault();mostrar(+btn.dataset.heroDot);});
+    });
+  }
 }
 document.addEventListener("click",e=>{
   const nf=e.target.closest("[data-noticias-filtro]");

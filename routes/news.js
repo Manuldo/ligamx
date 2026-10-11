@@ -13,12 +13,19 @@ const router = express.Router();
 // Si algún día quieres quitar o agregar una fuente, es solo tocar este
 // arreglo — no hay nada más que depender de ello.
 // ─────────────────────────────────────────────────────────────────────────
+// Todas en español — el primer intento traía puro ESPN en inglés porque
+// las otras fuentes no cargaron. Estas sí están confirmadas vivas y en
+// español (AS y Marca traen imagen en el propio feed vía media:thumbnail,
+// por eso se ven bien en el carrusel). El MLB en español es más flaco
+// (va por rumores, no hay un feed general de MLB en español tan sólido
+// como el de fútbol) — si encuentras uno mejor, nomás se agrega aquí.
 const FUENTES = [
-  { nombre: "ESPN Fútbol", url: "https://www.espn.com/espn/rss/soccer/news", liga: "futbol" },
-  { nombre: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news", liga: "nfl" },
-  { nombre: "ESPN MLB", url: "https://www.espn.com/espn/rss/mlb/news", liga: "mlb" },
-  { nombre: "BBC Sport Football", url: "https://feeds.bbci.co.uk/sport/football/rss.xml", liga: "futbol" },
-  { nombre: "Marca Fútbol", url: "https://www.marca.com/rss/futbol.xml", liga: "futbol" },
+  { nombre: "AS Fútbol", url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/futbol/portada/", liga: "futbol" },
+  { nombre: "Marca Primera División", url: "https://e00-marca.uecdn.es/rss/futbol/primera-division.xml", liga: "futbol" },
+  { nombre: "Marca Fútbol Internacional", url: "https://e00-marca.uecdn.es/rss/futbol/futbol-internacional.xml", liga: "futbol" },
+  { nombre: "Marca Champions League", url: "https://e00-marca.uecdn.es/rss/futbol/champions-league.xml", liga: "futbol" },
+  { nombre: "AS NFL", url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/masdeporte/subsection/nfl/", liga: "nfl" },
+  { nombre: "MLB Trade Rumors (ES)", url: "https://mlbtraderumors.com/players/rumores-de-beisbol/feed", liga: "mlb" },
 ];
 
 const CACHE_MS = 20 * 60 * 1000; // 20 min — no les pegamos en cada visita de cada usuario
