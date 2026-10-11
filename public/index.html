@@ -498,8 +498,7 @@ tbody tr:hover{background:var(--panel2)}
 body.landing aside,body.landing .topbar{display:none}
 body.landing .wrap{margin-left:0}
 body.landing .page{padding:0;max-width:none}
-.land{position:relative;min-height:100vh;display:flex;align-items:center;
-  justify-content:center;padding:56px 22px;background:#14120f;overflow:hidden}
+.land{position:relative;min-height:100vh;padding:0 22px 56px;background:#14120f;overflow:hidden}
 .land-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   filter:grayscale(1) brightness(.5);z-index:0}
 .land-bg{position:absolute;inset:0;pointer-events:none;z-index:1;
@@ -512,7 +511,26 @@ body.landing .page{padding:0;max-width:none}
   opacity:.45}
 /* Si el usuario pide menos movimiento, el video no se reproduce */
 @media(prefers-reduced-motion:reduce){.land-vid{display:none}}
-.land-in{position:relative;z-index:2;max-width:560px;width:100%;text-align:center}
+.land-in{position:relative;z-index:2;max-width:560px;width:100%;margin:0 auto;text-align:center}
+/* Hero rotativo al tope de la landing, logo centrado encima */
+.land-hero{position:relative;width:100%;aspect-ratio:16/8;max-height:420px;
+  margin:0 0 28px;border-radius:0 0 22px 22px;overflow:hidden;background:#1a1714}
+.land-hero-slide{position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:0;transition:opacity 1s ease;filter:brightness(.62) saturate(1.05)}
+.land-hero-slide.on{opacity:1}
+.land-hero-grad{position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(20,18,15,.35),rgba(20,18,15,.82) 75%)}
+.land-hero-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(220px,46%);filter:drop-shadow(0 6px 26px rgba(0,0,0,.55))}
+@media(max-width:560px){.land-hero{aspect-ratio:4/5;max-height:360px;border-radius:0 0 18px 18px}}
+.land-sports{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 26px;text-align:center}
+.ls-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+  padding:14px 8px;cursor:pointer;transition:background .18s,transform .15s;color:inherit}
+.ls-card:hover{background:rgba(236,48,19,.12);border-color:rgba(236,48,19,.3);transform:translateY(-2px)}
+.ls-ic{display:block;font-size:22px;margin-bottom:6px}
+.ls-card b{display:block;font-weight:800;font-size:12.5px;color:#f3f2f2}
+.ls-card span{display:block;font-size:10px;color:#9c9691;line-height:1.35;margin-top:2px}
+@media(max-width:560px){.land-sports{grid-template-columns:1fr 1fr}}
 .land-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
   letter-spacing:.09em;text-transform:uppercase;color:#cfcac6;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 16px;margin-bottom:22px}
@@ -1020,9 +1038,29 @@ document.addEventListener("click",e=>{
 });
 
 /* ===== GATE ===== */
-function gate(){
+async function gate(){
   // La landing ocupa toda la pantalla: sin sidebar ni topbar.
   document.body.classList.add("landing");
+  // Hero rotativo: tiro de las noticias (endpoint público, no necesita
+  // sesión) para que la portada se sienta viva con lo que pasó hoy, no
+  // con 3 fotos fijas de hace un año.
+  let heroImgs=[];
+  try{
+    const r=await fetch(`${API}/news`);
+    const d=await r.json();
+    heroImgs=(d.noticias||[]).filter(n=>n.imagen).slice(0,6);
+  }catch{}
+  const heroHTML=`<div class="land-hero" id="landHero">
+    ${heroImgs.map((n,i)=>`<div class="land-hero-slide ${i===0?"on":""}" style="background-image:url('${esc(n.imagen)}')"></div>`).join("")}
+    <div class="land-hero-grad"></div>
+    <img class="land-hero-logo" src="/icons/pickazo-logo-full.png" alt="Pickazo">
+  </div>`;
+  const sportsHTML=`<div class="land-sports">
+    <button class="ls-card" data-a="up"><span class="ls-ic">⚽</span><b>Fútbol</b><span>Liga MX, Champions, Premier y más</span></button>
+    <button class="ls-card" data-a="up"><span class="ls-ic">🏈</span><b>NFL</b><span>Picks semana a semana</span></button>
+    <button class="ls-card" data-a="up"><span class="ls-ic">⚾</span><b>MLB</b><span>Jonrones, ERA y más</span></button>
+    <button class="ls-card" data-v="noticias"><span class="ls-ic">📰</span><b>Noticias</b><span>Lo último, en un solo lugar — sin cuenta</span></button>
+  </div>`;
   $("#page").innerHTML=`
     <div class="land">
       <video class="land-vid" autoplay muted loop playsinline preload="metadata"
@@ -1031,11 +1069,13 @@ function gate(){
       </video>
       <div class="land-bg"></div>
       <div class="land-in">
+        ${heroHTML}
         <div class="land-badge"><span class="d"></span> La app del apostador informado</div>
         <h1 class="land-h1">El que estudia cobra. El que adivina reza.</h1>
         <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
           para que TÚ decidas: picks del día, parlays por IA e historial verificado. No apostamos por ti —
           te damos la ventaja del que sabe.</p>
+        ${sportsHTML}
         <div class="land-grid">
           <div class="lc"><b>Información, no corazonadas</b>
             <span>Vendemos datos y análisis. La jugada la haces tú.</span></div>
@@ -1055,11 +1095,21 @@ function gate(){
         </div>
       </div>
     </div>`;
+  clearInterval(window._landHeroTimer);
+  if(heroImgs.length>1){
+    let hi=0;
+    window._landHeroTimer=setInterval(()=>{
+      hi=(hi+1)%heroImgs.length;
+      document.querySelectorAll("#landHero .land-hero-slide").forEach((el,idx)=>el.classList.toggle("on",idx===hi));
+    },4000);
+  }
 }
 
 /* ===== RENDER ===== */
 async function render(){
-  if(!me){gate();return;}
+  // Noticias no tiene nada que proteger (es un endpoint público) — se puede
+  // ver sin cuenta. Todo lo demás sigue atrás del login.
+  if(!me&&view!=="noticias"){await gate();return;}
   document.body.classList.remove("landing");
   const p=$("#page");
   const _msgs=["Cargando la data más fresca","Consultando el motor Pickazo","Analizando los números","Casi listo"];
@@ -1816,9 +1866,15 @@ async function viewNoticias(){
     <div class="news-hero-dots">${hero.map((_,i)=>
       `<button class="news-hero-dot ${i===0?"on":""}" data-hero-dot="${i}"></button>`).join("")}</div>
   </div>`:"";
+  const guestBanner=!me?`<div class="pz-banner" style="margin:12px 16px 0;display:flex;align-items:center;
+      justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <span>Estás viendo esto sin cuenta. Los picks, parlays y análisis están adentro — gratis para empezar.</span>
+      <button class="btn btn-red" data-a="up" style="flex-shrink:0">Crear cuenta</button>
+    </div>`:"";
   $("#page").innerHTML=`<div class="card" style="padding-bottom:6px">
     <div class="card-h"><span class="card-t">Noticias</span>
       <span class="card-s">${filtradas.length} notas · fuentes externas</span></div>
+    ${guestBanner}
     <div style="padding:0 16px 12px">${chips}</div>
     ${heroHTML}
     ${resto.length
