@@ -473,6 +473,11 @@ tbody tr:hover{background:var(--panel2)}
 .bld-like{background:var(--panel);border:1px solid var(--line);color:var(--dim);
   padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
 .bld-like:hover{border-color:var(--red);color:var(--txt)}
+.bld-fecha{font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--dim2);
+  background:var(--panel3);padding:2px 7px;border-radius:8px}
+.bld-arch-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);
+  font-weight:700;cursor:pointer;padding:10px 4px;margin:4px 12px 10px}
+.bld-arch-toggle:hover{color:var(--txt)}
 
 /* soñadores: el gancho grande, más llamativo */
 .pzd{border-radius:16px;margin:14px 16px;overflow:hidden;border:1px solid var(--line)}
@@ -1058,6 +1063,13 @@ document.addEventListener("click",e=>{
     const id=bct.dataset.comuToggle;
     const det=document.getElementById(id);const car=document.getElementById("caret-"+id);
     if(det){const ab=det.style.display==="none";det.style.display=ab?"block":"none";if(car)car.textContent=ab?"▾":"▸";}
+    return;
+  }
+  // Comunidad: desplegar/plegar la sección de boletos archivados (viejos)
+  const arch=e.target.closest("[data-arch-toggle]");
+  if(arch){
+    const box=$("#archBox");const car=$("#archCaret");
+    if(box){const ab=box.style.display==="none";box.style.display=ab?"block":"none";if(car)car.textContent=ab?"▾":"▸";}
     return;
   }
   const b=e.target.closest("[data-a]"); if(!b)return;
@@ -1688,49 +1700,85 @@ function copiarBoleto(){
 }
 
 /* --- COMUNIDAD: "Parlays de la banda" — sección propia, estilo feed --- */
+// Etiqueta de cuándo se publicó un boleto: "Hoy · 14:32", "Ayer", o la fecha.
+// Así nadie confunde un boleto de hace 3 días con uno vigente.
+function etiquetaFechaBoleto(b){
+  const f=b.fecha||(b.creado||"").slice(0,10);
+  if(!f)return"";
+  const hoyUTC=new Date().toISOString().slice(0,10);
+  const ayerUTC=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(f===hoyUTC){
+    if(b.creado){
+      const h=new Date(b.creado).toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",timeZone:TZ});
+      return `Hoy · ${h}`;
+    }
+    return "Hoy";
+  }
+  if(f===ayerUTC)return"Ayer";
+  try{
+    const [y,m,dd]=f.split("-");
+    let t=new Date(+y,+m-1,+dd).toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"});
+    return t.charAt(0).toUpperCase()+t.slice(1);
+  }catch{return f;}
+}
+function boletoComuHTML(b,idx,prefijo){
+  const did=`${prefijo}${idx}`;
+  return `<div class="bld-comu-wrap">
+    <div class="bld-comu" data-comu-toggle="${did}">
+      <span class="bld-comu-caret" id="caret-${did}">▸</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:13.5px">${esc(b.nombre||"Boleto")}</span>
+          <span class="bld-fecha">${esc(etiquetaFechaBoleto(b))}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--dim2)">${esc(b.autor||"Anónimo")} · ${(b.patas||[]).length} patas · momio ${dec((b.metricas&&b.metricas.momioComb)||0)}</div>
+      </div>
+      <button class="bld-like" data-bldlike="${esc(b.id||b._id||"")}">🤍 ${b.likes||0}</button>
+    </div>
+    <div class="bld-comu-detalle" id="${did}" style="display:none">
+      ${(b.patas||[]).map(pt=>`<div class="bld-comu-leg">
+        <span class="bld-comu-dot">•</span>
+        <span style="flex:1"><b>${esc(pt.mercado||pt.seleccion||"—")}</b>${pt.partido?`<span style="color:var(--dim2);font-size:11px"> · ${esc(pt.partido)}</span>`:""}</span>
+        ${pt.momio?`<span class="mono" style="color:var(--dim)">${dec(pt.momio)}</span>`:""}
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
 async function viewComunidad(){
   const p=$("#page");
   p.innerHTML=`<div class="pzload"><div class="pzload-ic"><img src="/icons/icon-192.png"></div>
     <div class="pzload-txt">Cargando la comunidad<span class="pzload-dots"></span></div></div>`;
-  let comu={parlays:[]};
+  let comu={parlays:[],archivados:[]};
   try{
-    comu=await fetch(`${API}/motor/comunidad?top=30`,{headers:H()}).then(r=>r.ok?r.json():{parlays:[]}).catch(()=>({parlays:[]}));
+    comu=await fetch(`${API}/motor/comunidad?top=30`,{headers:H()}).then(r=>r.ok?r.json():{parlays:[],archivados:[]}).catch(()=>({parlays:[],archivados:[]}));
   }catch{}
-  const lista=comu.parlays||[];
-  const feedHTML=lista.length?`
+  const vigentes=comu.parlays||[];
+  const archivados=comu.archivados||[];
+  const feedHTML=vigentes.length?`
     <div class="card"><div style="padding:4px 0">
-      ${lista.map((b,idx)=>`
-        <div class="bld-comu-wrap">
-          <div class="bld-comu" data-comu-toggle="comu${idx}">
-            <span class="bld-comu-caret" id="caret-comu${idx}">▸</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:13.5px">${esc(b.nombre||"Boleto")}</div>
-              <div style="font-size:11.5px;color:var(--dim2)">${esc(b.autor||"Anónimo")} · ${(b.patas||[]).length} patas · momio ${dec((b.metricas&&b.metricas.momioComb)||0)}</div>
-            </div>
-            <button class="bld-like" data-bldlike="${esc(b.id||b._id||"")}">🤍 ${b.likes||0}</button>
-          </div>
-          <div class="bld-comu-detalle" id="comu${idx}" style="display:none">
-            ${(b.patas||[]).map(pt=>`<div class="bld-comu-leg">
-              <span class="bld-comu-dot">•</span>
-              <span style="flex:1"><b>${esc(pt.mercado||pt.seleccion||"—")}</b>${pt.partido?`<span style="color:var(--dim2);font-size:11px"> · ${esc(pt.partido)}</span>`:""}</span>
-              ${pt.momio?`<span class="mono" style="color:var(--dim)">${dec(pt.momio)}</span>`:""}
-            </div>`).join("")}
-          </div>
-        </div>`).join("")}
+      ${vigentes.map((b,idx)=>boletoComuHTML(b,idx,"comu")).join("")}
     </div></div>`
-    :`<div class="card"><div class="empty"><b>Todavía no hay boletos publicados</b>
+    :`<div class="card"><div class="empty"><b>Hoy todavía no hay boletos publicados</b>
         <span>Sé el primero — arma el tuyo y dale "Publicar a la banda".</span></div></div>`;
+  const archivoHTML=archivados.length?`
+    <div class="bld-arch-toggle" data-arch-toggle="1">
+      <span id="archCaret">▸</span> Ver archivados (${archivados.length}) — boletos de días anteriores, ya no aplican a hoy
+    </div>
+    <div class="card" id="archBox" style="display:none;opacity:.75">
+      ${archivados.map((b,idx)=>boletoComuHTML(b,idx,"arch")).join("")}
+    </div>`:"";
   p.innerHTML=`
     <div class="bld-hero">
       <div class="bld-hero-badge">🔥 LA BANDA</div>
       <div class="bld-hero-t">Boletos de la comunidad</div>
-      <div class="bld-hero-s">Lo que otros usuarios arman y publican. Dale ❤️ al que te guste, o publica el tuyo desde "Arma tu parlay".</div>
+      <div class="bld-hero-s">Lo que otros usuarios arman y publican hoy. Dale ❤️ al que te guste, o publica el tuyo desde "Arma tu parlay".</div>
     </div>
     <div class="card" style="margin:14px 0"><div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <span style="font-size:13px;color:var(--dim)">¿Tienes un boleto que te gusta?</span>
       <button class="btn btn-red" data-v="builder">🎫 Armar y publicar el mío</button>
     </div></div>
-    ${feedHTML}`;
+    ${feedHTML}
+    ${archivoHTML}`;
 }
 
 async function likeBoletoComu(id,btn){
