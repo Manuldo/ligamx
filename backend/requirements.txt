@@ -1,0 +1,21 @@
+# --- Servidor web (el "Express" de Python) ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# --- Validación de datos tipados ---
+pydantic==2.9.2
+
+# --- Vector store (base de datos vectorial local, persistente) ---
+chromadb==0.5.5
+
+# --- Cliente de OpenAI (solo para embeddings) ---
+openai==1.51.0
+
+# --- Cliente de Anthropic (para generar el análisis) ---
+anthropic==0.34.2
+
+# --- HTTP async, por si scrapeas FotMob desde aquí ---
+httpx==0.27.2
+
+# --- MongoDB Atlas (partidos, stats jugadores, clasificación, benchmark) ---
+pymongo==4.10.1

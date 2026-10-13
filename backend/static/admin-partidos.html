@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestión de partidos · Motor Pickazo</title>
+<style>
+:root{--bg:#0e0f13;--panel:#15171d;--panel2:#1b1e26;--panel3:#232733;--txt:#eceef4;
+  --dim:#8d93a3;--dim2:#5f6474;--line:#252935;--red:#ec3013;--green:#22c55e;--amber:#f0b429;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif;padding:22px 16px 60px}
+.wrap{max-width:820px;margin:0 auto}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.top b{font-weight:900;font-size:16px}.top b span{color:var(--red)}
+h1{font-size:20px;font-weight:900;margin-bottom:4px}
+.sub{color:var(--dim2);font-size:13px;margin-bottom:18px}
+.gate{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:440px;margin:40px auto}
+input,select{background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit}
+input[type=password]{width:100%;font-family:monospace;margin-bottom:12px}
+.btn{background:var(--red);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer}
+.btn-line{background:var(--panel3);border:1px solid var(--line);color:var(--dim)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.pt{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 14px;margin-bottom:9px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pt.dup{border-color:var(--amber)}
+.pt-main{flex:1;min-width:200px}
+.pt-teams{font-weight:700;font-size:14px}
+.pt-meta{font-size:11.5px;color:var(--dim2);margin-top:2px}
+.pt-actions{display:flex;gap:6px}
+.tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.05em}
+.tag-dup{background:rgba(240,180,41,.15);color:var(--amber)}
+.tag-fin{background:rgba(34,197,94,.13);color:var(--green)}
+.tag-prog{background:var(--panel3);color:var(--dim2)}
+.err{color:var(--red);font-size:13px;margin-top:8px}
+.ok{color:var(--green);font-size:13px}
+.edit{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;width:100%;display:none;gap:8px;flex-wrap:wrap}
+.edit.open{display:flex}
+.edit input{flex:1;min-width:120px}
+.count{color:var(--dim);font-size:13px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>PICKAZO <span>MX</span> · Motor · Partidos</b></div>
+
+  <div id="gate" class="gate">
+    <h2 style="font-size:16px;margin-bottom:12px">Gestión de partidos</h2>
+    <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Ingresa el <b>PICKAZO_BRIDGE_KEY</b> del motor.</p>
+    <input type="password" id="key" placeholder="PICKAZO_BRIDGE_KEY" autocomplete="off">
+    <button class="btn" style="width:100%" onclick="entrar()">Entrar</button>
+    <div class="err" id="gerr"></div>
+  </div>
+
+  <div id="dash" style="display:none">
+    <h1>Gestión de partidos</h1>
+    <div class="sub">Corrige o borra partidos sueltos sin borrar la liga completa.</div>
+
+    <div class="bar">
+      <select id="liga" onchange="cargar()">
+        <option value="ligamx">Liga MX</option>
+        <option value="premier">Premier League</option>
+        <option value="laliga">LaLiga</option>
+        <option value="seriea">Serie A</option>
+        <option value="bundesliga">Bundesliga</option>
+        <option value="ligue1">Ligue 1</option>
+        <option value="nfl">NFL</option>
+      </select>
+      <button class="btn btn-line btn-sm" onclick="cargar()">↻ Recargar</button>
+      <button class="btn btn-line btn-sm" onclick="limpiarAnalisis()">Limpiar solo análisis</button>
+      <button class="btn btn-sm" style="background:#0a1e2a;color:#3b82f6;border:1px solid #3b82f6" onclick="arreglarSemanasNFL()">🏈 Arreglar semanas NFL</button>
+    </div>
+
+    <div class="count" id="count"></div>
+    <div id="msg"></div>
+    <div id="lista"></div>
+  </div>
+</div>
+
+<script>
+let TOKEN="";
+const $=s=>document.querySelector(s);
+function entrar(){
+  TOKEN=$("#key").value.trim();
+  if(!TOKEN){$("#gerr").textContent="Ingresa el token";return;}
+  sessionStorage.setItem("motor_token",TOKEN);
+  $("#gate").style.display="none";$("#dash").style.display="block";
+  cargar();
+}
+function hdr(){return {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"};}
+
+async function cargar(){
+  const liga=$("#liga").value;
+  $("#lista").innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">Cargando…</div>';
+  try{
+    const r=await fetch(`/admin/partidos_liga?liga=${liga}`,{headers:hdr()});
+    if(r.status===401||r.status===403){$("#gate").style.display="block";$("#dash").style.display="none";$("#gerr").textContent="Token incorrecto";return;}
+    const d=await r.json();
+    const ps=d.partidos||[];
+    $("#count").textContent=`${ps.length} partidos · ${ps.filter(p=>p.posible_duplicado).length} posibles duplicados`;
+    if(!ps.length){$("#lista").innerHTML='<div style="color:var(--dim2);padding:20px;text-align:center">Sin partidos en esta liga.</div>';return;}
+    $("#lista").innerHTML=ps.map(p=>fila(p)).join("");
+  }catch(e){$("#lista").innerHTML='<div class="err" style="padding:20px">Error de conexión</div>';}
+}
+
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function fila(p){
+  const hora=p.inicio?new Date(p.inicio).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"sin hora";
+  const marc=(p.marcadorLocal!=null&&p.marcadorVisitante!=null)?`${p.marcadorLocal}-${p.marcadorVisitante}`:"";
+  let tag=p.estado==="finalizado"?'<span class="tag tag-fin">Final</span>':'<span class="tag tag-prog">'+esc(p.estado||"prog")+'</span>';
+  const dup=p.posible_duplicado?'<span class="tag tag-dup">Duplicado?</span>':"";
+  return `<div class="pt ${p.posible_duplicado?'dup':''}">
+    <div class="pt-main">
+      <div class="pt-teams">${esc(p.local)} vs ${esc(p.visitante)} ${marc?`· ${marc}`:""} ${tag} ${dup}</div>
+      <div class="pt-meta">${esc(hora)}${p.fase?" · "+esc(p.fase):""}${p.fuenteId?" · id:"+esc(p.fuenteId):""}</div>
+    </div>
+    <div class="pt-actions">
+      <button class="btn btn-line btn-sm" onclick="toggleEdit('${p.id}')">Editar</button>
+      ${p.liga==="nfl"?"":`<button class="btn btn-sm" style="background:#0d2818;color:#22c55e;border:1px solid #22c55e" onclick="toggleAli('${p.id}')">Alineación</button>`}
+      <button class="btn btn-sm" style="background:#3a1410;color:var(--red);border:1px solid var(--red)" onclick="borrar('${p.id}','${esc(p.local)} vs ${esc(p.visitante)}')">Borrar</button>
+    </div>
+    <div class="edit" id="ed-${p.id}">
+      <input id="el-${p.id}" placeholder="Local" value="${esc(p.local)}">
+      <input id="ev-${p.id}" placeholder="Visitante" value="${esc(p.visitante)}">
+      <input id="ei-${p.id}" placeholder="Inicio ISO" value="${esc(p.inicio)}" style="min-width:200px">
+      <input id="es-${p.id}" placeholder="Estado" value="${esc(p.estado||'')}" style="max-width:120px">
+      <input id="ef-${p.id}" placeholder="Jornada (ej. Jornada 7)" value="${esc(p.fase||'')}" style="max-width:160px">
+      <button class="btn btn-sm" onclick="guardar('${p.id}')">Guardar</button>
+    </div>
+    <div class="edit" id="ali-${p.id}" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="font-size:12px;color:var(--dim);font-weight:700">Cargar alineación manual (11 titulares por equipo, uno por línea o separados por coma)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(p.local)}</div>
+          <input id="afl-${p.id}" placeholder="Formación (ej. 4-3-3)" style="width:100%;margin-bottom:6px">
+          <textarea id="atl-${p.id}" placeholder="Titulares del local…" style="width:100%;min-height:130px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px;font-family:inherit;font-size:13px"></textarea>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px">${esc(p.visitante)}</div>
+          <input id="afv-${p.id}" placeholder="Formación (ej. 4-2-3-1)" style="width:100%;margin-bottom:6px">
+          <textarea id="atv-${p.id}" placeholder="Titulares del visitante…" style="width:100%;min-height:130px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px;font-family:inherit;font-size:13px"></textarea>
+        </div>
+      </div>
+      <button class="btn btn-sm" style="background:#22c55e;color:#04120a;align-self:flex-start" onclick="guardarAli('${p.id}','${esc(p.liga)}','${esc(p.local)}','${esc(p.visitante)}')">Guardar alineación</button>
+    </div>
+  </div>`;
+}
+
+async function arreglarSemanasNFL(){
+  if(!confirm("¿Re-sincronizar todas las semanas de la NFL?\n\nEsto corrige los partidos que quedaron con la semana equivocada. Tarda un par de minutos en segundo plano."))return;
+  msg("Arrancando re-sincronización NFL…","");
+  try{
+    const r=await fetch("/admin/nfl_arreglar_semanas?tipo=2",{method:"POST",headers:hdr()});
+    const d=await r.json();
+    if(d.ok)msg("✓ "+(d.mensaje||"Re-sincronizando en segundo plano. Espera unos minutos y recarga."),"ok");
+    else msg(d.error||"No se pudo","err");
+  }catch(e){msg("Error de conexión","err");}
+}
+function toggleAli(id){document.getElementById("ali-"+id).classList.toggle("open");}
+async function guardarAli(id,liga,local,visitante){
+  const payload={liga,local,visitante,
+    formacionLocal:document.getElementById("afl-"+id).value.trim(),
+    titularesLocal:document.getElementById("atl-"+id).value.trim(),
+    formacionVisitante:document.getElementById("afv-"+id).value.trim(),
+    titularesVisitante:document.getElementById("atv-"+id).value.trim()};
+  try{
+    const r=await fetch("/alineaciones/manual",{method:"POST",headers:hdr(),body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.ok){msg("✓ Alineación guardada","ok");}
+    else msg(d.error||"No se pudo","err");
+  }catch{msg("Error de conexión","err");}
+}
+
+function toggleEdit(id){$("#ed-"+id).classList.toggle("open");}
+
+async function guardar(id){
+  const payload={id,local:$("#el-"+id).value.trim(),visitante:$("#ev-"+id).value.trim(),
+    inicio:$("#ei-"+id).value.trim(),estado:$("#es-"+id).value.trim(),fase:$("#ef-"+id).value.trim()};
+  try{
+    const r=await fetch("/admin/editar_partido",{method:"POST",headers:hdr(),body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.ok){msg("✓ Partido actualizado","ok");cargar();}else msg(d.error||"No se pudo","err");
+  }catch{msg("Error de conexión","err");}
+}
+
+async function borrar(id,nombre){
+  if(!confirm(`¿Borrar "${nombre}"?\n\nSolo se borra este partido, no la liga.`))return;
+  try{
+    const r=await fetch("/admin/borrar_partido",{method:"POST",headers:hdr(),body:JSON.stringify({id})});
+    const d=await r.json();
+    if(d.ok){msg("✓ Partido borrado","ok");cargar();}else msg(d.error||"No se pudo","err");
+  }catch{msg("Error de conexión","err");}
+}
+
+async function limpiarAnalisis(){
+  const liga=$("#liga").value;
+  if(!confirm(`¿Borrar SOLO los análisis y picks cacheados de ${liga}?\n\nLos partidos NO se tocan.`))return;
+  try{
+    const r=await fetch("/admin/limpiar_analisis",{method:"POST",headers:hdr(),body:JSON.stringify({liga})});
+    const d=await r.json();
+    if(d.ok)msg(`✓ Análisis limpiados (${d.borrados.analisis||0} análisis, ${d.borrados.picks_sugeridos||0} picks)`,"ok");
+    else msg(d.error||"No se pudo","err");
+  }catch{msg("Error de conexión","err");}
+}
+
+function msg(t,cls){const m=$("#msg");m.innerHTML=`<div class="${cls}" style="padding:8px 0">${t}</div>`;setTimeout(()=>{m.innerHTML="";},4000);}
+
+if(sessionStorage.getItem("motor_token")){TOKEN=sessionStorage.getItem("motor_token");$("#gate").style.display="none";$("#dash").style.display="block";cargar();}
+</script>
+</body>
+</html>

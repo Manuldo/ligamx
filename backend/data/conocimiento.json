@@ -1,0 +1,17 @@
+[
+  {
+    "id": "aprendizaje_barca_alaves",
+    "texto": "Barcelona vs Alavés: Barcelona ya era campeón matemático y no tenía motivación. Perdió pese a ser favorito. Lección: clasificar el desbalance motivacional (campeon_matematico, descenso) antes de mandar un favorito sin nada en juego.",
+    "metadata": { "tipo": "aprendizaje", "liga": "la_liga" }
+  },
+  {
+    "id": "postmortem_corners_volatiles",
+    "texto": "Los mercados de córners han fallado repetidamente por su volatilidad. Encoger la probabilidad hacia la incertidumbre antes de confiar en un pick de córners.",
+    "metadata": { "tipo": "post-mortem", "liga": "general" }
+  },
+  {
+    "id": "perfil_equipo_ejemplo",
+    "texto": "Equipo con ritmo alto de presión pero defensa frágil en transiciones: tiende a partidos de muchos goles cuando enfrenta rivales veloces al contragolpe.",
+    "metadata": { "tipo": "perfil", "liga": "general" }
+  }
+]

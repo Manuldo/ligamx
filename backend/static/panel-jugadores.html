@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jugadores por equipo · Motor Pickazo</title>
+<style>
+:root{--bg:#0e0f13;--panel:#15171d;--panel2:#1b1e26;--panel3:#232733;--txt:#eceef4;
+  --dim:#8d93a3;--dim2:#5f6474;--line:#252935;--red:#ec3013;--green:#22c55e;--amber:#f0b429;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif;padding:22px 16px 60px}
+.wrap{max-width:820px;margin:0 auto}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.top b{font-weight:900;font-size:16px}.top b span{color:var(--red)}
+h1{font-size:20px;font-weight:900;margin-bottom:4px}
+.sub{color:var(--dim2);font-size:13px;margin-bottom:18px}
+.gate{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:22px;max-width:440px;margin:40px auto}
+input,select{background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit}
+input[type=password]{width:100%;font-family:monospace;margin-bottom:12px}
+.btn{background:var(--red);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer}
+.btn-line{background:var(--panel3);border:1px solid var(--line);color:var(--dim)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.resumen{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.rcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;flex:1;min-width:130px}
+.rcard .n{font-size:26px;font-weight:900;font-family:'JetBrains Mono',monospace}
+.rcard .l{font-size:11px;color:var(--dim2);text-transform:uppercase;letter-spacing:.05em;font-weight:800;margin-top:3px}
+.eq{display:flex;align-items:center;justify-content:space-between;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 15px;margin-bottom:7px}
+.eq.malo{border-color:var(--red);background:rgba(236,48,19,.06)}
+.eq-nombre{font-weight:700;font-size:14px}
+.eq-n{font-family:'JetBrains Mono',monospace;font-size:13px}
+.tag{font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;text-transform:uppercase}
+.tag-ok{background:rgba(34,197,94,.14);color:var(--green)}
+.tag-mal{background:rgba(236,48,19,.15);color:var(--red)}
+.err{color:var(--red);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>PICKAZO <span>MX</span> · Jugadores por equipo</b></div>
+
+  <div id="gate" class="gate">
+    <h2 style="font-size:16px;margin-bottom:12px">Auditoría de jugadores</h2>
+    <p style="font-size:13px;color:var(--dim);margin-bottom:14px">Ingresa el <b>PICKAZO_BRIDGE_KEY</b> del motor.</p>
+    <input type="password" id="key" placeholder="PICKAZO_BRIDGE_KEY" autocomplete="off">
+    <button class="btn" style="width:100%" onclick="entrar()">Entrar</button>
+    <div class="err" id="gerr"></div>
+  </div>
+
+  <div id="dash" style="display:none">
+    <h1>Jugadores por equipo</h1>
+    <div class="sub">Verifica qué equipos tienen jugadores cargados y cuáles están vacíos.</div>
+
+    <div class="bar">
+      <select id="liga" onchange="cargar()">
+        <option value="ligamx">Liga MX</option>
+        <option value="laliga">LaLiga</option>
+        <option value="premier">Premier League</option>
+        <option value="seriea">Serie A</option>
+        <option value="bundesliga">Bundesliga</option>
+        <option value="ligue1">Ligue 1</option>
+        <option value="championsleague">Champions League</option>
+      </select>
+      <button class="btn btn-line btn-sm" onclick="cargar()">↻ Revisar</button>
+    </div>
+
+    <div class="bar">
+      <input id="dq" placeholder="Diagnosticar equipo (ej. Real Madrid)" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')diagnosticar()">
+      <button class="btn btn-sm" onclick="diagnosticar()">🔎 Diagnosticar</button>
+    </div>
+    <div id="diag"></div>
+
+    <div class="bar" style="margin-top:14px">
+      <button class="btn btn-sm" style="background:#a855f7" onclick="backfillNFL()">🏈 Corregir temporada de jugadores NFL (una vez)</button>
+    </div>
+    <div style="font-size:11px;color:var(--dim2);margin-bottom:4px">Etiqueta los registros de jugador NFL ya guardados (antes no decían si eran de pretemporada o temporada regular). No vuelve a bajar nada de ESPN, solo corrige lo que ya está en la base.</div>
+    <div id="backfillMsg"></div>
+
+    <div class="resumen" id="resumen"></div>
+    <div id="lista"></div>
+  </div>
+</div>
+
+<script>
+let TOKEN="";
+const $=s=>document.querySelector(s);
+function entrar(){
+  TOKEN=$("#key").value.trim();
+  if(!TOKEN){$("#gerr").textContent="Ingresa el token";return;}
+  sessionStorage.setItem("motor_token",TOKEN);
+  $("#gate").style.display="none";$("#dash").style.display="block";
+  cargar();
+}
+function hdr(){return{"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"};}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+async function cargar(){
+  const liga=$("#liga").value;
+  $("#lista").innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">Revisando…</div>';
+  $("#resumen").innerHTML="";
+  try{
+    const r=await fetch(`/admin/auditoria_jugadores?liga=${liga}`,{headers:hdr()});
+    if(r.status===401||r.status===403||r.status===503){$("#gate").style.display="block";$("#dash").style.display="none";$("#gerr").textContent="Token incorrecto";return;}
+    const d=await r.json();
+    if(!d.ok){$("#lista").innerHTML=`<div class="err" style="padding:20px">${esc(d.error||"Error")}</div>`;return;}
+    // resumen
+    $("#resumen").innerHTML=`
+      <div class="rcard"><div class="n">${d.equipos_totales}</div><div class="l">Equipos</div></div>
+      <div class="rcard"><div class="n" style="color:var(--green)">${d.equipos_con_datos}</div><div class="l">Con jugadores</div></div>
+      <div class="rcard"><div class="n" style="color:${d.equipos_sin_datos?'var(--red)':'var(--green)'}">${d.equipos_sin_datos}</div><div class="l">Sin datos</div></div>
+      <div class="rcard"><div class="n">${d.total_jugadores}</div><div class="l">Jugadores</div></div>`;
+    // lista de equipos (los sin datos primero)
+    const eqs=(d.detalle||[]).slice().sort((a,b)=>a.ok-b.ok||b.jugadores-a.jugadores);
+    $("#lista").innerHTML=eqs.map(e=>`
+      <div class="eq ${e.ok?'':'malo'}">
+        <span class="eq-nombre">${esc(e.equipo)}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span class="eq-n">${e.jugadores} jug.</span>
+          <span class="tag ${e.ok?'tag-ok':'tag-mal'}">${e.ok?'OK':'SIN DATOS'}</span>
+        </span>
+      </div>`).join("");
+  }catch(e){$("#lista").innerHTML='<div class="err" style="padding:20px">Error de conexión</div>';}
+}
+
+async function diagnosticar(){
+  const q=$("#dq").value.trim(); if(!q)return;
+  $("#diag").innerHTML='<div style="color:var(--dim);padding:10px">Rastreando…</div>';
+  try{
+    const r=await fetch(`/admin/diagnostico_equipo?equipo=${encodeURIComponent(q)}`,{headers:hdr()});
+    const d=await r.json();
+    if(!d.ok){$("#diag").innerHTML=`<div class="err">${esc(d.error||d.detail||"Error")}</div>`;return;}
+    const fila=(t)=>`<div class="eq"><span class="eq-nombre" style="font-weight:600;font-size:13px">${t}</span></div>`;
+    let html=`<div class="sub" style="margin-bottom:8px">Resultado para <b>${esc(d.buscado)}</b> · ${d.total_jugadores} registros de jugadores</div>`;
+    html+=`<div class="sub" style="margin-bottom:8px">Versión del motor: <b>${esc(d.version_motor||"vieja (sin marca)")}</b></div>`;
+    html+=`<div class="eq-nombre" style="margin:10px 0 6px">Última carga recibida del Scout</div>`;
+    html+=(d.ultima_carga_recibida||[]).length?d.ultima_carga_recibida.map(i=>fila(`liga <b>${esc(i.liga)}</b> · "${esc(i.equipo)}" · llegaron ${i.ultimo_lote} jugadores · ${esc(i.ultima)}`)).join(""):fila("⚠ El motor no ha recibido jugadores de este equipo desde este deploy");
+    html+=`<div class="eq-nombre" style="margin:10px 0 6px">Jugadores (por liga)</div>`;
+    html+=d.jugadores_por_liga.length?d.jugadores_por_liga.map(j=>fila(`liga <b>${esc(j.liga)}</b> · guardado como "${esc(j.equipo_guardado)}" · ${j.registros} reg. · ${j.partidos_distintos} partidos${j.sin_partidoId?' · ⚠ hay registros sin partidoId':''}`)).join(""):fila("⚠ Ningún jugador en ninguna liga");
+    html+=`<div class="eq-nombre" style="margin:10px 0 6px">Partidos</div>`;
+    html+=d.partidos.length?d.partidos.map(p=>fila(`${esc(p.liga)} · ${esc(p.estado)} · ${p.partidos}`)).join(""):fila("⚠ Sin partidos");
+    html+=`<div class="eq-nombre" style="margin:10px 0 6px">Clasificación</div>`;
+    html+=d.clasificacion.length?d.clasificacion.map(c=>fila(`${esc(c.liga)} · "${esc(c.equipo)}" · temp ${esc(c.temporada)} · pos ${c.pos} · PJ ${c.jugados}`)).join(""):fila("⚠ Sin fila de clasificación");
+    $("#diag").innerHTML=html;
+  }catch(e){$("#diag").innerHTML='<div class="err">Error de conexión</div>';}
+}
+
+async function backfillNFL(){
+  const box=$("#backfillMsg");
+  box.innerHTML='<div style="color:var(--dim);padding:6px 0">Corrigiendo…</div>';
+  try{
+    const r=await fetch(`/admin/nfl_backfill_tipo_temporada`,{method:"POST",headers:hdr()});
+    const d=await r.json();
+    if(!d.ok){box.innerHTML=`<div class="err">${esc(d.error||d.detail||"Error")}</div>`;return;}
+    box.innerHTML=`<div class="eq" style="border-color:var(--green)"><span class="eq-nombre" style="font-size:13px">✅ ${d.actualizados} registros corregidos · ${d.sin_match} sin partido asociado (se dejaron igual)</span></div>`;
+  }catch(e){box.innerHTML='<div class="err">Error de conexión</div>';}
+}
+
+if(sessionStorage.getItem("motor_token")){TOKEN=sessionStorage.getItem("motor_token");$("#gate").style.display="none";$("#dash").style.display="block";cargar();}
+</script>
+</body>
+</html>
