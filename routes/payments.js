@@ -20,18 +20,21 @@ function appUrl() {
   return value;
 }
 
-async function syncSubscription(stripe, subscriptionId, fallbackUserId = null) {
-  if (!subscriptionId) return;
-  const subscription = typeof subscriptionId === "string"
-    ? await stripe.subscriptions.retrieve(subscriptionId)
-    : subscriptionId;
+async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) {
+  if (!subscriptionRef) return;
+  // Siempre se consulta el estado actual en Stripe (con la versión de API del SDK).
+  // Así no dependemos de la versión de API configurada en el webhook (desde
+  // 2025-03-31.basil, current_period_end ya no viene en la raíz de la suscripción)
+  // y un evento viejo que llegue tarde no pisa un estado más nuevo.
+  const subscriptionId = typeof subscriptionRef === "string" ? subscriptionRef : subscriptionRef.id;
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
   const customerId = typeof subscription.customer === "string"
     ? subscription.customer
     : subscription.customer?.id;
-  const periodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000)
-    : null;
+  const periodEndUnix = subscription.current_period_end
+    ?? subscription.items?.data?.[0]?.current_period_end;
+  const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
   const activeStatuses = new Set(["active", "trialing"]);
   const update = {
     stripeCustomerId: customerId || null,

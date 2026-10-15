@@ -107,6 +107,9 @@ app.use("/api/payments/webhook", express.raw({ type: "application/json", limit: 
 app.use(express.json({ limit: "128kb" }));
 
 app.use(rateLimit({
+  // El webhook ya está protegido por la firma de Stripe; si Stripe manda
+  // ráfagas (reintentos, renovaciones) no debe recibir 429.
+  skip: (req) => req.path === "/api/payments/webhook",
   windowMs: 60 * 1000,
   max: Number(process.env.RATE_LIMIT_PER_MINUTE || 120),
   standardHeaders: "draft-7",
