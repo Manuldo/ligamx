@@ -2753,6 +2753,10 @@ async function checkRetornoPago(){
   }else if(qs.get("pro")==="cancel"){
     history.replaceState({},"",location.pathname);
     toast("Pago cancelado");
+  }else if(qs.get("ver")==="cuenta"){
+    // Liga que viene en los correos (actualizar tarjeta, reactivar, volver a PRO).
+    history.replaceState({},"",location.pathname);
+    if(token)verCuenta();else openAuth("login");
   }
 }
 

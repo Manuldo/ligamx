@@ -4,6 +4,13 @@ import User from "../models/User.js";
 import StripeEvent from "../models/StripeEvent.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
+import {
+  enviarCorreo,
+  correoBienvenidaPro,
+  correoPagoFallido,
+  correoCancelacionProgramada,
+  correoProTerminado,
+} from "../mailer.js";
 
 const router = express.Router();
 let _stripe = null;
@@ -44,11 +51,24 @@ async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) 
     isPro: activeStatuses.has(subscription.status) && Boolean(periodEnd && periodEnd.getTime() > Date.now()),
   };
 
+  let user = null;
   if (fallbackUserId) {
-    await User.findByIdAndUpdate(fallbackUserId, update);
+    user = await User.findByIdAndUpdate(fallbackUserId, update, { new: true });
   } else if (customerId) {
-    await User.findOneAndUpdate({ stripeCustomerId: customerId }, update);
+    user = await User.findOneAndUpdate({ stripeCustomerId: customerId }, update, { new: true });
   }
+  return { user, subscription, periodEnd };
+}
+
+function precioRecurrente(subscription) {
+  const price = subscription?.items?.data?.[0]?.price;
+  return { monto: price?.unit_amount ?? 0, moneda: price?.currency || "mxn" };
+}
+
+// Fecha en que termina una suscripción con cancelación programada.
+function finProgramado(subscription, periodEnd) {
+  if (subscription?.cancel_at) return new Date(subscription.cancel_at * 1000);
+  return periodEnd;
 }
 
 router.post("/checkout", requireAuth, ah(async (req, res) => {
@@ -116,24 +136,80 @@ router.post("/webhook", ah(async (req, res) => {
     throw error;
   }
 
+  // Los correos se mandan hasta que el evento quedó procesado, para que un
+  // reintento de Stripe no los duplique, y nunca hacen fallar el webhook.
+  const correos = [];
+  let base = null;
+  try { base = appUrl(); } catch { base = null; }
+
   try {
     const obj = event.data.object;
     switch (event.type) {
       case "checkout.session.completed": {
         if (obj.mode === "subscription" && obj.subscription) {
-          await syncSubscription(stripe, obj.subscription, obj.metadata?.uid || obj.client_reference_id);
+          const { user, subscription, periodEnd } =
+            await syncSubscription(stripe, obj.subscription, obj.metadata?.uid || obj.client_reference_id);
+          if (user?.email && base) {
+            const { monto, moneda } = precioRecurrente(subscription);
+            correos.push({ para: user.email, ...correoBienvenidaPro({
+              appUrl: base,
+              montoHoy: obj.amount_total ?? 0,
+              montoRecurrente: monto,
+              moneda: obj.currency || moneda,
+              proximoCobro: periodEnd,
+            }) });
+          }
         }
         break;
       }
       case "customer.subscription.created":
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted":
         await syncSubscription(stripe, obj);
         break;
-      case "invoice.paid":
-      case "invoice.payment_failed": {
+      case "customer.subscription.updated": {
+        const { user, subscription, periodEnd } = await syncSubscription(stripe, obj);
+        const prev = event.data.previous_attributes || {};
+        const cambioCancelacion = "cancel_at_period_end" in prev || "cancel_at" in prev;
+        const antesProgramada = Boolean(prev.cancel_at_period_end || prev.cancel_at);
+        const ahoraProgramada = Boolean(subscription.cancel_at_period_end || subscription.cancel_at);
+        if (cambioCancelacion && !antesProgramada && ahoraProgramada
+            && subscription.status !== "canceled" && user?.email && base) {
+          correos.push({ para: user.email, ...correoCancelacionProgramada({
+            appUrl: base, terminaEl: finProgramado(subscription, periodEnd),
+          }) });
+        }
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const { user } = await syncSubscription(stripe, obj);
+        if (user?.email && base) {
+          const motivo = obj.cancellation_details?.reason;
+          correos.push({ para: user.email, ...correoProTerminado({
+            appUrl: base, porPagoFallido: motivo === "payment_failed",
+          }) });
+        }
+        break;
+      }
+      case "invoice.paid": {
         const subscriptionId = obj.subscription || obj.parent?.subscription_details?.subscription;
         if (subscriptionId) await syncSubscription(stripe, subscriptionId);
+        break;
+      }
+      case "invoice.payment_failed": {
+        const subscriptionId = obj.subscription || obj.parent?.subscription_details?.subscription;
+        if (subscriptionId) {
+          const { user } = await syncSubscription(stripe, subscriptionId);
+          // Solo en el primer rechazo y en el último intento, para no saturar.
+          const primero = Number(obj.attempt_count) <= 1;
+          const ultimo = !obj.next_payment_attempt;
+          if ((primero || ultimo) && user?.email && base) {
+            correos.push({ para: user.email, ...correoPagoFallido({
+              appUrl: base,
+              monto: obj.amount_due,
+              moneda: obj.currency,
+              siguienteIntento: obj.next_payment_attempt ? new Date(obj.next_payment_attempt * 1000) : null,
+            }) });
+          }
+        }
         break;
       }
       default:
@@ -147,6 +223,12 @@ router.post("/webhook", ah(async (req, res) => {
   }
 
   res.json({ received: true });
+
+  for (const c of correos) {
+    enviarCorreo(c).then((r) => {
+      if (!r.ok) console.warn(`Correo "${c.asunto}" no enviado (${r.motivo}) a ${c.para}`);
+    }).catch((err) => console.error("Error de correo:", err?.message));
+  }
 }));
 
 export default router;
