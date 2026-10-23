@@ -2592,6 +2592,10 @@ async function verCuenta(){
     return fecha.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
   };
   const esPro=isPro();
+  // Tiene suscripción en Stripe aunque el pago esté pendiente (past_due/unpaid):
+  // debe poder entrar al portal a cambiar su tarjeta en lugar de pagar otra vez.
+  const tieneSub=!!(u.proEstado&&!["canceled","incomplete_expired"].includes(u.proEstado));
+  const pagoPendiente=!esPro&&tieneSub;
   $("#tbT").textContent="Mi cuenta";$("#tbS").textContent="";
   p.innerHTML=`<div class="card">
     <div class="card-h"><span class="card-t">Mi cuenta</span></div>
@@ -2601,7 +2605,9 @@ async function verCuenta(){
         <div><div style="font-weight:800;font-size:16px">${esc(u.email||"")}</div>
           <div style="font-size:13px;margin-top:2px">${esPro
             ?'<span style="color:var(--red);font-weight:800">● PRO activo</span>'
-            :'<span style="color:var(--dim2);font-weight:700">Cuenta gratis</span>'}</div></div>
+            :pagoPendiente
+              ?'<span style="color:var(--red);font-weight:800">● Pago pendiente: actualiza tu tarjeta</span>'
+              :'<span style="color:var(--dim2);font-weight:700">Cuenta gratis</span>'}</div></div>
       </div>
       <div class="enums" style="border-top:1px solid var(--line);padding-top:16px">
         <div class="en"><div class="k">Miembro desde</div><div class="v" style="font-size:14px">${fmt(u.cuentaDesde)}</div></div>
@@ -2611,7 +2617,9 @@ async function verCuenta(){
       <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
         ${esPro
           ?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>'
-          :'<button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>'}
+          :pagoPendiente
+            ?'<button class="btn btn-red" data-a="portal">Actualizar método de pago</button>'
+            :'<button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>'}
         <button class="btn btn-line" data-v="mios">Ver mis picks</button>
       </div>
     </div>
@@ -2622,7 +2630,10 @@ async function goPro(){
   try{const r=await fetch(`${API}/payments/checkout`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
-    toast(r.status===503?"Los pagos aún no están activos":"No se pudo abrir el pago");
+    if(manejarExpiracion(r,d))return;
+    // Ya tiene suscripción (p. ej. pago pendiente): mandarlo al portal, no a pagar doble.
+    if(r.status===409){toast("Ya tienes una suscripción, te llevo a administrarla");abrirPortal();return;}
+    toast(r.status===503?"Los pagos aún no están activos":(d.error||"No se pudo abrir el pago"));
   }catch{toast("Sin conexión");}
 }
 async function abrirPortal(){
@@ -2736,6 +2747,7 @@ async function checkRetornoPago(){
   const qs=new URLSearchParams(location.search);
   if(qs.get("pro")==="ok" && token){
     toast("Confirmando tu suscripción…");
+    let confirmado=false;
     for(let i=0;i<4;i++){
       try{
         const r=await fetch(`${API}/auth/me`,{headers:H()});
@@ -2743,11 +2755,12 @@ async function checkRetornoPago(){
           const d=await r.json();
           if(d.token){token=d.token;localStorage.setItem("token",token);}
           if(d.user){me=d.user;localStorage.setItem("me",JSON.stringify(me));}
-          if(d.user&&d.user.isPro){toast("¡Ya eres PRO! 🎉","ok");break;}
+          if(d.user&&d.user.isPro){confirmado=true;toast("¡Ya eres PRO! 🎉","ok");break;}
         }
       }catch{}
       await new Promise(r=>setTimeout(r,1500));
     }
+    if(!confirmado)toast("Tu pago se está procesando. Si en un par de minutos no ves tu PRO, recarga la página.");
     history.replaceState({},"",location.pathname);
     sbUser();sbLigas();render();
   }else if(qs.get("pro")==="cancel"){
