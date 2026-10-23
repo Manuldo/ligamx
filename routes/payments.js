@@ -51,6 +51,11 @@ async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) 
     isPro: activeStatuses.has(subscription.status) && Boolean(periodEnd && periodEnd.getTime() > Date.now()),
   };
 
+  // Si el evento no trae el usuario (customer.subscription.*, invoice.*), lo
+  // sacamos de la metadata que el checkout guarda en la suscripción. Así el PRO
+  // se activa aunque checkout.session.completed no llegue o llegue después.
+  if (!fallbackUserId) fallbackUserId = subscription.metadata?.uid || null;
+
   let user = null;
   if (fallbackUserId) {
     user = await User.findByIdAndUpdate(fallbackUserId, update, { new: true });
