@@ -1,4 +1,6 @@
-FROM node:22-alpine
+# Versión fijada: 22.23.4 corrige CVE-2026-111497 (Brotli RCE, oct 2026).
+# Al actualizar, sube a la siguiente versión parcheada de la línea 22.
+FROM node:22.23.4-alpine
 
 ENV NODE_ENV=production
 WORKDIR /app
