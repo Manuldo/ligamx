@@ -134,11 +134,18 @@ router.post("/webhook", ah(async (req, res) => {
     return res.status(400).send(`Webhook error: ${err.message}`);
   }
 
+  // Un evento ya procesado ("done") se vuelve a sincronizar si llega otra vez
+  // (p. ej. "Vuelve a enviarlo" desde el Dashboard): la sincronización siempre
+  // lee el estado actual en Stripe, así que repetirla es seguro. Lo que no se
+  // repite son los correos. Si sigue "processing", es una entrega en paralelo.
+  let reenvio = false;
   try {
     await StripeEvent.create({ eventId: event.id, type: event.type, status: "processing" });
   } catch (error) {
-    if (error?.code === 11000) return res.json({ received: true, duplicate: true });
-    throw error;
+    if (error?.code !== 11000) throw error;
+    const previo = await StripeEvent.findOne({ eventId: event.id }).lean();
+    if (previo?.status !== "done") return res.json({ received: true, duplicate: true });
+    reenvio = true;
   }
 
   // Los correos se mandan hasta que el evento quedó procesado, para que un
@@ -220,13 +227,17 @@ router.post("/webhook", ah(async (req, res) => {
       default:
         break;
     }
-    await StripeEvent.updateOne({ eventId: event.id }, { $set: { status: "done" } });
+    if (!reenvio) await StripeEvent.updateOne({ eventId: event.id }, { $set: { status: "done" } });
   } catch (error) {
     // Permite que Stripe reintente un evento que no se procesó por completo.
-    await StripeEvent.deleteOne({ eventId: event.id });
+    if (!reenvio) await StripeEvent.deleteOne({ eventId: event.id });
     throw error;
   }
 
+  if (reenvio) {
+    correos.length = 0;
+    return res.json({ received: true, resynced: true });
+  }
   res.json({ received: true });
 
   for (const c of correos) {
