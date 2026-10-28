@@ -2294,8 +2294,26 @@ async function abrirPartido(id){
         // si está en vivo, refrescar el hero cada 60s
         clearTimeout(window._heroTimer);
         if(vivo&&view==="partido")window._heroTimer=setTimeout(()=>{if(view==="partido")window._cargarHero();},60000);
-      }).catch(()=>{});
+        // Partido ya finalizado: no tiene caso pedirle al motor un pick
+        // o una línea de props para un juego que ya se jugó — en vez de
+        // eso mostramos el resultado tal cual, sin invitar a "jugar" nada.
+        if(fin){
+          $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+            <div class="empty"><b>Este partido ya terminó</b>
+            <span style="color:var(--dim)">Marcador final arriba — no se generan picks nuevos para juegos ya jugados.</span></div>`;
+          const pd=$("#pDerechasBox");if(pd)pd.innerHTML=`<div style="font-size:13px;color:var(--dim)">Partido finalizado — sin candidatos nuevos.</div>`;
+          const pp=$("#pPropsBox");if(pp)pp.innerHTML=`<div style="font-size:13px;color:var(--dim)">Partido finalizado — sin props nuevas.</div>`;
+        }else if(!window._analisisCargado){
+          window._analisisCargado=true;
+          window._cargarAnalisis(false);
+        }
+      }).catch(()=>{
+        // Si no pudimos saber el estado del partido, mantenemos el
+        // comportamiento de siempre en vez de dejar la tarjeta trabada.
+        if(!window._analisisCargado){window._analisisCargado=true;window._cargarAnalisis(false);}
+      });
   };
+  window._analisisCargado=false;
   window._cargarHero();
   window._cargarAnalisis=(forzar)=>{
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
@@ -2333,7 +2351,10 @@ async function abrirPartido(id){
             <button class="btn btn-red" data-a="reanalizar">↻ Intentar de nuevo</button></div>`;
       });
   };
-  window._cargarAnalisis(false);
+  // Nota: _cargarAnalisis(false) ya se dispara desde dentro de
+  // _cargarHero() una vez que sabemos si el partido ya terminó
+  // (ver arriba) — así no se pide un análisis "a futuro" para un
+  // partido que ya se jugó.
   // DERECHAS: goleador/amonestado (fútbol), anotador de TD (NFL) o líder
   // de puntos/rebotes/asistencias (NBA) — PRO.
   window._cargarDerechas=(btn)=>{
@@ -2529,22 +2550,23 @@ function statsPartidoHTML(d,local,visitante){
       </div>
     </div>`;
 }
+const _PROP_FILLER=new Set(["sin contexto adicional.","sin contexto adicional","sin ventaja clara.","sin ventaja clara",""]);
 function _propRow(f){
-  const tendTxt=f.tendencia==="al_alza"?"↑ al alza":f.tendencia==="a_la_baja"?"↓ a la baja":"→ estable";
+  const tendIc=f.tendencia==="al_alza"?"↑":f.tendencia==="a_la_baja"?"↓":"→";
   const recColor=f.recomendacion==="Más"?"var(--green)":f.recomendacion==="Menos"?"var(--red2)":"var(--dim2)";
   const CAT_LABEL={puntos:"PTS",rebotes:"REB",asistencias:"AST"};
   const muestra=Math.min(f.juegos_muestra||0,8);
+  const notaTxt=(f.nota||"").trim();
+  const mostrarNota=notaTxt&&!_PROP_FILLER.has(notaTxt.toLowerCase());
   return `<div style="padding:7px 0;border-bottom:1px dashed var(--line)">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-      <span style="font-size:11px;color:var(--dim2);font-weight:700;letter-spacing:.04em">${esc(CAT_LABEL[f.categoria]||f.categoria)}</span>
-      <span class="mono" style="font-weight:800;font-size:14px">Línea ${f.linea}</span>
-      <span style="font-weight:700;font-size:12px;color:${recColor}">${esc(f.recomendacion)}</span>
-      <span class="mono" style="font-size:11px;color:var(--dim)">${f.confianza}% conf.</span>
+    <div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;column-gap:10px">
+      <span style="font-size:10px;color:var(--dim2);font-weight:800;letter-spacing:.04em">${esc(CAT_LABEL[f.categoria]||f.categoria)}</span>
+      <span class="mono" style="font-weight:800;font-size:15px">${f.linea}</span>
+      <span style="font-weight:700;font-size:12px;color:${recColor};white-space:nowrap;text-align:right">${tendIc} ${esc(f.recomendacion)} <span class="mono" style="font-weight:400;color:var(--dim);font-size:11px">· ${f.confianza}%</span></span>
     </div>
-    <div style="font-size:11px;color:var(--dim2);margin-top:2px">
-      Temporada ${f.promedio_temporada} · últimos ${muestra} juegos ${f.promedio_reciente} · ${tendTxt}
+    <div style="font-size:11px;color:var(--dim2);margin-top:2px;padding-left:46px">
+      temp. ${f.promedio_temporada} · últ. ${muestra}: ${f.promedio_reciente}${mostrarNota?` <span style="color:var(--dim)">· 💬 ${esc(notaTxt)}</span>`:""}
     </div>
-    ${f.nota&&f.nota!=="Sin contexto adicional."?`<div style="font-size:11px;color:var(--dim);margin-top:3px">💬 ${esc(f.nota)}</div>`:""}
   </div>`;
 }
 function _propsEquipo(bloque){
@@ -2553,8 +2575,8 @@ function _propsEquipo(bloque){
   const porJugador={};
   props.forEach(p=>{(porJugador[p.jugador]=porJugador[p.jugador]||[]).push(p);});
   return Object.entries(porJugador).map(([jugador,filas])=>`
-    <div style="margin-bottom:14px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(jugador)} <span style="color:var(--dim2);font-weight:400">${esc(filas[0].posicion||"")}</span></div>
+    <div style="margin-bottom:12px;padding:10px 12px;background:var(--surface2);border-radius:10px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:2px">${esc(jugador)} <span style="color:var(--dim2);font-weight:400;font-size:11px">${esc(filas[0].posicion||"")}</span></div>
       ${filas.map(f=>_propRow(f)).join("")}
     </div>`).join("");
 }
