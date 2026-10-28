@@ -711,15 +711,15 @@ const cache={};
 let LIGA_ACTUAL="ligamx";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
   seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",
-  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL",mlb:"MLB"};
+  championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL",mlb:"MLB",nba:"NBA"};
 // Nota: la bandera de Inglaterra (secuencia de "tags" sobre la bandera
 // negra) no se ve en todas las fuentes/SO — en varias cae de vuelta a un
 // cuadro negro liso. Usamos 🇬🇧 (Reino Unido) para Premier League: es una
 // bandera "normal" (par de indicadores regionales), con el mismo soporte
 // garantizado que México/España/Italia/Alemania/Francia de aquí abajo.
-const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🇬🇧",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"🏆",leaguescup:"🌎",nfl:"🏈",mlb:"⚾"};
+const LIGA_FLAGS={ligamx:"🇲🇽",premier:"🇬🇧",laliga:"🇪🇸",seriea:"🇮🇹",bundesliga:"🇩🇪",ligue1:"🇫🇷",championsleague:"🏆",leaguescup:"🌎",nfl:"🏈",mlb:"⚾",nba:"🏀"};
 // Ligas que NO son fútbol (cambia el modelo de stats/tabla/alineaciones)
-const LIGAS_NO_FUTBOL=new Set(["nfl","mlb"]);
+const LIGAS_NO_FUTBOL=new Set(["nfl","mlb","nba"]);
 function ligaSelectorHTML(){
   return `<div class="liga-sel">
     <button class="liga-chip ${LIGA_ACTUAL==="__todas__"?"on":""}" data-liga="__todas__"><span>🌍</span> Todas</button>
@@ -1079,6 +1079,8 @@ document.addEventListener("click",e=>{
   if(a==="cuenta")verCuenta();
   if(a==="volver")volverAHoy();
   if(a==="reanalizar"&&window._cargarAnalisis)window._cargarAnalisis(true);
+  if(a==="derechas"&&window._cargarDerechas)window._cargarDerechas(b);
+  if(a==="props"&&window._cargarProps)window._cargarProps(b);
   if(a==="traer-alineacion"&&window._traerAlineacion)window._traerAlineacion(b);
   if(a==="portal")abrirPortal();
   if(a==="guardar-boleto")guardarBoleto();
@@ -1148,6 +1150,7 @@ async function viewHome(){
         <button class="ls-card" data-v="hoy" data-go-liga="ligamx"><span class="ls-ic">⚽</span><b>Fútbol</b><span>Liga MX, Champions, Premier y más</span></button>
         <button class="ls-card" data-v="hoy" data-go-liga="nfl"><span class="ls-ic">🏈</span><b>NFL</b><span>Picks semana a semana</span></button>
         <button class="ls-card" data-v="hoy" data-go-liga="mlb"><span class="ls-ic">⚾</span><b>MLB</b><span>Jonrones, ERA y más</span></button>
+        <button class="ls-card" data-v="hoy" data-go-liga="nba"><span class="ls-ic">🏀</span><b>NBA</b><span>Puntos, rebotes y asistencias</span></button>
         <button class="ls-card" data-v="noticias"><span class="ls-ic">📰</span><b>Noticias</b><span>Lo último de las ligas</span></button>
         <button class="ls-card" data-v="parlays"><span class="ls-ic">◆</span><b>Parlays</b><span>Combinados por IA</span></button>
         <button class="ls-card" data-v="track"><span class="ls-ic">📊</span><b>Track record</b><span>Resultados verificados</span></button>
@@ -1999,7 +2002,7 @@ async function viewNoticias(){
   const r=await fetch(`${API}/news`,{headers:H()});
   const d=await r.json().catch(()=>({noticias:[]}));
   const todas=d.noticias||[];
-  const CATS=[["todas","🌍","Todas"],["futbol","⚽","Fútbol"],["nfl","🏈","NFL"],["mlb","⚾","MLB"]];
+  const CATS=[["todas","🌍","Todas"],["futbol","⚽","Fútbol"],["nfl","🏈","NFL"],["mlb","⚾","MLB"],["nba","🏀","NBA"]];
   const chips=`<div class="liga-sel">${CATS.map(([k,ic,nom])=>
     `<button class="liga-chip ${NOTICIAS_FILTRO===k?"on":""}" data-noticias-filtro="${k}">
       <span>${ic}</span> ${nom}</button>`).join("")}</div>`;
@@ -2240,6 +2243,25 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="skel"></div><div class="skel" style="width:75%"></div></div>
+    ${liga==="mlb"?"":`<div class="card" style="margin-bottom:16px" id="pDerechas">
+      <div class="card-h"><span class="card-t">${liga==="nfl"?"Anotador de touchdown":liga==="nba"?"Líder de puntos/rebotes/asistencias":"Goleador / amonestado"}</span></div>
+      <div style="padding:14px 16px" id="pDerechasBox">
+        ${isPro()
+          ? `<button class="btn btn-line" style="width:100%" data-a="derechas">🧪 Ver candidatos</button>`
+          : `<div style="font-size:13px;color:var(--dim);margin-bottom:10px">Mercado reservado PRO</div>
+             <button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>`}
+        <div id="pDerechasResult" style="margin-top:10px"></div>
+      </div></div>`}
+    ${liga!=="nba"?"":`<div class="card" style="margin-bottom:16px" id="pProps">
+      <div class="card-h"><span class="card-t">🎯 Props individuales</span>
+        <span class="card-s">línea calculada por jugador</span></div>
+      <div style="padding:14px 16px" id="pPropsBox">
+        ${isPro()
+          ? `<button class="btn btn-line" style="width:100%" data-a="props">📊 Calcular props</button>`
+          : `<div style="font-size:13px;color:var(--dim);margin-bottom:10px">Mercado reservado PRO</div>
+             <button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>`}
+        <div id="pPropsResult" style="margin-top:10px"></div>
+      </div></div>`}
     ${LIGAS_NO_FUTBOL.has(liga)?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
       <div class="card-h"><span class="card-t">Alineaciones</span></div>
       <div class="skel"></div></div>`}
@@ -2312,6 +2334,49 @@ async function abrirPartido(id){
       });
   };
   window._cargarAnalisis(false);
+  // DERECHAS: goleador/amonestado (fútbol), anotador de TD (NFL) o líder
+  // de puntos/rebotes/asistencias (NBA) — PRO.
+  window._cargarDerechas=(btn)=>{
+    if(!isPro())return;
+    if(btn){btn.disabled=true;btn.textContent="Buscando…";}
+    const resEl=$("#pDerechasResult");
+    fetch(`${API}/motor/derechas`,{method:"POST",headers:H(),body:JSON.stringify({local,visitante,liga})})
+      .then(async r=>{
+        let d={}; try{d=await r.json();}catch{}
+        if(manejarExpiracion(r,d))return;
+        if(!r.ok||!d.ok){
+          if(resEl)resEl.innerHTML=`<div style="font-size:13px;color:var(--dim)">${esc(d.error||"No se encontró nada con suficiente confianza por ahora")}</div>`;
+          if(btn){btn.disabled=false;btn.textContent="↻ Volver a buscar";}
+          return;
+        }
+        if(resEl)resEl.innerHTML=motorAnalisisHTML(d.derechas_markdown||"Sin candidatos por ahora",{partido:local+" vs "+visitante,liga:liga});
+        if(btn){btn.disabled=false;btn.textContent="↻ Volver a buscar";}
+      }).catch(()=>{
+        if(resEl)resEl.innerHTML=`<div style="font-size:13px;color:var(--dim)">Sin conexión con el motor</div>`;
+        if(btn){btn.disabled=false;btn.textContent="↻ Volver a buscar";}
+      });
+  };
+  // PROPS INDIVIDUALES: línea calculada por jugador (hoy solo NBA) — PRO.
+  window._cargarProps=(btn)=>{
+    if(!isPro())return;
+    if(btn){btn.disabled=true;btn.textContent="Calculando…";}
+    const resEl=$("#pPropsResult");
+    fetch(`${API}/motor/props`,{method:"POST",headers:H(),body:JSON.stringify({local,visitante,liga})})
+      .then(async r=>{
+        let d={}; try{d=await r.json();}catch{}
+        if(manejarExpiracion(r,d))return;
+        if(!r.ok||!d.ok){
+          if(resEl)resEl.innerHTML=`<div style="font-size:13px;color:var(--dim)">${esc(d.error||"No se pudieron calcular props por ahora")}</div>`;
+          if(btn){btn.disabled=false;btn.textContent="↻ Volver a calcular";}
+          return;
+        }
+        if(resEl)resEl.innerHTML=propsHTML(d,local,visitante);
+        if(btn){btn.disabled=false;btn.textContent="↻ Volver a calcular";}
+      }).catch(()=>{
+        if(resEl)resEl.innerHTML=`<div style="font-size:13px;color:var(--dim)">Sin conexión con el motor</div>`;
+        if(btn){btn.disabled=false;btn.textContent="↻ Volver a calcular";}
+      });
+  };
   // ALINEACIONES — solo se muestran si HAY datos confiables; si no, se oculta
   window._cargarAlineaciones=()=>{
     if(LIGAS_NO_FUTBOL.has(liga))return;
@@ -2422,6 +2487,28 @@ function statsPartidoHTML(d,local,visitante){
       </div>
     </div>`;
   }
+  // NBA: puntos/rebotes/asistencias (promedio por juego)
+  if(d.deporte==="basquetbol"){
+    return `<div class="card-h"><span class="card-t">Números del partido</span>
+      <span class="card-s">promedio por juego</span></div>
+    <div style="padding:4px 16px 16px">
+      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">🏀 Puntos (PTS)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.puntos,"")}
+        ${_statCol(visitante,V.puntos,"")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🧹 Rebotes (REB)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.rebotes,"")}
+        ${_statCol(visitante,V.rebotes,"")}
+      </div>
+      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 Asistencias (AST)</div>
+      <div style="display:flex;gap:20px">
+        ${_statCol(local,L.asistencias,"")}
+        ${_statCol(visitante,V.asistencias,"")}
+      </div>
+    </div>`;
+  }
   return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">datos recientes</span></div>
     <div style="padding:4px 16px 16px">
@@ -2441,6 +2528,46 @@ function statsPartidoHTML(d,local,visitante){
         ${_cornersBox(visitante,V)}
       </div>
     </div>`;
+}
+function _propRow(f){
+  const tendTxt=f.tendencia==="al_alza"?"↑ al alza":f.tendencia==="a_la_baja"?"↓ a la baja":"→ estable";
+  const recColor=f.recomendacion==="Más"?"var(--green)":f.recomendacion==="Menos"?"var(--red2)":"var(--dim2)";
+  const CAT_LABEL={puntos:"PTS",rebotes:"REB",asistencias:"AST"};
+  const muestra=Math.min(f.juegos_muestra||0,8);
+  return `<div style="padding:7px 0;border-bottom:1px dashed var(--line)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--dim2);font-weight:700;letter-spacing:.04em">${esc(CAT_LABEL[f.categoria]||f.categoria)}</span>
+      <span class="mono" style="font-weight:800;font-size:14px">Línea ${f.linea}</span>
+      <span style="font-weight:700;font-size:12px;color:${recColor}">${esc(f.recomendacion)}</span>
+      <span class="mono" style="font-size:11px;color:var(--dim)">${f.confianza}% conf.</span>
+    </div>
+    <div style="font-size:11px;color:var(--dim2);margin-top:2px">
+      Temporada ${f.promedio_temporada} · últimos ${muestra} juegos ${f.promedio_reciente} · ${tendTxt}
+    </div>
+    ${f.nota&&f.nota!=="Sin contexto adicional."?`<div style="font-size:11px;color:var(--dim);margin-top:3px">💬 ${esc(f.nota)}</div>`:""}
+  </div>`;
+}
+function _propsEquipo(bloque){
+  const props=(bloque&&bloque.props)||[];
+  if(!props.length)return `<div style="font-size:12px;color:var(--dim2)">Sin props con muestra suficiente todavía.</div>`;
+  const porJugador={};
+  props.forEach(p=>{(porJugador[p.jugador]=porJugador[p.jugador]||[]).push(p);});
+  return Object.entries(porJugador).map(([jugador,filas])=>`
+    <div style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${esc(jugador)} <span style="color:var(--dim2);font-weight:400">${esc(filas[0].posicion||"")}</span></div>
+      ${filas.map(f=>_propRow(f)).join("")}
+    </div>`).join("");
+}
+function propsHTML(d,local,visitante){
+  const L=d.local||{},V=d.visitante||{};
+  const aviso=(L.solo_pretemporada||V.solo_pretemporada)
+    ?`<div style="font-size:11px;color:var(--amber);margin-bottom:10px">⚠️ Alguno de los equipos todavía no tiene temporada regular cargada — estos promedios pueden incluir pretemporada.</div>`:"";
+  return `${aviso}
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--txt)">${esc(local)}</div>
+    ${_propsEquipo(L)}
+    <div style="font-weight:700;font-size:13px;margin:14px 0 8px;color:var(--txt)">${esc(visitante)}</div>
+    ${_propsEquipo(V)}
+    <div style="font-size:10px;color:var(--dim2);margin-top:10px">Línea calculada con datos reales de ESPN — no es garantía de resultado. El que estudia cobra, el que adivina reza.</div>`;
 }
 function alineacionesHTML(d,local,visitante,id){
   const btnTraer=`<button class="btn btn-line" style="padding:5px 11px;font-size:11px" data-a="traer-alineacion">🔄 Traer alineación</button>`;

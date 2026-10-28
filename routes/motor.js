@@ -2,7 +2,7 @@
 // Usa TUS middlewares reales: requireAuth, requirePro, requireAdmin.
 
 import express from "express";
-import { analizarPartido, picksDelDia, parlayMaestro, parlayComunidad, guardarBoletoComunidad, likeBoleto } from "../lib/motor.js";
+import { analizarPartido, picksDelDia, parlayMaestro, parlayComunidad, guardarBoletoComunidad, likeBoleto, derechas, propsJugador } from "../lib/motor.js";
 import { requireAuth, requirePro, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -129,6 +129,43 @@ router.post("/like-boleto", requireAuth, async (req, res) => {
     res.json(data);
   } catch (e) {
     console.error("Error like-boleto:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/derechas
+ * Goleador/amonestado (fútbol) o anotador de touchdown (NFL) — solo si
+ * el motor encuentra algo con suficiente confianza. Mismo criterio PRO
+ * que el análisis a fondo.
+ */
+router.post("/derechas", requireAuth, requirePro, async (req, res) => {
+  try {
+    const { local, visitante, liga } = req.body;
+    if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
+    const data = await derechas(local, visitante, liga || "ligamx", req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error derechas:", e.message);
+    res.status(502).json({ error: "El motor no responde ahora" });
+  }
+});
+
+/**
+ * POST /api/motor/props
+ * Props individuales por jugador: línea calculada (determinista) +
+ * promedio reciente + tendencia + recomendación + nota de contexto.
+ * Por ahora el motor solo los calcula para NBA. Mismo criterio PRO que
+ * derechas y el análisis a fondo.
+ */
+router.post("/props", requireAuth, requirePro, async (req, res) => {
+  try {
+    const { local, visitante, liga } = req.body;
+    if (!local || !visitante) return res.status(400).json({ error: "Faltan equipos" });
+    const data = await propsJugador(local, visitante, liga || "nba", req.id);
+    res.json(data);
+  } catch (e) {
+    console.error("Error props:", e.message);
     res.status(502).json({ error: "El motor no responde ahora" });
   }
 });
