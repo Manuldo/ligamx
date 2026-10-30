@@ -28,6 +28,12 @@ router.get("/", ah(async (req, res) => {
       _id: p.id, local: p.local, visitante: p.visitante,
       kickoff: p.inicio, estado: p.estado, jornada: p.jornada,
       golesLocal: p.golesLocal, golesVisitante: p.golesVisitante, liga: p.liga,
+      // yaPaso: ya pasó de sobra la hora de inicio pero seguimos sin
+      // marcador real sincronizado — ni "próximo" (ya no tiene caso
+      // analizarlo) ni "finalizado" (no hay marcador de verdad que
+      // mostrar). pickazoapp lo usa para ocultarlo de ambas listas en
+      // vez de inventarle un resultado.
+      yaPaso: !!p.yaPaso,
     })));
   } catch (e) {
     console.error("Error partidos:", e.message);
@@ -128,6 +134,7 @@ router.get("/todas", ah(async (req, res) => {
       ligaNombre: p.ligaNombre, kickoff: p.inicio, estado: p.estado,
       enVivo: p.enVivo, minuto: p.minuto,
       golesLocal: p.golesLocal, golesVisitante: p.golesVisitante, jornada: p.jornada,
+      yaPaso: !!p.yaPaso,
     }));
     res.json(partidos);
   } catch (e) {

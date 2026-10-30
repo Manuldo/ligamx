@@ -708,7 +708,7 @@ let me=JSON.parse(localStorage.getItem("me")||"null");
 let view="home", mode="login";
 const cache={};
 // Ligas disponibles (el motor las tiene). El selector deja cambiar.
-let LIGA_ACTUAL="ligamx";
+let LIGA_ACTUAL="__todas__";
 const LIGA_NOMBRES={ligamx:"Liga MX",premier:"Premier League",laliga:"LaLiga",
   seriea:"Serie A",bundesliga:"Bundesliga",ligue1:"Ligue 1",
   championsleague:"Champions League",leaguescup:"Leagues Cup",nfl:"NFL",mlb:"MLB",nba:"NBA"};
@@ -1283,7 +1283,11 @@ async function viewHoy(){
     // Próximo = no finalizado, O con fecha futura aunque el estado esté mal.
     // Rescata partidos futuros que el scraper marcó 'finalizado' por error.
     const esFuturo=(p)=>{const t=p.kickoff?new Date(p.kickoff).getTime():0;return t&&t>_ahora;};
-    const proximos=partidos.filter(p=>p.estado!=="finalizado"||esFuturo(p));
+    // yaPaso = ya pasó de sobra la hora de inicio y seguimos sin marcador
+    // real sincronizado: ni lo metemos a "próximos" (ya no tiene caso
+    // analizarlo) ni a "resultados" (no hay marcador de verdad que mostrar)
+    // — se oculta, en vez de inventarle un "FINAL" sin marcador.
+    const proximos=partidos.filter(p=>!p.yaPaso&&(p.estado!=="finalizado"||esFuturo(p)));
     const jugados=partidos.filter(p=>p.estado==="finalizado"&&!esFuturo(p))
       .sort((a,b)=>new Date(b.kickoff||0)-new Date(a.kickoff||0)).slice(0,20);
     $("#tbS").textContent=`${proximos.length} próximos · todas las ligas`;
@@ -1342,10 +1346,14 @@ async function viewHoy(){
   }
   const jornadas=jdata.jornadas||[];
 
-  // jornada por defecto: la "actual", o la primera próxima
+  // jornada por defecto: SIEMPRE "Todas". Antes se intentaba adivinar la
+  // jornada "actual"/"próxima" del motor, pero esa detección fallaba (p.ej.
+  // abría directo en una jornada de dentro de 2 semanas) y el usuario
+  // terminaba viendo una sola jornada sin saber por qué. Más simple y
+  // confiable: arrancar siempre en "Todas" y que el usuario elija jornada
+  // si quiere una específica.
   if(JORNADA_SEL===null){
-    const actual=jornadas.find(j=>j.estado==="actual")||jornadas.find(j=>j.estado==="proxima");
-    JORNADA_SEL=actual?actual.jornada:"__todas__";
+    JORNADA_SEL="__todas__";
   }
 
   // filtrar partidos por jornada seleccionada
@@ -1353,7 +1361,10 @@ async function viewHoy(){
   if(JORNADA_SEL&&JORNADA_SEL!=="__todas__"){
     lista=partidos.filter(p=>(p.jornada||"")===JORNADA_SEL);
   }
-  const proximos=lista.filter(p=>p.estado!=="finalizado");
+  // yaPaso = ya pasó de sobra la hora de inicio y seguimos sin marcador real
+  // sincronizado: se oculta de "próximos" (ya no tiene caso analizarlo) en
+  // vez de dejarlo ahí para siempre o inventarle un "FINAL" sin marcador.
+  const proximos=lista.filter(p=>p.estado!=="finalizado"&&!p.yaPaso);
   const jugados=lista.filter(p=>p.estado==="finalizado");
   $("#tbS").textContent=`${proximos.length} próximos`;
 
