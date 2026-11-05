@@ -313,6 +313,47 @@ tbody tr:hover{background:var(--panel2)}
 .an-li{padding:5px 0 5px 4px;border-top:1px solid rgba(37,41,53,.5);font-size:12.5px;color:var(--dim)}
 .an-li:first-child{border-top:none}
 .an-li b{color:var(--txt)}
+
+/* ===== NÚMEROS DEL PARTIDO (stats) ===== */
+.stat-grp{margin:14px 12px}
+.stat-grp:first-child{margin-top:12px}
+.stat-grp-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.stat-grp-t .an-ico{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:7px;font-size:12px;flex-shrink:0;background:var(--panel3)}
+.stat-grp.g-gol .stat-grp-t{color:var(--green)}
+.stat-grp.g-gol .an-ico{background:rgba(34,197,94,.16)}
+.stat-grp.g-am .stat-grp-t{color:var(--amber)}
+.stat-grp.g-am .an-ico{background:rgba(240,180,41,.18)}
+.stat-grp.g-cor .stat-grp-t{color:var(--blue)}
+.stat-grp.g-cor .an-ico{background:rgba(59,130,246,.16)}
+.stat-cols{display:flex;gap:10px}
+.stat-col{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;padding:12px 13px 6px}
+.stat-col-team{font-size:11.5px;font-weight:800;color:var(--txt);margin-bottom:8px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.stat-col-team .prom{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--dim2)}
+.stat-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid rgba(37,41,53,.6)}
+.stat-row:first-child{border-top:none}
+.stat-rank{width:19px;height:19px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:800;background:var(--panel3);color:var(--dim2)}
+.stat-row.r1 .stat-rank{background:rgba(240,180,41,.2);color:var(--amber)}
+.stat-row.r2 .stat-rank{background:rgba(142,148,166,.18);color:var(--dim)}
+.stat-row.r3 .stat-rank{background:rgba(196,106,48,.18);color:#c9834a}
+.stat-name{flex:1;min-width:0;overflow:hidden}
+.stat-name b{display:block;font-size:12.5px;font-weight:600;color:var(--txt);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-name span{font-size:10.5px;color:var(--dim2)}
+.stat-val{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:13px;color:var(--txt);flex-shrink:0}
+.stat-row.r1 .stat-val{color:var(--amber)}
+.stat-empty{font-size:12px;color:var(--dim2);padding:8px 0}
+.corner-row{padding:8px 0;border-top:1px solid rgba(37,41,53,.6)}
+.corner-row:first-child{border-top:none}
+.corner-row-h{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;margin-bottom:5px}
+.corner-row-h span:first-child{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.corner-row-h span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--txt);flex-shrink:0}
+.corner-bar{height:4px;border-radius:3px;background:var(--panel3);overflow:hidden}
+.corner-bar i{display:block;height:100%;background:var(--blue);border-radius:3px}
 /* modelos */
 .an-model{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
   padding:9px 16px;margin-top:2px}
@@ -2497,25 +2538,33 @@ async function abrirPartido(id){
       <div class="empty"><span>No se pudieron cargar</span></div>`;});
 }
 function _statCol(titulo,items,unidad){
-  return `<div style="flex:1;min-width:0">
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim2);font-weight:700;margin-bottom:8px">${esc(titulo)}</div>
-    ${items&&items.length?items.map(x=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px">
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-weight:600">${esc(x.nombre)}</b>
-        <span style="color:var(--dim)"> ${esc(x.posicion||"")}</span></span>
-      <span class="mono" style="color:var(--txt);font-weight:700">${x.valor}${unidad||""}</span></div>`).join("")
-      :`<div style="font-size:12px;color:var(--dim2)">—</div>`}
+  return `<div class="stat-col">
+    <div class="stat-col-team">${esc(titulo)}</div>
+    ${items&&items.length?items.map((x,i)=>`<div class="stat-row r${i+1}">
+      <div class="stat-rank">${i+1}</div>
+      <div class="stat-name"><b>${esc(x.nombre)}</b><span>${esc(x.posicion||"")}</span></div>
+      <div class="stat-val">${x.valor}${unidad||""}</div></div>`).join("")
+      :`<div class="stat-empty">Sin datos todavía</div>`}
   </div>`;
 }
 function _cornersBox(eq,c){
   const prom=c&&c.corners&&c.corners.promedioCorners;
-  const filas=(c&&c.corners&&c.corners.partidos)||[];
-  return `<div style="flex:1;min-width:0">
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim2);font-weight:700;margin-bottom:8px">
-      Córners ${esc(eq)}${prom!=null?` · prom ${prom}`:""}</div>
-    ${filas.length?filas.slice(0,5).map(f=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12px">
-      <span style="color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">vs ${esc(f.rival||"")}</span>
-      <span class="mono">${f.corners!=null?f.corners+" córners":""}${f.tiros!=null?` · ${f.tiros} tiros`:""}</span></div>`).join("")
-      :`<div style="font-size:12px;color:var(--dim2)">Sin partidos recientes con datos</div>`}
+  const filas=((c&&c.corners&&c.corners.partidos)||[]).slice(0,5);
+  const maxCorners=Math.max(1,...filas.map(f=>f.corners||0));
+  return `<div class="stat-col">
+    <div class="stat-col-team">🚩 ${esc(eq)}${prom!=null?`<span class="prom">prom ${prom}</span>`:""}</div>
+    ${filas.length?filas.map(f=>`<div class="corner-row">
+      <div class="corner-row-h"><span>vs ${esc(f.rival||"")}</span>
+        <span>${f.corners!=null?f.corners+" córners":""}${f.tiros!=null?` · ${f.tiros} tiros`:""}</span></div>
+      <div class="corner-bar"><i style="width:${f.corners!=null?Math.max(6,Math.round(f.corners/maxCorners*100)):0}%"></i></div>
+      </div>`).join("")
+      :`<div class="stat-empty">Sin partidos recientes con datos</div>`}
+  </div>`;
+}
+function _statGrp(cls,icon,titulo,colsHtml){
+  return `<div class="stat-grp ${cls}">
+    <div class="stat-grp-t"><span class="an-ico">${icon}</span>${esc(titulo)}</div>
+    <div class="stat-cols">${colsHtml}</div>
   </div>`;
 }
 function statsPartidoHTML(d,local,visitante){
@@ -2524,97 +2573,33 @@ function statsPartidoHTML(d,local,visitante){
   if(d.deporte==="americano"){
     return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">yardas prom/juego</span></div>
-    <div style="padding:4px 16px 16px">
-      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">🏈 Anotadores (touchdowns)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.anotadores," TD")}
-        ${_statCol(visitante,V.anotadores," TD")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 Pases (yardas)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.pasadores," yd")}
-        ${_statCol(visitante,V.pasadores," yd")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🏃 Carreras (yardas)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.corredores," yd")}
-        ${_statCol(visitante,V.corredores," yd")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🙌 Recepciones (yardas)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.receptores," yd")}
-        ${_statCol(visitante,V.receptores," yd")}
-      </div>
-    </div>`;
+    ${_statGrp("g-gol","🏈","Anotadores (touchdowns)",_statCol(local,L.anotadores," TD")+_statCol(visitante,V.anotadores," TD"))}
+    ${_statGrp("g-cor","🎯","Pases (yardas)",_statCol(local,L.pasadores," yd")+_statCol(visitante,V.pasadores," yd"))}
+    ${_statGrp("g-am","🏃","Carreras (yardas)",_statCol(local,L.corredores," yd")+_statCol(visitante,V.corredores," yd"))}
+    ${_statGrp("g-cor","🙌","Recepciones (yardas)",_statCol(local,L.receptores," yd")+_statCol(visitante,V.receptores," yd"))}`;
   }
   // MLB: jonrones/impulsadas (bateo) y ponches/ERA (pitcheo)
   if(d.deporte==="beisbol"){
     return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">acumulado de temporada</span></div>
-    <div style="padding:4px 16px 16px">
-      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">⚾ Jonrones (HR)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.jonrones,"")}
-        ${_statCol(visitante,V.jonrones,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🏏 Impulsadas (RBI)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.impulsadas,"")}
-        ${_statCol(visitante,V.impulsadas,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🔥 Ponches (pitcheo)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.ponches,"")}
-        ${_statCol(visitante,V.ponches,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 ERA (promedio de carreras limpias)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.era,"")}
-        ${_statCol(visitante,V.era,"")}
-      </div>
-    </div>`;
+    ${_statGrp("g-gol","⚾","Jonrones (HR)",_statCol(local,L.jonrones,"")+_statCol(visitante,V.jonrones,""))}
+    ${_statGrp("g-am","🏏","Impulsadas (RBI)",_statCol(local,L.impulsadas,"")+_statCol(visitante,V.impulsadas,""))}
+    ${_statGrp("g-cor","🔥","Ponches (pitcheo)",_statCol(local,L.ponches,"")+_statCol(visitante,V.ponches,""))}
+    ${_statGrp("g-cor","🎯","ERA (promedio de carreras limpias)",_statCol(local,L.era,"")+_statCol(visitante,V.era,""))}`;
   }
   // NBA: puntos/rebotes/asistencias (promedio por juego)
   if(d.deporte==="basquetbol"){
     return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">promedio por juego</span></div>
-    <div style="padding:4px 16px 16px">
-      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">🏀 Puntos (PTS)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.puntos,"")}
-        ${_statCol(visitante,V.puntos,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🧹 Rebotes (REB)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.rebotes,"")}
-        ${_statCol(visitante,V.rebotes,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🎯 Asistencias (AST)</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.asistencias,"")}
-        ${_statCol(visitante,V.asistencias,"")}
-      </div>
-    </div>`;
+    ${_statGrp("g-gol","🏀","Puntos (PTS)",_statCol(local,L.puntos,"")+_statCol(visitante,V.puntos,""))}
+    ${_statGrp("g-am","🧹","Rebotes (REB)",_statCol(local,L.rebotes,"")+_statCol(visitante,V.rebotes,""))}
+    ${_statGrp("g-cor","🎯","Asistencias (AST)",_statCol(local,L.asistencias,"")+_statCol(visitante,V.asistencias,""))}`;
   }
   return `<div class="card-h"><span class="card-t">Números del partido</span>
       <span class="card-s">datos recientes</span></div>
-    <div style="padding:4px 16px 16px">
-      <div style="font-weight:700;font-size:13px;margin:6px 0 10px;color:var(--txt)">⚽ Goleadores</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.goleadores,"")}
-        ${_statCol(visitante,V.goleadores,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🟨 Más amonestados</div>
-      <div style="display:flex;gap:20px">
-        ${_statCol(local,L.amonestados,"")}
-        ${_statCol(visitante,V.amonestados,"")}
-      </div>
-      <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--txt)">🚩 Córners y tiros (últimos partidos)</div>
-      <div style="display:flex;gap:20px">
-        ${_cornersBox(local,L)}
-        ${_cornersBox(visitante,V)}
-      </div>
-    </div>`;
+    ${_statGrp("g-gol","⚽","Goleadores",_statCol(local,L.goleadores,"")+_statCol(visitante,V.goleadores,""))}
+    ${_statGrp("g-am","🟨","Más amonestados",_statCol(local,L.amonestados,"")+_statCol(visitante,V.amonestados,""))}
+    ${_statGrp("g-cor","🚩","Córners y tiros (últimos partidos)",_cornersBox(local,L)+_cornersBox(visitante,V))}`;
 }
 const _PROP_FILLER=new Set(["sin contexto adicional.","sin contexto adicional","sin ventaja clara.","sin ventaja clara",""]);
 function _propRow(f){
