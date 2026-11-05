@@ -902,6 +902,17 @@ function motorAnalisisHTML(markdown,ctx){
       out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t"><span class="an-ico">⚠️</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
+    // Si el cuerpo trae picks en formato **PICK:**...**Confianza:**...%,
+    // se procesan como picks SIN IMPORTAR qué título le haya puesto el
+    // modelo. Pasaba que la respuesta de Goleador/amonestado llegaba con
+    // su propio encabezado "## DERECHAS:" (el prompt no se lo prohíbe,
+    // solo prohíbe "###"), y por traer la palabra "derecha" en el título
+    // caía en la sección colapsable de abajo (pensada para "Derechas
+    // descartadas" del análisis completo) y se mostraba como texto plano
+    // sin tarjetas. Esto se adelanta a esa confusión.
+    if(/\*\*PICK:\*\*/i.test(cuerpo)){
+      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio||'Candidatos')}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+    }
     // DESCARTADOS / DERECHAS — colapsables (cerrados)
     if(tl.includes('descartado')||tl.includes('derecha')){
       const ic=tl.includes('descartado')?'🚫':'✔️';
