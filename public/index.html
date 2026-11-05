@@ -289,14 +289,27 @@ tbody tr:hover{background:var(--panel2)}
 .liga-chip span{font-size:14px}
 
 /* ===== ANALISIS DEL MOTOR ===== */
-.an-sec{padding:13px 16px;border-bottom:1px solid var(--line);border-left:3px solid var(--panel3)}
-.an-sec-t{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--dim);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-.an-sec-b{font-size:13px;line-height:1.5;color:var(--txt)}
+.an-sec{padding:14px 16px 15px;margin:10px 12px;border-radius:13px;
+  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--panel3)}
+.an-sec:first-child{margin-top:12px}
+.an-sec-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.an-sec-t .an-ico{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:7px;font-size:12px;flex-shrink:0;background:var(--panel3)}
+.an-sec-b{font-size:13.5px;line-height:1.6;color:var(--txt)}
 .an-sec-b b{color:var(--txt)}
-.sec-lectura{border-left-color:var(--blue)}
-.sec-veredicto{border-left-color:var(--amber);background:linear-gradient(120deg,rgba(240,180,41,.06),transparent)}
-.sec-riesgo{border-left-color:var(--red)}
+.sec-lectura{border-left-color:var(--blue);
+  background:linear-gradient(120deg,rgba(59,130,246,.08),var(--panel) 60%)}
+.sec-lectura .an-sec-t{color:var(--blue)}
+.sec-lectura .an-ico{background:rgba(59,130,246,.16)}
+.sec-veredicto{border-left-color:var(--amber);
+  background:linear-gradient(120deg,rgba(240,180,41,.1),var(--panel) 60%)}
+.sec-veredicto .an-sec-t{color:var(--amber)}
+.sec-veredicto .an-ico{background:rgba(240,180,41,.18)}
+.sec-riesgo{border-left-color:var(--red);
+  background:linear-gradient(120deg,rgba(236,48,19,.08),var(--panel) 60%)}
+.sec-riesgo .an-sec-t{color:var(--red)}
+.sec-riesgo .an-ico{background:rgba(236,48,19,.16)}
 .an-li{padding:5px 0 5px 4px;border-top:1px solid rgba(37,41,53,.5);font-size:12.5px;color:var(--dim)}
 .an-li:first-child{border-top:none}
 .an-li b{color:var(--txt)}
@@ -876,17 +889,17 @@ function motorAnalisisHTML(markdown,ctx){
     }
     // LECTURA — tarjeta azul
     if(tl.includes('lectura')){
-      out+=`<div class="an-sec sec-lectura"><div class="an-sec-t">📖 ${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-lectura"><div class="an-sec-t"><span class="an-ico">📖</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // VEREDICTO — ámbar destacado
     if(tl.includes('veredicto')){
-      out+=`<div class="an-sec sec-veredicto"><div class="an-sec-t">⚖️ ${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-veredicto"><div class="an-sec-t"><span class="an-ico">⚖️</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // RIESGO — rojo
     if(tl.includes('riesgo')){
-      out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t">⚠️ ${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t"><span class="an-ico">⚠️</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // DESCARTADOS / DERECHAS — colapsables (cerrados)
@@ -901,6 +914,22 @@ function motorAnalisisHTML(markdown,ctx){
     // otra sección
     out+=`<div class="an-sec"><div class="an-sec-t">${esc(tituloLimpio)}</div>
       <div class="an-sec-b">${inline(cuerpo)}</div></div>`;
+  }
+  // Fallback: contenido SIN ningún encabezado "## " (el caso de Goleador/
+  // amonestado, props y cualquier respuesta que sea puro **PICK:**...
+  // **Confianza:**...% o una frase suelta tipo "Sin derechas de alta
+  // confianza en este partido"). Antes esto dejaba 'out' vacío — la
+  // tarjeta se veía en blanco (sin mensaje ni error) aunque el motor sí
+  // había respondido bien. Ahora, si no hubo NINGUNA sección reconocida,
+  // se procesa el texto completo: picks si trae **PICK:**, o el texto
+  // plano si no.
+  if(!out.trim()){
+    const crudo=h.replace(/^# .+$/gm,'').trim();
+    if(crudo){
+      out=/\*\*PICK:\*\*/i.test(crudo)
+        ? picks(crudo).replace(/(?<!<\/div>)\n/g,'<br>')
+        : `<div class="an-sec"><div class="an-sec-b">${inline(crudo)}</div></div>`;
+    }
   }
   return out;
 }
