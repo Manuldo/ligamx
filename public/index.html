@@ -826,10 +826,16 @@ function motorAnalisisHTML(markdown,ctx){
         </div>`;
       });
   }
-  const inline=t=>t
+  // Negrita, cursiva, código y viñetas — SIN tocar saltos de línea, para
+  // poder aplicarse también sobre el resultado de picks() (que mezcla
+  // tarjetas <div> ya armadas con texto crudo alrededor) sin reventar su
+  // HTML. Quien la llame decide aparte cómo convertir los \n.
+  const formatearTextoLibre=t=>t
     .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g,'$1<i>$2</i>')
     .replace(/`(.+?)`/g,'<span class="mono">$1</span>')
-    .replace(/^\s*[-*] (.+)$/gm,'<div class="an-li">$1</div>')
+    .replace(/^\s*[-*] (.+)$/gm,'<div class="an-li">$1</div>');
+  const inline=t=>formatearTextoLibre(t)
     .replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
   // Convierte una tabla markdown de picks (| Mercado | Confianza | Justif |)
   // en tarjetas con barra de confianza. Devuelve '' si no hay tabla.
@@ -871,10 +877,10 @@ function motorAnalisisHTML(markdown,ctx){
 
     // MODELOS (con picks de confianza) — encabezado de color
     if(titulo.includes('⭐')||tl.includes('conservador')){
-      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     if(titulo.includes('🔥')||tl.includes('estakazo')){
-      out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     // PICKS SUGERIDOS (NFL y otros) — tabla markdown O formato **PICK:** → tarjetas
     if(tl.includes('pick')){
@@ -884,7 +890,7 @@ function motorAnalisisHTML(markdown,ctx){
       }
       // si no es tabla, probar el formato **PICK:** ... **Confianza:** X%
       if(/\*\*PICK:\*\*/i.test(cuerpo)){
-        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
       }
     }
     // LECTURA — tarjeta azul
@@ -911,7 +917,7 @@ function motorAnalisisHTML(markdown,ctx){
     // descartadas" del análisis completo) y se mostraba como texto plano
     // sin tarjetas. Esto se adelanta a esa confusión.
     if(/\*\*PICK:\*\*/i.test(cuerpo)){
-      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio||'Candidatos')}</div>${picks(cuerpo).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio||'Candidatos')}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     // DESCARTADOS / DERECHAS — colapsables (cerrados)
     if(tl.includes('descartado')||tl.includes('derecha')){
@@ -938,7 +944,7 @@ function motorAnalisisHTML(markdown,ctx){
     const crudo=h.replace(/^# .+$/gm,'').trim();
     if(crudo){
       out=/\*\*PICK:\*\*/i.test(crudo)
-        ? picks(crudo).replace(/(?<!<\/div>)\n/g,'<br>')
+        ? formatearTextoLibre(picks(crudo)).replace(/(?<!<\/div>)\n/g,'<br>')
         : `<div class="an-sec"><div class="an-sec-b">${inline(crudo)}</div></div>`;
     }
   }
