@@ -2669,8 +2669,8 @@ function alineacionesHTML(d,local,visitante,id){
       <div class="ali-team">⚽ ${esc(eq.equipo)} ${eq.formacion?`<span class="ali-form">${esc(eq.formacion)}</span>`:""}</div>
       ${(eq.titulares||[]).length?(eq.titulares||[]).map((j,i)=>`
         <div class="ali-p"><span class="ali-num mono">${esc(String(j.numero||j.dorsal||(i+1)))}</span>
-        <span class="ali-name">${esc(j.nombre||j.name||j)}</span>
-        ${j.posicion?`<span class="ali-pos">${esc(j.posicion)}</span>`:""}</div>`).join("")
+        &nbsp;<span class="ali-name">${esc(j.nombre||j.name||j)}</span>
+        ${j.posicion?`&nbsp;<span class="ali-pos">${esc(j.posicion)}</span>`:""}</div>`).join("")
         :`<div class="ali-empty">Sin confirmar aún</div>`}
     </div>`;
   return `<div class="ali-h-wrap"><span class="card-t">Alineaciones</span>
