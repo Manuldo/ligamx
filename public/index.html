@@ -831,6 +831,7 @@ function manejarExpiracion(resp,data){
   return false;
 }
 const isPro=()=>!!(me&&me.isPro);
+const isPremium=()=>!!(me&&me.isPremium);
 
 function toast(m,k){const t=$("#toast");t.textContent=m;t.className="toast on "+(k||"");
   clearTimeout(t._t);t._t=setTimeout(()=>t.className="toast "+(k||""),2600);}
@@ -1116,7 +1117,7 @@ function sbUser(){
   $("#sbuser").innerHTML = me
     ? `<span class="av">${esc((me.email||"?")[0].toUpperCase())}</span>
        <div class="sb-user-i"><b>${esc(me.email)}</b>
-       ${isPro()?'<em>PRO</em>':'<em style="color:var(--dim2)">Cuenta gratis</em>'}</div>`
+       ${isPremium()?'<em>PREMIUM</em>':isPro()?'<em>PRO</em>':'<em style="color:var(--dim2)">Cuenta gratis</em>'}</div>`
     : `<span class="av">?</span><div class="sb-user-i"><b>Sin sesión</b></div>`;
   if(me){$("#sbuser").style.cursor="pointer";$("#sbuser").setAttribute("data-a","cuenta");}
   $("#tbAct").innerHTML = me
@@ -1181,7 +1182,9 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-a]"); if(!b)return;
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
-  if(a==="out")logout(); if(a==="pro")goPro();
+  if(a==="out")logout(); if(a==="pro")verPlanes();
+  if(a==="pagar-pro")goPro("pro"); if(a==="pagar-premium")goPro("premium");
+  if(a==="guardar-wa")guardarWhatsapp(b);
   if(a==="cuenta")verCuenta();
   if(a==="volver")volverAHoy();
   if(a==="reanalizar"&&window._cargarAnalisis)window._cargarAnalisis(true);
@@ -2811,6 +2814,7 @@ async function verCuenta(){
     return fecha.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
   };
   const esPro=isPro();
+  const esPremium=isPremium();
   // Tiene suscripción en Stripe aunque el pago esté pendiente (past_due/unpaid):
   // debe poder entrar al portal a cambiar su tarjeta en lugar de pagar otra vez.
   const tieneSub=!!(u.proEstado&&!["canceled","incomplete_expired"].includes(u.proEstado));
@@ -2823,17 +2827,20 @@ async function verCuenta(){
         <span class="av" style="width:52px;height:52px;font-size:22px">${esc((u.email||"?")[0].toUpperCase())}</span>
         <div><div style="font-weight:800;font-size:16px">${esc(u.email||"")}</div>
           <div style="font-size:13px;margin-top:2px">${esPro
-            ?'<span style="color:var(--red);font-weight:800">● PRO activo</span>'
+            ?(esPremium?'<span style="color:var(--red);font-weight:800">● PREMIUM activo</span>':'<span style="color:var(--red);font-weight:800">● PRO activo</span>')
             :pagoPendiente
               ?'<span style="color:var(--red);font-weight:800">● Pago pendiente: actualiza tu tarjeta</span>'
               :'<span style="color:var(--dim2);font-weight:700">Cuenta gratis</span>'}</div></div>
       </div>
       <div class="enums" style="border-top:1px solid var(--line);padding-top:16px">
         <div class="en"><div class="k">Miembro desde</div><div class="v" style="font-size:14px">${fmt(u.cuentaDesde)}</div></div>
-        ${esPro?`<div class="en"><div class="k">Estado suscripción</div><div class="v" style="font-size:14px;color:var(--green)">${esc(u.proEstado||"activa")}</div></div>
+        ${esPro?`<div class="en"><div class="k">Plan</div><div class="v" style="font-size:14px">${esPremium?"Premium · $1,000/mes":"PRO · $299/mes"}</div></div>
+        <div class="en"><div class="k">Estado suscripción</div><div class="v" style="font-size:14px;color:var(--green)">${esc(u.proEstado||"activa")}</div></div>
         <div class="en"><div class="k">Renueva/vence</div><div class="v" style="font-size:14px">${fmt(u.proVence)}</div></div>`:""}
       </div>
+      ${esPremium?`<div id="grupoBox" style="margin-top:20px">${grupoCargandoHTML()}</div>`:""}
       <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
+        ${esPro&&!esPremium?'<button class="btn btn-red" data-a="pagar-premium">Sube a Premium — $1,000/mes</button>':""}
         ${esPro
           ?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>'
           :pagoPendiente
@@ -2843,17 +2850,96 @@ async function verCuenta(){
       </div>
     </div>
   </div>`;
+  if(esPremium)cargarGrupo();
 }
-async function goPro(){
+
+/* ===== PREMIUM: WhatsApp + grupo ===== */
+function grupoCargandoHTML(){return '<div style="color:var(--dim);font-size:13px">Cargando acceso al grupo…</div>';}
+async function cargarGrupo(){
+  const box=$("#grupoBox");if(!box)return;
+  let d={},r=null;
+  try{r=await fetch(`${API}/premium/grupo`,{headers:H()});d=await r.json().catch(()=>({}));}catch{}
+  if(!r){box.innerHTML='<div style="color:var(--dim);font-size:13px">Sin conexión</div>';return;}
+  if(r.ok&&d.link){
+    box.innerHTML=`<div style="border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);border-radius:10px;padding:16px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:6px">Grupo VIP de WhatsApp</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:12px">Pide entrar con el <b style="color:var(--txt)">${esc(d.whatsapp)}</b>. Tu solicitud se aprueba a mano.</div>
+      <a class="btn" href="${esc(d.link)}" target="_blank" rel="noopener" style="background:var(--green);color:#06210f;text-decoration:none;width:100%;padding:12px;font-weight:800">Entrar al grupo</a>
+      <div style="margin-top:12px">${formWhatsappHTML("Cambiar número",d.whatsapp)}</div></div>`;
+    return;
+  }
+  if(d.faltaWhatsapp){
+    box.innerHTML=`<div style="border:1px solid rgba(240,180,41,.4);background:rgba(240,180,41,.08);border-radius:10px;padding:16px">
+      <div style="font-weight:800;font-size:15px;margin-bottom:6px">Último paso: tu WhatsApp</div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:12px">Pon el número con el que vas a entrar al grupo. Con él te identifico para aprobar tu solicitud.</div>
+      ${formWhatsappHTML("Guardar y ver el acceso al grupo","")}</div>`;
+    return;
+  }
+  box.innerHTML=`<div style="color:var(--dim);font-size:13px">${esc(d.error||"No se pudo cargar el acceso al grupo")}</div>`;
+}
+function formWhatsappHTML(txt,valor){
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap">
+    <input id="waInput" type="tel" inputmode="tel" aria-label="Tu WhatsApp" placeholder="55 1234 5678" value="${esc(valor||"")}"
+      style="flex:1 1 180px;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:11px 12px;color:var(--txt);font-size:14px">
+    <button class="btn btn-line" data-a="guardar-wa">${esc(txt)}</button></div>`;
+}
+async function guardarWhatsapp(b){
+  const v=($("#waInput")||{}).value||"";
+  if(!v.trim()){toast("Escribe tu número");return;}
+  b.disabled=true;
+  try{const r=await fetch(`${API}/premium/whatsapp`,{method:"POST",headers:H(),body:JSON.stringify({whatsapp:v})});
+    const d=await r.json().catch(()=>({}));
+    if(manejarExpiracion(r,d))return;
+    if(r.ok){toast("WhatsApp guardado","ok");cargarGrupo();}else{toast(d.error||"No se pudo guardar");b.disabled=false;}
+  }catch{toast("Sin conexión");b.disabled=false;}
+}
+
+/* ===== PLANES ===== */
+function verPlanes(){
   if(!me){openAuth("register");return;}
-  try{const r=await fetch(`${API}/payments/checkout`,{method:"POST",headers:H()});
+  setView("hoy");
+  $("#tbT").textContent="Planes";$("#tbS").textContent="";
+  const li=t=>`<li style="margin:3px 0">${t}</li>`;
+  $("#page").innerHTML=`<div style="max-width:560px;margin:0 auto">
+    <h2 style="font-weight:900;font-size:24px;letter-spacing:-.03em;margin:4px 0 4px">Elige tu plan</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:16px">Cancela cuando quieras. Se renueva el mismo día de cada mes.</p>
+    <div class="card" style="padding:18px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">PRO</b>
+        <span class="mono" style="font-weight:700;font-size:20px">$299<span style="font-size:12px;color:var(--dim)">/mes</span></span></div>
+      <ul style="padding-left:18px;font-size:13px;color:var(--dim);margin:10px 0 14px">
+        ${li("Análisis IA de todos los partidos")}${li("Parlay Maestro y picks PRO")}${li("Alineaciones, lesiones e historial")}</ul>
+      ${isPro()?'<div style="font-size:13px;color:var(--green);font-weight:700">Ya lo tienes</div>':'<button class="btn btn-line" data-a="pagar-pro" style="width:100%;padding:12px">Hazte PRO</button>'}
+    </div>
+    <div class="card" style="padding:18px;border:2px solid var(--red)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">PREMIUM <span style="background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:4px">VIP</span></b>
+        <span class="mono" style="font-weight:700;font-size:20px">$1,000<span style="font-size:12px;color:var(--dim)">/mes</span></span></div>
+      <ul style="padding-left:18px;font-size:13px;color:var(--dim);margin:10px 0 10px">
+        ${li('<b style="color:var(--txt)">Todo lo de PRO</b>')}${li("Grupo privado de WhatsApp")}${li("Las apuestas y parlays que yo juego, en tiempo real")}</ul>
+      <p style="font-size:12.5px;color:var(--dim);margin-bottom:12px">Al pagar registras tu WhatsApp en "Mi cuenta" y ahí te aparece el acceso al grupo.</p>
+      ${isPremium()?'<div style="font-size:13px;color:var(--green);font-weight:700">Ya lo tienes</div>'
+        :`<button class="btn btn-red" data-a="pagar-premium" style="width:100%;padding:13px">Quiero Premium — $1,000/mes</button>
+          ${isPro()?'<p style="font-size:11.5px;color:var(--dim);text-align:center;margin-top:8px">Como ya eres PRO, hoy solo pagas la diferencia.</p>':""}`}
+    </div>
+    <p style="font-size:11.5px;color:var(--dim);text-align:center;margin-top:14px">Pago seguro con Stripe</p></div>`;
+}
+
+async function goPro(plan="pro"){
+  if(!me){openAuth("register");return;}
+  if(plan==="premium"&&isPro()&&!isPremium()&&!confirm("Vas a cambiar a Premium ($1,000/mes). Hoy se cobra la diferencia con tu tarjeta guardada. ¿Continuar?"))return;
+  try{const r=await fetch(`${API}/payments/checkout`,{method:"POST",headers:H(),body:JSON.stringify({plan})});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
+    if(d.upgraded){await refrescarMe();toast("¡Ya eres Premium! 🎉","ok");sbUser();verCuenta();return;}
     if(manejarExpiracion(r,d))return;
     // Ya tiene suscripción (p. ej. pago pendiente): mandarlo al portal, no a pagar doble.
     if(r.status===409){toast("Ya tienes una suscripción, te llevo a administrarla");abrirPortal();return;}
     toast(r.status===503?"Los pagos aún no están activos":(d.error||"No se pudo abrir el pago"));
   }catch{toast("Sin conexión");}
+}
+async function refrescarMe(){
+  try{const r=await fetch(`${API}/auth/me`,{headers:H()});if(!r.ok)return;const d=await r.json();
+    if(d.token){token=d.token;localStorage.setItem("token",token);}
+    if(d.user){me=d.user;localStorage.setItem("me",JSON.stringify(me));}}catch{}
 }
 async function abrirPortal(){
   try{const r=await fetch(`${API}/payments/portal`,{method:"POST",headers:H()});
@@ -2965,6 +3051,7 @@ function logout(){
 async function checkRetornoPago(){
   const qs=new URLSearchParams(location.search);
   if(qs.get("pro")==="ok" && token){
+    const quierePremium=qs.get("plan")==="premium";
     toast("Confirmando tu suscripción…");
     let confirmado=false;
     for(let i=0;i<4;i++){
@@ -2974,14 +3061,16 @@ async function checkRetornoPago(){
           const d=await r.json();
           if(d.token){token=d.token;localStorage.setItem("token",token);}
           if(d.user){me=d.user;localStorage.setItem("me",JSON.stringify(me));}
-          if(d.user&&d.user.isPro){confirmado=true;toast("¡Ya eres PRO! 🎉","ok");break;}
+          if(d.user&&(quierePremium?d.user.isPremium:d.user.isPro)){confirmado=true;
+            toast(quierePremium?"¡Ya eres Premium! Registra tu WhatsApp para entrar al grupo":"¡Ya eres PRO! 🎉","ok");break;}
         }
       }catch{}
       await new Promise(r=>setTimeout(r,1500));
     }
     if(!confirmado)toast("Tu pago se está procesando. Si en un par de minutos no ves tu PRO, recarga la página.");
     history.replaceState({},"",location.pathname);
-    sbUser();sbLigas();render();
+    sbUser();sbLigas();
+    if(confirmado&&quierePremium)verCuenta();else render();
   }else if(qs.get("pro")==="cancel"){
     history.replaceState({},"",location.pathname);
     toast("Pago cancelado");

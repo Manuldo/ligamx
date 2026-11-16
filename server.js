@@ -25,6 +25,7 @@ import recordRoutes from "./routes/record.js";
 import leagueRoutes from "./routes/league.js";
 import motorRoutes from "./routes/motor.js";
 import newsRoutes from "./routes/news.js";
+import premiumRoutes from "./routes/premium.js";
 import { motorVivo } from "./lib/motor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -138,6 +139,7 @@ app.use("/api/record", recordRoutes);
 app.use("/api/league", leagueRoutes);
 app.use("/api/motor", motorRoutes);
 app.use("/api/news", newsRoutes);
+app.use("/api/premium", premiumRoutes);
 
 app.use(express.static(path.join(__dirname, "public"), {
   etag: true,
@@ -171,6 +173,7 @@ app.use((err, req, res, next) => {
 for (const [k, msg] of Object.entries({
   STRIPE_SECRET_KEY: "pagos deshabilitados",
   STRIPE_WEBHOOK_SECRET: "webhook de Stripe deshabilitado",
+  STRIPE_PRICE_ID_PREMIUM: "plan Premium deshabilitado",
   ANTHROPIC_API_KEY: "análisis IA opcional deshabilitado",
 })) {
   if (!process.env[k]) console.warn(`Aviso: falta ${k} -> ${msg}`);

@@ -15,6 +15,13 @@ const userSchema = new mongoose.Schema({
   stripeCustomerId: { type: String, default: null, index: true },
   stripeSubscriptionId: { type: String, default: null, index: true },
   stripeSubscriptionStatus: { type: String, default: null },
+  // Plan de la suscripción: "pro" (solo Pickazo) o "premium" (PRO + grupo de WhatsApp).
+  // isPro/subscriptionExpiresAt siguen diciendo si hay algo pagado y vigente.
+  plan: { type: String, enum: ["free", "pro", "premium"], default: "free" },
+  premiumDesde: { type: Date, default: null },     // primera vez que fue Premium
+  whatsapp: { type: String, default: null },       // con el que pide entrar al grupo
+  whatsappRegistradoEn: { type: Date, default: null },
+  grupoSacadoEn: { type: Date, default: null },    // cuando el admin lo sacó del grupo
   analisisFecha: { type: String, default: "" },
   analisisUsados: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
@@ -48,6 +55,21 @@ userSchema.methods.setPassword = async function (password) {
 
 userSchema.methods.isProActive = function () {
   return Boolean(this.isPro && this.subscriptionExpiresAt && this.subscriptionExpiresAt.getTime() > Date.now());
+};
+
+userSchema.methods.isPremiumActive = function () {
+  return this.plan === "premium" && this.isProActive();
+};
+
+// Lo que el front necesita saber del plan, en un solo lugar.
+userSchema.methods.resumenPlan = function () {
+  const premium = this.isPremiumActive();
+  return {
+    isPro: this.isProActive(),
+    plan: premium ? "premium" : (this.isProActive() ? "pro" : "free"),
+    isPremium: premium,
+    whatsapp: premium ? this.whatsapp : null,
+  };
 };
 
 export default mongoose.model("User", userSchema);

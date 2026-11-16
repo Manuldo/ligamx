@@ -27,6 +27,16 @@ function appUrl() {
   return value;
 }
 
+// El plan sale del precio de la suscripción en Stripe.
+export function planDePrecio(priceId) {
+  const premium = process.env.STRIPE_PRICE_ID_PREMIUM;
+  return premium && priceId === premium ? "premium" : "pro";
+}
+
+function precioDePlan(plan) {
+  return plan === "premium" ? process.env.STRIPE_PRICE_ID_PREMIUM : process.env.STRIPE_PRICE_ID;
+}
+
 async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) {
   if (!subscriptionRef) return;
   // Siempre se consulta el estado actual en Stripe (con la versión de API del SDK).
@@ -43,12 +53,15 @@ async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) 
     ?? subscription.items?.data?.[0]?.current_period_end;
   const periodEnd = periodEndUnix ? new Date(periodEndUnix * 1000) : null;
   const activeStatuses = new Set(["active", "trialing"]);
+  const plan = planDePrecio(subscription.items?.data?.[0]?.price?.id);
+  const activa = activeStatuses.has(subscription.status) && Boolean(periodEnd && periodEnd.getTime() > Date.now());
   const update = {
     stripeCustomerId: customerId || null,
     stripeSubscriptionId: subscription.id,
     stripeSubscriptionStatus: subscription.status,
     subscriptionExpiresAt: periodEnd,
-    isPro: activeStatuses.has(subscription.status) && Boolean(periodEnd && periodEnd.getTime() > Date.now()),
+    isPro: activa,
+    plan,
   };
 
   // Si el evento no trae el usuario (customer.subscription.*, invoice.*), lo
@@ -57,12 +70,17 @@ async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) 
   if (!fallbackUserId) fallbackUserId = subscription.metadata?.uid || null;
 
   let user = null;
-  if (fallbackUserId) {
-    user = await User.findByIdAndUpdate(fallbackUserId, update, { new: true });
-  } else if (customerId) {
-    user = await User.findOneAndUpdate({ stripeCustomerId: customerId }, update, { new: true });
+  if (fallbackUserId) user = await User.findById(fallbackUserId);
+  else if (customerId) user = await User.findOne({ stripeCustomerId: customerId });
+  if (user) {
+    // Premium vigente: queda registrado y deja de contar como "sacado del grupo".
+    if (plan === "premium" && activa) {
+      if (!user.premiumDesde) update.premiumDesde = new Date();
+      update.grupoSacadoEn = null;
+    }
+    user = await User.findByIdAndUpdate(user._id, update, { new: true });
   }
-  return { user, subscription, periodEnd };
+  return { user, subscription, periodEnd, plan };
 }
 
 function precioRecurrente(subscription) {
@@ -80,26 +98,53 @@ router.post("/checkout", requireAuth, ah(async (req, res) => {
   const stripe = getStripe();
   if (!stripe) return res.status(503).json({ error: "Pagos no configurados todavía" });
 
-  if (req.user.isProActive() || (req.user.stripeSubscriptionId && !["canceled", "incomplete_expired"].includes(req.user.stripeSubscriptionStatus))) {
+  const plan = req.body?.plan === "premium" ? "premium" : "pro";
+  const priceId = precioDePlan(plan);
+  if (!priceId) return res.status(503).json({ error: "Premium todavía no está disponible" });
+
+  const tieneSubStripe = req.user.stripeSubscriptionId
+    && !["canceled", "incomplete_expired"].includes(req.user.stripeSubscriptionStatus);
+
+  // PRO por Stripe que quiere Premium: se cambia el precio de la MISMA
+  // suscripción y Stripe cobra hoy solo la diferencia del mes.
+  if (plan === "premium" && tieneSubStripe && req.user.isProActive() && !req.user.isPremiumActive()) {
+    const sub = await stripe.subscriptions.retrieve(req.user.stripeSubscriptionId);
+    const item = sub.items?.data?.[0];
+    if (!item) return res.status(409).json({ error: "No se encontró tu suscripción" });
+    await stripe.subscriptions.update(sub.id, {
+      items: [{ id: item.id, price: priceId }],
+      proration_behavior: "always_invoice",
+      payment_behavior: "error_if_incomplete",
+      cancel_at_period_end: false,
+      metadata: { ...(sub.metadata || {}), uid: req.user._id.toString() },
+    }, { idempotencyKey: `upgrade:${req.user._id}:${priceId}:${new Date().toISOString().slice(0, 13)}` });
+    await syncSubscription(stripe, sub.id, req.user._id.toString());
+    return res.json({ upgraded: true });
+  }
+
+  if (req.user.isProActive() && (plan === "pro" || req.user.isPremiumActive())) {
+    return res.status(409).json({ error: "Ya tienes ese plan. Usa el portal para administrarlo." });
+  }
+  if (tieneSubStripe) {
     return res.status(409).json({ error: "Ya existe una suscripción. Usa el portal para administrarla." });
   }
 
   const params = {
     mode: "subscription",
     payment_method_types: ["card"],
-    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-    success_url: `${appUrl()}/?pro=ok&session_id={CHECKOUT_SESSION_ID}`,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: `${appUrl()}/?pro=ok&plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/?pro=cancel`,
     allow_promotion_codes: true,
     client_reference_id: req.user._id.toString(),
-    metadata: { uid: req.user._id.toString() },
-    subscription_data: { metadata: { uid: req.user._id.toString() } },
+    metadata: { uid: req.user._id.toString(), plan },
+    subscription_data: { metadata: { uid: req.user._id.toString(), plan } },
   };
   if (req.user.stripeCustomerId) params.customer = req.user.stripeCustomerId;
   else params.customer_email = req.user.email;
 
   const session = await stripe.checkout.sessions.create(params, {
-    idempotencyKey: `checkout:${req.user._id}:${process.env.STRIPE_PRICE_ID}:${new Date().toISOString().slice(0, 13)}`,
+    idempotencyKey: `checkout:${req.user._id}:${priceId}:${new Date().toISOString().slice(0, 13)}`,
   });
   res.json({ url: session.url });
 }));
@@ -159,12 +204,13 @@ router.post("/webhook", ah(async (req, res) => {
     switch (event.type) {
       case "checkout.session.completed": {
         if (obj.mode === "subscription" && obj.subscription) {
-          const { user, subscription, periodEnd } =
+          const { user, subscription, periodEnd, plan } =
             await syncSubscription(stripe, obj.subscription, obj.metadata?.uid || obj.client_reference_id);
           if (user?.email && base) {
             const { monto, moneda } = precioRecurrente(subscription);
             correos.push({ para: user.email, ...correoBienvenidaPro({
               appUrl: base,
+              premium: plan === "premium",
               montoHoy: obj.amount_total ?? 0,
               montoRecurrente: monto,
               moneda: obj.currency || moneda,
@@ -180,6 +226,13 @@ router.post("/webhook", ah(async (req, res) => {
       case "customer.subscription.updated": {
         const { user, subscription, periodEnd } = await syncSubscription(stripe, obj);
         const prev = event.data.previous_attributes || {};
+        const precioAntes = prev.items?.data?.[0]?.price?.id;
+        if (precioAntes && planDePrecio(precioAntes) !== "premium" && user?.isPremiumActive() && user?.email && base) {
+          const { monto, moneda } = precioRecurrente(subscription);
+          correos.push({ para: user.email, ...correoBienvenidaPro({
+            appUrl: base, premium: true, montoHoy: null, montoRecurrente: monto, moneda, proximoCobro: periodEnd,
+          }) });
+        }
         const cambioCancelacion = "cancel_at_period_end" in prev || "cancel_at" in prev;
         const antesProgramada = Boolean(prev.cancel_at_period_end || prev.cancel_at);
         const ahoraProgramada = Boolean(subscription.cancel_at_period_end || subscription.cancel_at);
