@@ -2789,10 +2789,11 @@ async function abrirPartido(id){
   window._analisisCargado=false;
   window._cargarHero();
   window._cargarAnalisis=(forzar)=>{
+    const mi=window._anSeq=(window._anSeq||0)+1;let bg=false;
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
       <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span id="anT">El motor Pickazo está leyendo la data</span></div></div>`;
     {const t0=Date.now();
-    const vis=()=>{if(!IS_APP)return;fetch(`${API}/push/aviso-analisis`,{method:"POST",headers:H(),body:JSON.stringify({id,activo:document.hidden})}).catch(()=>{});};
+    const vis=()=>{if(document.hidden)bg=true;if(!IS_APP)return;fetch(`${API}/push/aviso-analisis`,{method:"POST",headers:H(),body:JSON.stringify({id,activo:document.hidden})}).catch(()=>{});};
     document.addEventListener("visibilitychange",vis);
     const iv=setInterval(()=>{
       const el=document.getElementById("anT");
@@ -2803,6 +2804,8 @@ async function abrirPartido(id){
     fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar}),signal:AbortSignal.timeout(100000)})
       .then(async r=>{
         let d={}; try{d=await r.json();}catch{}
+        if(mi!==window._anSeq)return;
+        window._anRe=0;
         // Sesión expirada: avisar bonito y mandar a re-login (no error feo)
         if(manejarExpiracion(r,d)){
           $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
@@ -2826,6 +2829,16 @@ async function abrirPartido(id){
           <button class="btn btn-line" style="margin-left:8px;padding:4px 9px;font-size:11px" data-a="reanalizar">↻ Refrescar</button></div>
           ${motorAnalisisHTML(d.analisisMarkdown||"Sin análisis",{partido:local+" vs "+visitante,liga:liga})}`;
       }).catch((err)=>{
+        if(mi!==window._anSeq)return;
+        // Si la app estuvo en segundo plano, iOS corta la conexión: se reintenta sola
+        // (el motor ya guardó el resultado, así que la segunda vez es rápida).
+        if(bg&&(window._anRe||0)<2&&view==="partido"){
+          window._anRe=(window._anRe||0)+1;
+          const go=()=>{if(view==="partido")window._cargarAnalisis(forzar);};
+          if(document.hidden){const f=()=>{if(!document.hidden){document.removeEventListener("visibilitychange",f);go();}};document.addEventListener("visibilitychange",f);}
+          else setTimeout(go,500);
+          return;
+        }
         $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
           <div class="empty"><b>No se pudo analizar</b>
           <span style="color:var(--dim)">Sin conexión con el motor. ${esc(String(err&&err.message||""))}</span></div>
