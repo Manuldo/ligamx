@@ -1124,8 +1124,8 @@ function motorAnalisisHTML(markdown,ctx){
     return txt.replace(/\*\*PICK:\*\*\s*(.+?)\s*·\s*\*\*Confianza:\*\*\s*(\d+)%?\s*\n?([^\n]*)/g,
       (m,pick,conf,razon)=>{
         const n=parseInt(conf);
-        const col=n>=78?'var(--green)':(n>=68?'var(--amber)':'var(--dim2)');
-        const lbl=n>=78?'Alta':(n>=68?'Media':'Baja');
+        const col=n>=72?'var(--green)':(n>=62?'var(--amber)':'var(--dim2)');
+        const lbl=n>=72?'Alta':(n>=62?'Media':'Baja');
         const sel=pick.trim();
         // id estable por partido+selección para poder marcar "Lo jugué"
         const pid="an_"+btoa(unescape(encodeURIComponent((ctx.partido||"")+"|"+sel))).replace(/[^a-zA-Z0-9]/g,"").slice(0,40);
