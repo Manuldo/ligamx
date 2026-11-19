@@ -2796,7 +2796,14 @@ document.addEventListener("click",async e=>{
 });
 
 async function verCuenta(){
-  setView("hoy"); // limpia estado activo del menú
+  // OJO: antes aquí se llamaba setView("hoy"), que dispara render()->viewHoy()
+  // en paralelo (y deja view==="hoy" con su auto-refresh de 60s). Cuando
+  // viewHoy terminaba de cargar pisaba la pantalla de "Mi cuenta" y te
+  // regresaba a Hoy. Ahora la cuenta es su propia vista y no renderiza nada más.
+  clearTimeout(window._refreshHoy);clearTimeout(window._heroTimer);
+  clearInterval(window._homeHeroTimer);clearInterval(window._newsHeroTimer);
+  view="cuenta";
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.remove("on"));
   const p=$("#page");
   p.innerHTML=`<div class="pzload"><div class="pzload-ic"><img src="/icons/icon-192.png"></div>
     <div class="pzload-txt">Cargando tu cuenta<span class="pzload-dots"></span></div></div>`;
