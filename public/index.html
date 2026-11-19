@@ -728,6 +728,8 @@ body.is-app.landing .bnav,body.is-app.landing .apphd{display:none}
 body.is-app .topbar{display:none}
 body.is-app aside{transform:translateX(-100%);width:var(--sbw);transition:transform .22s}
 body.is-app.mopen aside{transform:none}
+body.is-app aside{padding-top:env(safe-area-inset-top);padding-bottom:calc(8px + env(safe-area-inset-bottom));box-sizing:border-box;height:100%}
+body.is-app .scrim{z-index:49}
 body.is-app .wrap,body.is-app.collapsed .wrap{margin-left:0}
 body.is-app .page{padding:16px 14px calc(86px + env(safe-area-inset-bottom))}
 body.is-app .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
