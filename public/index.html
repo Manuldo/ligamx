@@ -3349,9 +3349,13 @@ async function pushInit(){
       pushListo=true;
       PN.addListener("registration",async t=>{
         pushToken=t.value;
-        try{await fetch(`${API}/push/register`,{method:"POST",headers:H(),body:JSON.stringify({token:t.value})});}catch{}
+        try{
+          const r=await fetch(`${API}/push/register`,{method:"POST",headers:H(),body:JSON.stringify({token:t.value})});
+          if(r.ok&&!sessionStorage.getItem("pushOk")){sessionStorage.setItem("pushOk","1");toast("Notificaciones activadas","ok");}
+          else if(!r.ok)toast("Push: el servidor no guardó el token ("+r.status+")","err");
+        }catch{toast("Push: sin conexión al registrar","err");}
       });
-      PN.addListener("registrationError",()=>{});
+      PN.addListener("registrationError",e=>{toast("Push: iOS no dio el token — "+String((e&&(e.error||e.message))||"error").slice(0,90),"err");});
       PN.addListener("pushNotificationActionPerformed",a=>{
         const v=a&&a.notification&&a.notification.data&&a.notification.data.view;
         const pt=a&&a.notification&&a.notification.data&&a.notification.data.partido;
@@ -3362,7 +3366,8 @@ async function pushInit(){
     let perm=await PN.checkPermissions();
     if(perm.receive==="prompt")perm=await PN.requestPermissions();
     if(perm.receive==="granted")await PN.register();
-  }catch{}
+    else toast("Push: permiso de notificaciones "+(perm.receive==="denied"?"denegado (actívalo en Ajustes → Pickazo MX)":"no concedido"),"err");
+  }catch(e){toast("Push: "+String((e&&e.message)||"error").slice(0,90),"err");}
 }
 async function pushQuitar(){
   if(!pushToken)return;
