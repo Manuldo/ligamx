@@ -731,14 +731,16 @@ body.is-app.mopen aside{transform:none}
 body.is-app .wrap,body.is-app.collapsed .wrap{margin-left:0}
 body.is-app .page{padding:16px 14px calc(86px + env(safe-area-inset-bottom))}
 body.is-app .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
-body.is-app .apphd{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:30;
-  padding:calc(8px + env(safe-area-inset-top)) 8px 8px;background:rgba(13,15,18,.92);border-bottom:1px solid var(--line);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.aph-back,.aph-menu{width:42px;height:42px;display:grid;place-items:center;background:none;border:none;color:var(--txt);border-radius:10px}
+html:has(body.is-app){background:#0D0F12;overscroll-behavior-y:none}
+body.is-app{overscroll-behavior-y:none}
+body.is-app .wrap{padding-top:calc(46px + env(safe-area-inset-top))}
+body.is-app .apphd{display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:30;
+  height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 4px 0;background:#0D0F12;border-bottom:1px solid var(--line)}
+.aph-back,.aph-menu{width:40px;height:40px;display:grid;place-items:center;background:none;border:none;color:var(--txt);border-radius:10px}
 .aph-back:active,.aph-menu:active{background:var(--panel3)}
 .aph-back.off{visibility:hidden}
-.aph-logo{display:flex;align-items:center;gap:8px;font-family:Archivo,system-ui,sans-serif;font-weight:900;font-style:italic;font-size:17px;letter-spacing:.01em}
-.aph-logo img{width:26px;height:26px;border-radius:6px}
+.aph-logo{display:flex;align-items:center;gap:6px;font-family:Archivo,system-ui,sans-serif;font-weight:900;font-style:italic;font-size:15px;letter-spacing:.02em;line-height:1}
+.aph-logo img{width:22px;height:22px;border-radius:5px}
 .aph-logo em{font-style:italic}
 .aph-logo span{color:var(--red)}
 body.is-app .bn{position:relative;min-height:54px;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;
