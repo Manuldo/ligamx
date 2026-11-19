@@ -25,6 +25,8 @@ const FUENTES = [
   { nombre: "Marca Fútbol Internacional", url: "https://e00-marca.uecdn.es/rss/futbol/futbol-internacional.xml", liga: "futbol" },
   { nombre: "Marca Champions League", url: "https://e00-marca.uecdn.es/rss/futbol/champions-league.xml", liga: "futbol" },
   { nombre: "AS NFL", url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/masdeporte/subsection/nfl/", liga: "nfl" },
+  { nombre: "AS NBA", url: "https://feeds.as.com/mrss-s/pages/as/site/as.com/section/masdeporte/subsection/nba/", liga: "nba" },
+  { nombre: "Marca NBA", url: "https://e00-marca.uecdn.es/rss/baloncesto/nba.xml", liga: "nba" },
   { nombre: "MLB Trade Rumors (ES)", url: "https://mlbtraderumors.com/players/rumores-de-beisbol/feed", liga: "mlb" },
 ];
 
