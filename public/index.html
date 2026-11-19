@@ -733,7 +733,10 @@ body.is-app .page{padding:16px 14px calc(86px + env(safe-area-inset-bottom))}
 body.is-app .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
 html:has(body.is-app){background:#0D0F12;overscroll-behavior-y:none}
 body.is-app{overscroll-behavior-y:none}
-body.is-app .wrap{padding-top:calc(46px + env(safe-area-inset-top))}
+html:has(body.is-app),body.is-app{height:100%;overflow:hidden;background:#0D0F12}
+body.is-app .wrap,body.is-app.collapsed .wrap{position:fixed;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:none;padding-top:calc(46px + env(safe-area-inset-top));margin-left:0}
+body.is-app .apphd{position:fixed}
 body.is-app .apphd{display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:30;
   height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 4px 0;background:#0D0F12;border-bottom:1px solid var(--line)}
 .aph-back,.aph-menu{width:40px;height:40px;display:grid;place-items:center;background:none;border:none;color:var(--txt);border-radius:10px}
