@@ -2729,9 +2729,15 @@ async function abrirPartido(id){
   // Hero con marcador/estado en vivo (consulta el partido actual)
   window._cargarHero=()=>{
     fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()})
-      .then(r=>r.json()).then(arr=>{
-        const m=(arr||[]).find(x=>x._id===id);
-        if(!m)return;
+      .then(r=>r.json()).then(async arr=>{
+        let m=(arr||[]).find(x=>x._id===id);
+        // Algunos partidos (p. ej. MLS) no vienen en la lista de su liga pero sí en "todas":
+        if(!m){try{const t=await fetch(`${API}/matches/todas`,{headers:H()}).then(r=>r.json());m=(t||[]).find(x=>x._id===id);}catch{}}
+        if(!m){
+          // Sin datos del partido: igual se pide el análisis (antes se quedaba cargando para siempre).
+          if(!window._analisisCargado){window._analisisCargado=true;window._cargarAnalisis(false);}
+          return;
+        }
         const vivo=m.enVivo||m.estado==="en_vivo";
         const fin=m.estado==="finalizado";
         let centro,estado="";
