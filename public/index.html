@@ -977,6 +977,17 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
 
 <script>
 const API="/api";
+// Tope de espera para las llamadas a la API (si no traen el suyo): así nada se queda
+// cargando para siempre y, si falla, la pantalla dice cuál llamada fue.
+window._ultimoFallo="";
+{const _f=window.fetch.bind(window);
+window.fetch=(u,o)=>{
+  const url=typeof u==="string"?u:(u&&u.url)||"";
+  if(url.startsWith("/api/")&&!(o&&o.signal)){
+    o=Object.assign({},o,{signal:AbortSignal.timeout(50000)});
+  }
+  return _f(u,o).catch(e=>{if(url.startsWith("/api/"))window._ultimoFallo=url.split("?")[0]+" · "+(e&&e.name==="TimeoutError"?"tardó más de 50 s":"sin respuesta");throw e;});
+};}
 let token=localStorage.getItem("token");
 let me=JSON.parse(localStorage.getItem("me")||"null");
 const IS_APP=(()=>{try{
@@ -1626,7 +1637,9 @@ async function render(){
     else if(view==="noticias")await viewNoticias();
   }catch(err){
     p.innerHTML=`<div class="card"><div class="empty"><b>No se pudo cargar</b>
-      <span>Revisa tu conexión e intenta de nuevo.</span></div></div>`;
+      <span>Revisa tu conexión e intenta de nuevo.</span>
+      ${window._ultimoFallo?`<span class="mono" style="display:block;margin-top:8px;font-size:11px;color:var(--dim2)">${esc(window._ultimoFallo)}</span>`:""}
+      <button class="btn btn-red" style="margin-top:14px" onclick="render()">↻ Reintentar</button></div></div>`;
   }
 }
 
