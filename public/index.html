@@ -726,6 +726,7 @@ body.is-app .bnav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));pos
   background:#0D0F12;border-top:1px solid var(--line);padding:4px 6px calc(4px + env(safe-area-inset-bottom))}
 body.is-app.landing .bnav,body.is-app.landing .apphd{display:none}
 body.is-app .topbar{display:none}
+body.is-app [data-a="volver"]{display:none}
 body.is-app aside{transform:translateX(-100%);width:var(--sbw);transition:transform .22s}
 body.is-app.mopen aside{transform:none}
 body.is-app aside{padding-top:env(safe-area-inset-top);padding-bottom:calc(8px + env(safe-area-inset-bottom));box-sizing:border-box;height:100%}
@@ -2734,9 +2735,12 @@ async function abrirPartido(id){
   window._cargarAnalisis=(forzar)=>{
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
       <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span id="anT">El motor Pickazo está leyendo la data</span></div></div>`;
-    {const t0=Date.now();const iv=setInterval(()=>{
+    {const t0=Date.now();
+    const vis=()=>{if(!IS_APP)return;fetch(`${API}/push/aviso-analisis`,{method:"POST",headers:H(),body:JSON.stringify({id,activo:document.hidden})}).catch(()=>{});};
+    document.addEventListener("visibilitychange",vis);
+    const iv=setInterval(()=>{
       const el=document.getElementById("anT");
-      if(!el||view!=="partido"){clearInterval(iv);return;}
+      if(!el||view!=="partido"){clearInterval(iv);document.removeEventListener("visibilitychange",vis);return;}
       const n=Math.round((Date.now()-t0)/1000);
       el.textContent=n<12?"El motor Pickazo está leyendo la data":n<30?`Armando el análisis · ${n} s`:`Sigue trabajando · ${n} s. El primero de cada partido tarda más; después queda guardado`;
     },1000);}
@@ -3281,6 +3285,8 @@ async function pushInit(){
       PN.addListener("registrationError",()=>{});
       PN.addListener("pushNotificationActionPerformed",a=>{
         const v=a&&a.notification&&a.notification.data&&a.notification.data.view;
+        const pt=a&&a.notification&&a.notification.data&&a.notification.data.partido;
+        if(pt&&me){abrirPartido(pt);return;}
         if(v&&TITLES[v])setView(v);
       });
     }

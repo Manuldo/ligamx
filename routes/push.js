@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { enviarPush, apnsConfigurado } from "../lib/apns.js";
 import PartidoSeguido from "../models/PartidoSeguido.js";
 import { ah } from "../asyncHandler.js";
+import { pedirAviso, cancelarAviso } from "../lib/avisosAnalisis.js";
 
 const router = express.Router();
 
@@ -23,6 +24,16 @@ router.post("/register", requireAuth, ah(async (req, res) => {
 router.post("/unregister", requireAuth, ah(async (req, res) => {
   const token = String(req.body?.token || "").trim();
   await PushToken.deleteOne({ token, user: req.user._id });
+  res.json({ ok: true });
+}));
+
+// La app avisa que se minimizó (activo:true) o volvió (activo:false) mientras
+// espera el análisis de un partido; al terminar, el servidor manda el push.
+router.post("/aviso-analisis", requireAuth, ah(async (req, res) => {
+  const id = String(req.body?.id || "").slice(0, 200);
+  if (!id) return res.status(400).json({ error: "Partido inválido" });
+  if (req.body?.activo) pedirAviso(String(req.user._id), id);
+  else cancelarAviso(String(req.user._id), id);
   res.json({ ok: true });
 }));
 

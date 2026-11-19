@@ -2,6 +2,7 @@ import express from "express";
 import MatchAnalysis from "../models/MatchAnalysis.js";
 import { requireAuth, requirePro } from "../middleware/auth.js";
 import { ah } from "../asyncHandler.js";
+import { avisarSiPedido } from "../lib/avisosAnalisis.js";
 import { analizarPartido, partidosLiga, jugadoresEquipo, alineacionesPartido, jornadasLiga, todasLasLigas, traerAlineacion, statsPartido } from "../lib/motor.js";
 
 const router = express.Router();
@@ -59,6 +60,7 @@ router.post("/analizar", requireAuth, requirePro, ah(async (req, res) => {
     return res.status(502).json({ error: "El motor de análisis no responde. Intenta de nuevo." });
   }
 
+  avisarSiPedido(String(req.user._id), req.body.id, local, visitante).catch(e => console.error("aviso análisis:", e.message));
   res.json({
     partido: `${local} vs ${visitante}`,
     analisisMarkdown: motor.analisis_markdown || "",
