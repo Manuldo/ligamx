@@ -748,6 +748,53 @@ body.is-app .bn{position:relative;min-height:54px;background:none;border:none;co
 body.is-app .bn.on{color:var(--red);font-weight:800}
 body.is-app .bn.on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--red)}
 .bn-i{display:grid;place-items:center}
+/* ===== Números del partido · Carbon ===== */
+.sg{margin:16px 12px 6px}
+.sg-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sg-h b{font-family:Archivo,system-ui,sans-serif;font-style:italic;font-weight:900;font-size:13.5px;letter-spacing:.05em;text-transform:uppercase}
+.sg-ic{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;flex-shrink:0;color:var(--ac);
+  background:color-mix(in srgb,var(--ac) 14%,#0D0F12);border:1px solid color-mix(in srgb,var(--ac) 38%,transparent)}
+.sg.g-gol{--ac:var(--green)}.sg.g-am{--ac:var(--amber)}.sg.g-cor{--ac:var(--blue)}
+.sg-cols{display:flex;gap:10px}
+.sg-col{flex:1;min-width:0;background:#14161B;border:1px solid var(--line);border-radius:12px;padding:10px 12px 6px;position:relative;overflow:hidden}
+.sg-col::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac)}
+.sg-team{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:2px;border-bottom:1px solid var(--line)}
+.sg-team span{font-family:Archivo,system-ui,sans-serif;font-weight:800;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-team em{margin-left:auto;font-style:normal;font-size:10.5px;font-weight:700;color:var(--dim)}
+.sg-r{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 0 11px;border-bottom:1px solid rgba(48,52,61,.55)}
+.sg-r:last-child{border-bottom:none}
+.sg-r.sg-c{grid-template-columns:minmax(0,1fr) auto}
+.sg-n{font-size:11px;font-weight:800;color:var(--dim2)}
+.sg-team+.sg-r .sg-n{color:var(--ac)}
+.sg-nm{min-width:0;display:flex;flex-direction:column;gap:1px}
+.sg-nm b{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sg-nm span{font-size:10.5px;color:var(--dim);letter-spacing:.02em}
+.sg-v{font-size:18px;font-weight:800;color:var(--ac);line-height:1}
+.sg-v.sv{font-size:14px}
+.sg-v small{font-size:10.5px;font-weight:600;color:var(--dim)}
+.sg-bar{position:absolute;left:0;bottom:4px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--ac),color-mix(in srgb,var(--ac) 25%,transparent));opacity:.9}
+.sg-empty{padding:12px 0;font-size:12px;color:var(--dim2)}
+@media(max-width:560px){.sg-cols{flex-direction:column}.sg{margin:16px 10px 6px}}
+/* ===== Análisis cargando ===== */
+.an-load{display:flex;align-items:center;gap:14px;padding:18px 16px 20px}
+.an-load-ic{position:relative;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+  background:#0D0F12;border:1px solid var(--line);animation:anp 1.6s ease-in-out infinite}
+.an-load-ic img{width:30px;height:30px;border-radius:7px}
+.an-load b{display:block;font-family:Archivo,system-ui,sans-serif;font-style:italic;font-weight:800;font-size:15px}
+.an-load span{font-size:12px;color:var(--dim)}
+@keyframes anp{0%,100%{box-shadow:0 0 0 0 rgba(244,56,32,.0)}50%{box-shadow:0 0 0 7px rgba(244,56,32,.16)}}
+/* botón de aviso con texto (partido) */
+.jm-fl.lab{width:auto;padding:0 12px;gap:7px;display:inline-flex;align-items:center;font-size:12px;font-weight:700;height:32px}
+/* fila de partido: acciones */
+.jm-act{display:contents}
+@media(max-width:560px){
+  .jm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px 8px;padding:12px 14px}
+  .jm-side{flex:none}
+  .jm>.badge-live,.jm>.badge-fin,.jm>.badge-hoy,.jm>.badge-liga{grid-column:1/3;grid-row:2;justify-self:start;order:0}
+  .jm-act{display:flex;grid-column:3;grid-row:2;justify-self:end;align-items:center;gap:8px}
+  .jm-act .jm-an{margin-left:0;height:34px;padding:0 14px;font-size:12px;display:inline-flex;align-items:center}
+  .jm-act .jm-fl{width:34px;height:34px}
+}
 /* ===== CARBON SPORTS 2.0 ===== */
 body{background-image:
   linear-gradient(135deg,rgba(255,255,255,.024) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.024) 50%,rgba(255,255,255,.024) 75%,transparent 75%),
@@ -1215,12 +1262,12 @@ async function cargarSeguidos(){
     if(r.ok)(await r.json()).forEach(id=>SEGUIDOS.add(id));
   }catch{}
 }
-function segBtn(m){
+function segBtn(m,lab){
   if(!m||!m.kickoff||yaEmpezo(m))return "";
   const on=SEGUIDOS.has(m._id);
   const info=esc(JSON.stringify({matchId:m._id,liga:m.liga||"",local:m.local,visitante:m.visitante,kickoff:m.kickoff}));
-  return `<button class="jm-fl ${on?"on":""}" data-seguir="${esc(m._id)}" data-info="${info}" aria-pressed="${on}"
-    aria-label="${on?"Quitar aviso":"Avisarme una hora antes"}" title="${on?"Quitar aviso":"Avisarme una hora antes"}">${svgNav(on?"bellon":"bell",17)}</button>`;
+  return `<button class="jm-fl ${lab?"lab":""} ${on?"on":""}" data-seguir="${esc(m._id)}" data-info="${info}" ${lab?'data-lab="1"':""} aria-pressed="${on}"
+    aria-label="${on?"Quitar aviso":"Avisarme una hora antes"}" title="${on?"Quitar aviso":"Avisarme una hora antes"}">${svgNav(on?"bellon":"bell",17)}${lab?`<span>${on?"Aviso activado":"Avísame 1 h antes"}</span>`:""}</button>`;
 }
 async function toggleSeguir(btn){
   if(!token){openAuth("login");return;}
@@ -1234,7 +1281,7 @@ async function toggleSeguir(btn){
     if(quitar)SEGUIDOS.delete(info.matchId);else SEGUIDOS.add(info.matchId);
     document.querySelectorAll(`[data-seguir="${CSS.escape(info.matchId)}"]`).forEach(b=>{
       b.classList.toggle("on",!quitar);b.setAttribute("aria-pressed",String(!quitar));
-      b.innerHTML=svgNav(quitar?"bell":"bellon",17);
+      b.innerHTML=svgNav(quitar?"bell":"bellon",17)+(b.dataset.lab?`<span>${quitar?"Avísame 1 h antes":"Aviso activado"}</span>`:"");
     });
     const nativa=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform();
     toast(quitar?"Aviso quitado":(nativa?"Te avisamos una hora antes":"Guardado. Los avisos llegan en la app de Pickazo"),"ok");
@@ -1642,8 +1689,7 @@ async function viewHoy(){
         ${centro}
         <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
         ${badge}
-        ${!fin&&!vivo?segBtn(m):""}
-        ${!fin?`<button class="jm-an" data-partido="${esc(m._id)}">${vivo?"Ver":"Analizar"} →</button>`:""}
+        <div class="jm-act">${!fin&&!vivo?segBtn(m):""}${!fin?`<button class="jm-an" data-partido="${esc(m._id)}">${vivo?"Ver":"Analizar"} →</button>`:""}</div>
       </div>`;
     };
     // agrupar por día
@@ -1735,9 +1781,7 @@ async function viewHoy(){
       ${centro}
       <div class="jm-side r">${crest(m.visitante)}<span class="jm-name">${esc(m.visitante)}</span></div>
       ${badge}
-      ${!fin&&!vivo?segBtn(m):""}
-      ${!fin&&!vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Analizar →</button>`:""}
-      ${vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Ver →</button>`:""}
+      <div class="jm-act">${!fin&&!vivo?segBtn(m):""}${!fin&&!vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Analizar →</button>`:""}${vivo?`<button class="jm-an" data-partido="${esc(m._id)}">Ver →</button>`:""}</div>
     </div>`;
   };
 
@@ -2597,7 +2641,8 @@ async function abrirPartido(id){
       </div>
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
-      <div class="skel"></div><div class="skel" style="width:75%"></div></div>
+      <div class="card-h"><span class="card-t">Análisis a fondo</span></div>
+      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span>El motor Pickazo está leyendo la data</span></div></div></div>
     ${liga==="mlb"?"":`<div class="card" style="margin-bottom:16px" id="pDerechas">
       <div class="card-h"><span class="card-t">${liga==="nfl"?"Anotador de touchdown":liga==="nba"?"Líder de puntos/rebotes/asistencias":"Goleador / amonestado"}</span></div>
       <div style="padding:14px 16px" id="pDerechasBox">
@@ -2652,6 +2697,7 @@ async function abrirPartido(id){
         </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:0 0 14px;color:var(--dim);font-size:12px">
           ${fechaLegible?`<span>${esc(fechaLegible)}</span>`:""}
+          ${!fin&&!vivo?segBtn(m,true):""}
           <button class="btn btn-line" style="padding:3px 9px;font-size:11px" data-a="refrescar-hero">↻ Actualizar</button>
         </div>`;
         // si está en vivo, refrescar el hero cada 60s
@@ -2680,7 +2726,7 @@ async function abrirPartido(id){
   window._cargarHero();
   window._cargarAnalisis=(forzar)=>{
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
-      <div class="skel"></div><div class="skel" style="width:75%"></div>`;
+      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span>El motor Pickazo está leyendo la data</span></div></div>`;
     fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar})})
       .then(async r=>{
         let d={}; try{d=await r.json();}catch{}
@@ -2793,34 +2839,42 @@ async function abrirPartido(id){
     }).catch(()=>{$("#pStats").innerHTML=`<div class="card-h"><span class="card-t">Números del partido</span></div>
       <div class="empty"><span>No se pudieron cargar</span></div>`;});
 }
+const _FLAG_SVG=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 21V3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="currentColor"/></svg>`;
+const _CARD_SVG=`<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2.2" fill="currentColor" transform="rotate(8 12 12)"/></svg>`;
+function _stIc(e){
+  return {"⚽":svgSport("soccer",20),"🏈":svgSport("nfl",20),"🏀":svgSport("nba",20),"⚾":svgSport("mlb",20),
+    "🟨":_CARD_SVG,"🚩":_FLAG_SVG,"🎯":svgNav("target",18),"🏃":svgNav("zap",18),"🙌":svgNav("users",18),
+    "🏏":svgNav("bars",18),"🔥":svgNav("chart",18),"🧹":svgNav("layers",18)}[e]||svgNav("target",18);
+}
 function _statCol(titulo,items,unidad){
-  return `<div class="stat-col">
-    <div class="stat-col-team">${esc(titulo)}</div>
-    ${items&&items.length?items.map((x,i)=>`<div class="stat-row r${i+1}">
-      <div class="stat-rank">${i+1}</div>
-      <div class="stat-name"><b>${esc(x.nombre)}</b><span>${esc(x.posicion||"")}</span></div>
-      <div class="stat-val">${x.valor}${unidad||""}</div></div>`).join("")
-      :`<div class="stat-empty">Sin datos todavía</div>`}
+  const max=Math.max(1,...(items||[]).map(x=>parseFloat(x.valor)||0));
+  return `<div class="sg-col">
+    <div class="sg-team">${crest(titulo)}<span>${esc(titulo)}</span></div>
+    ${items&&items.length?items.map((x,i)=>`<div class="sg-r">
+      <div class="sg-n mono">${i+1}</div>
+      <div class="sg-nm"><b>${esc(x.nombre)}</b><span>${esc(x.posicion||"")}</span></div>
+      <div class="sg-v mono">${x.valor}<small>${unidad||""}</small></div>
+      <i class="sg-bar" style="width:${Math.max(6,Math.round((parseFloat(x.valor)||0)/max*100))}%"></i></div>`).join("")
+      :`<div class="sg-empty">Sin datos todavía</div>`}
   </div>`;
 }
 function _cornersBox(eq,c){
   const prom=c&&c.corners&&c.corners.promedioCorners;
   const filas=((c&&c.corners&&c.corners.partidos)||[]).slice(0,5);
   const maxCorners=Math.max(1,...filas.map(f=>f.corners||0));
-  return `<div class="stat-col">
-    <div class="stat-col-team">🚩 ${esc(eq)}${prom!=null?`<span class="prom">prom ${prom}</span>`:""}</div>
-    ${filas.length?filas.map(f=>`<div class="corner-row">
-      <div class="corner-row-h"><span>vs ${esc(f.rival||"")}</span>
-        <span>${f.corners!=null?f.corners+" córners":""}${f.tiros!=null?` · ${f.tiros} tiros`:""}</span></div>
-      <div class="corner-bar"><i style="width:${f.corners!=null?Math.max(6,Math.round(f.corners/maxCorners*100)):0}%"></i></div>
-      </div>`).join("")
-      :`<div class="stat-empty">Sin partidos recientes con datos</div>`}
+  return `<div class="sg-col">
+    <div class="sg-team">${crest(eq)}<span>${esc(eq)}</span>${prom!=null?`<em class="mono">prom ${prom}</em>`:""}</div>
+    ${filas.length?filas.map(f=>`<div class="sg-r sg-c">
+      <div class="sg-nm"><b>vs ${esc(f.rival||"")}</b></div>
+      <div class="sg-v mono sv">${f.corners!=null?f.corners+"<small> córn.</small>":""}${f.tiros!=null?` <small>· ${f.tiros} tiros</small>`:""}</div>
+      <i class="sg-bar" style="width:${f.corners!=null?Math.max(6,Math.round(f.corners/maxCorners*100)):0}%"></i></div>`).join("")
+      :`<div class="sg-empty">Sin partidos recientes con datos</div>`}
   </div>`;
 }
 function _statGrp(cls,icon,titulo,colsHtml){
-  return `<div class="stat-grp ${cls}">
-    <div class="stat-grp-t"><span class="an-ico">${icon}</span>${esc(titulo)}</div>
-    <div class="stat-cols">${colsHtml}</div>
+  return `<div class="sg ${cls}">
+    <div class="sg-h"><span class="sg-ic">${_stIc(icon)}</span><b>${esc(titulo)}</b></div>
+    <div class="sg-cols">${colsHtml}</div>
   </div>`;
 }
 function statsPartidoHTML(d,local,visitante){
