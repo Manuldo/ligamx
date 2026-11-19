@@ -2,6 +2,7 @@ import express from "express";
 import PushToken from "../models/PushToken.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { enviarPush, apnsConfigurado } from "../lib/apns.js";
+import PartidoSeguido from "../models/PartidoSeguido.js";
 import { ah } from "../asyncHandler.js";
 
 const router = express.Router();
@@ -39,6 +40,32 @@ router.post("/test", requireAdmin, ah(async (req, res) => {
   });
   if (r.invalidos.length) await PushToken.deleteMany({ token: { $in: r.invalidos } });
   res.json({ dispositivos: docs.length, ...r });
+}));
+
+// ── Partidos seguidos: aviso una hora antes ─────────────────────────────
+router.get("/follows", requireAuth, ah(async (req, res) => {
+  const docs = await PartidoSeguido.find({ user: req.user._id, kickoff: { $gt: new Date() } }).select("matchId -_id");
+  res.json(docs.map(d => d.matchId));
+}));
+
+router.post("/follow", requireAuth, ah(async (req, res) => {
+  const { matchId, liga, local, visitante, kickoff } = req.body || {};
+  const k = new Date(kickoff);
+  if (!matchId || String(matchId).length > 200 || isNaN(k.getTime())) return res.status(400).json({ error: "Partido inválido" });
+  if (k.getTime() <= Date.now()) return res.status(400).json({ error: "Ese partido ya empezó" });
+  const total = await PartidoSeguido.countDocuments({ user: req.user._id, kickoff: { $gt: new Date() } });
+  if (total >= 100) return res.status(400).json({ error: "Máximo 100 partidos seguidos" });
+  await PartidoSeguido.findOneAndUpdate(
+    { user: req.user._id, matchId: String(matchId) },
+    { liga: String(liga || "").slice(0, 60), local: String(local || "").slice(0, 80), visitante: String(visitante || "").slice(0, 80), kickoff: k, notificado: false },
+    { upsert: true, new: true }
+  );
+  res.json({ ok: true });
+}));
+
+router.post("/unfollow", requireAuth, ah(async (req, res) => {
+  await PartidoSeguido.deleteOne({ user: req.user._id, matchId: String(req.body?.matchId || "") });
+  res.json({ ok: true });
 }));
 
 export default router;

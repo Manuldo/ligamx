@@ -26,6 +26,7 @@ import leagueRoutes from "./routes/league.js";
 import motorRoutes from "./routes/motor.js";
 import newsRoutes from "./routes/news.js";
 import pushRoutes from "./routes/push.js";
+import { iniciarRecordatorios } from "./lib/recordatorios.js";
 import { motorVivo } from "./lib/motor.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -187,4 +188,5 @@ process.on("uncaughtException", (err) => {
 const PORT = Number(process.env.PORT || 3000);
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+  iniciarRecordatorios();
 });
