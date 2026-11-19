@@ -3076,11 +3076,42 @@ $("#mGo").onclick=async()=>{
     localStorage.setItem("token",token);localStorage.setItem("me",JSON.stringify(me));
     $("#mod").classList.remove("on");
     toast(mode==="login"?"Bienvenido de vuelta":"Cuenta creada","ok");
-    sbUser();sbLigas();render();
+    sbUser();sbLigas();render();pushInit();
   }catch{$("#mE").textContent="Sin conexión.";}
   finally{$("#mGo").disabled=false;$("#mGo").textContent=mode==="login"?"Entrar":"Crear cuenta";}
 };
+
+/* ===== Notificaciones push (solo dentro de la app iOS con Capacitor) ===== */
+let pushToken=null,pushListo=false;
+async function pushInit(){
+  const PN=window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()
+    ?window.Capacitor.Plugins&&window.Capacitor.Plugins.PushNotifications:null;
+  if(!PN||!token)return;
+  try{
+    if(!pushListo){
+      pushListo=true;
+      PN.addListener("registration",async t=>{
+        pushToken=t.value;
+        try{await fetch(`${API}/push/register`,{method:"POST",headers:H(),body:JSON.stringify({token:t.value})});}catch{}
+      });
+      PN.addListener("registrationError",()=>{});
+      PN.addListener("pushNotificationActionPerformed",a=>{
+        const v=a&&a.notification&&a.notification.data&&a.notification.data.view;
+        if(v&&typeof TITLES!=="undefined"&&TITLES[v])setView(v);
+      });
+    }
+    let perm=await PN.checkPermissions();
+    if(perm.receive==="prompt")perm=await PN.requestPermissions();
+    if(perm.receive==="granted")await PN.register();
+  }catch{}
+}
+async function pushQuitar(){
+  if(!pushToken)return;
+  try{await fetch(`${API}/push/unregister`,{method:"POST",headers:H(),body:JSON.stringify({token:pushToken})});}catch{}
+  pushToken=null;
+}
 function logout(){
+  pushQuitar();
   token=null;me=null;localStorage.removeItem("token");localStorage.removeItem("me");
   view="home";
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v==="home"));
@@ -3119,6 +3150,7 @@ async function checkRetornoPago(){
 }
 
 sbUser();sbLigas();render();
+pushInit();
 checkRetornoPago();
 cargarCredibilidad();
 </script>

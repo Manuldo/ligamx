@@ -1,0 +1,16 @@
+{
+  "appId": "mx.pickazo.app",
+  "appName": "Pickazo MX",
+  "webDir": "public",
+  "server": {
+    "url": "https://pickazoapp.com",
+    "allowNavigation": ["pickazoapp.com", "*.pickazoapp.com"]
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#101114"
+  },
+  "plugins": {
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
+  }
+}
