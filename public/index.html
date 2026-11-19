@@ -2649,7 +2649,7 @@ async function abrirPartido(id){
     </div>
     <div class="card" style="margin-bottom:16px" id="pAnalisis">
       <div class="card-h"><span class="card-t">Análisis a fondo</span></div>
-      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span>El motor Pickazo está leyendo la data</span></div></div></div>
+      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span id="anT">El motor Pickazo está leyendo la data</span></div></div></div>
     ${liga==="mlb"?"":`<div class="card" style="margin-bottom:16px" id="pDerechas">
       <div class="card-h"><span class="card-t">${liga==="nfl"?"Anotador de touchdown":liga==="nba"?"Líder de puntos/rebotes/asistencias":"Goleador / amonestado"}</span></div>
       <div style="padding:14px 16px" id="pDerechasBox">
@@ -2733,8 +2733,14 @@ async function abrirPartido(id){
   window._cargarHero();
   window._cargarAnalisis=(forzar)=>{
     $("#pAnalisis").innerHTML=`<div class="card-h"><span class="card-t">Análisis a fondo</span></div>
-      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span>El motor Pickazo está leyendo la data</span></div></div>`;
-    fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar})})
+      <div class="an-load"><div class="an-load-ic"><img src="/icons/icon-96.png" alt=""></div><div><b>Analizando el partido<span class="pzload-dots"></span></b><span id="anT">El motor Pickazo está leyendo la data</span></div></div>`;
+    {const t0=Date.now();const iv=setInterval(()=>{
+      const el=document.getElementById("anT");
+      if(!el||view!=="partido"){clearInterval(iv);return;}
+      const n=Math.round((Date.now()-t0)/1000);
+      el.textContent=n<12?"El motor Pickazo está leyendo la data":n<30?`Armando el análisis · ${n} s`:`Sigue trabajando · ${n} s. El primero de cada partido tarda más; después queda guardado`;
+    },1000);}
+    fetch(`${API}/matches/analizar`,{method:"POST",headers:H(),body:JSON.stringify({id,forzar:!!forzar}),signal:AbortSignal.timeout(100000)})
       .then(async r=>{
         let d={}; try{d=await r.json();}catch{}
         // Sesión expirada: avisar bonito y mandar a re-login (no error feo)
