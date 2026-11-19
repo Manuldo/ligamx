@@ -2391,7 +2391,13 @@ async function abrirPartido(id){
     fetch(`${API}/matches?liga=${liga}&estado=todos`,{headers:H()})
       .then(r=>r.json()).then(arr=>{
         const m=(arr||[]).find(x=>x._id===id);
-        if(!m)return;
+        if(!m){
+          // El partido no viene en la lista (ej. fuera del tope de 400 del
+          // motor o con otro nombre de equipo): antes aquí se hacía return
+          // y el análisis NUNCA se cargaba (barras grises para siempre).
+          if(!window._analisisCargado){window._analisisCargado=true;window._cargarAnalisis(false);}
+          return;
+        }
         const vivo=m.enVivo||m.estado==="en_vivo";
         const fin=m.estado==="finalizado";
         let centro,estado="";
