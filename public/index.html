@@ -868,6 +868,41 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
 .hm-new-t b{font-size:14.5px;font-weight:700;line-height:1.3}
 @media(max-width:900px){.hm-sports,.hm-origs{grid-template-columns:repeat(2,1fr)}.hm-news{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== Análisis · Carbon ===== */
+.an-sec{--ac:var(--dim);background:#14161B;border:1px solid var(--line);border-left:3px solid var(--ac);border-radius:12px;padding:14px 15px 15px;margin:10px 12px}
+.sec-lectura{--ac:var(--blue);background:#14161B}
+.sec-veredicto{--ac:var(--gold);background:linear-gradient(120deg,rgba(232,193,90,.10),#14161B 55%)}
+.sec-riesgo{--ac:var(--red);background:linear-gradient(120deg,rgba(244,56,32,.09),#14161B 55%)}
+.an-sec-t{font-family:Archivo,system-ui,sans-serif;font-style:italic;font-weight:900;font-size:13px;letter-spacing:.05em;color:var(--ac);margin-bottom:10px;gap:10px}
+.an-sec-t .an-ico{width:28px;height:28px;border-radius:8px;color:var(--ac);font-size:0;
+  background:color-mix(in srgb,var(--ac) 14%,#0D0F12);border:1px solid color-mix(in srgb,var(--ac) 38%,transparent)}
+.an-sec-t .an-ico svg{display:block}
+.sec-lectura .an-ico,.sec-veredicto .an-ico,.sec-riesgo .an-ico{background:color-mix(in srgb,var(--ac) 14%,#0D0F12)}
+.an-sec-b{font-size:14px;line-height:1.65;color:#D3D7DE}
+.an-sec-b b{color:#fff;font-weight:700}
+.an-li{border-top:1px solid rgba(48,52,61,.6);padding:7px 0 7px 2px;font-size:13px}
+.an-collapse .an-sec-t{margin-bottom:0}
+.an-collapse:not(.closed) .an-sec-t{margin-bottom:10px}
+.an-caret{display:inline-grid;place-items:center;color:var(--dim2)}
+.an-model{display:flex;align-items:center;gap:9px;margin:18px 12px 4px;padding:0 2px;border:none;background:none;
+  font-family:Archivo,system-ui,sans-serif;font-style:italic;font-weight:900;font-size:13px;letter-spacing:.06em}
+.an-model::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,currentColor,transparent);opacity:.35;margin-left:4px}
+.an-model-cons{color:var(--green);background:none;border:none}
+.an-model-esta{color:var(--red);background:none;border:none}
+.an-pick{--ac:var(--dim2);position:relative;margin:9px 12px;background:#14161B;border:1px solid var(--line);border-radius:12px}
+.an-pick:has(.hi){--ac:var(--green)}.an-pick:has(.mid){--ac:var(--gold)}
+.an-pick::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac)}
+.an-pick-conf{width:70px;padding:14px 0 14px 3px;background:none!important}
+.an-pick-conf.hi b{color:var(--green)}.an-pick-conf.mid b{color:var(--gold)}
+.an-pick-conf b{font-size:22px}
+.an-pick-conf span{font-size:9px;letter-spacing:.1em}
+.an-pick-body{border-left:1px solid var(--line);padding:13px 14px}
+.an-pick-sel{font-family:Archivo,system-ui,sans-serif;font-weight:800;font-size:15.5px;line-height:1.25;margin-bottom:5px}
+.an-pick-why{font-size:13px;line-height:1.55;color:#AEB3BD}
+.an-pick .sm{background:none;border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700}
+.an-pick .sm:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.an-pick .sm.on{border-color:var(--green);color:var(--green);background:rgba(57,181,130,.1)}
 </style>
 </head>
 <body>
@@ -1071,6 +1106,8 @@ function face(nombre,equipo){
 }
 
 // ===== ANALISIS DEL MOTOR: markdown -> tarjetas =====
+const _DIA_SVG=`<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 0 12 6 6 12 0 6Z" fill="currentColor"/></svg>`;
+const _WARN_SVG=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
 function motorAnalisisHTML(markdown,ctx){
   ctx=ctx||{};
   if(!markdown) return '<div class="empty"><b>Sin análisis</b></div>';
@@ -1155,35 +1192,35 @@ function motorAnalisisHTML(markdown,ctx){
 
     // MODELOS (con picks de confianza) — encabezado de color
     if(titulo.includes('⭐')||tl.includes('conservador')){
-      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-cons">${_DIA_SVG}<span>${esc(tituloLimpio)}</span></div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     if(titulo.includes('🔥')||tl.includes('estakazo')){
-      out+=`<div class="an-model an-model-esta">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-esta">${_DIA_SVG}<span>${esc(tituloLimpio)}</span></div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     // PICKS SUGERIDOS (NFL y otros) — tabla markdown O formato **PICK:** → tarjetas
     if(tl.includes('pick')){
       const tp=tablaPicksNFL(cuerpo);
       if(tp){
-        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${tp}`;continue;
+        out+=`<div class="an-model an-model-cons">${_DIA_SVG}<span>${esc(tituloLimpio)}</span></div>${tp}`;continue;
       }
       // si no es tabla, probar el formato **PICK:** ... **Confianza:** X%
       if(/\*\*PICK:\*\*/i.test(cuerpo)){
-        out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio)}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+        out+=`<div class="an-model an-model-cons">${_DIA_SVG}<span>${esc(tituloLimpio)}</span></div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
       }
     }
     // LECTURA — tarjeta azul
     if(tl.includes('lectura')){
-      out+=`<div class="an-sec sec-lectura"><div class="an-sec-t"><span class="an-ico">📖</span>${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-lectura"><div class="an-sec-t"><span class="an-ico">${svgNav("news",15)}</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // VEREDICTO — ámbar destacado
     if(tl.includes('veredicto')){
-      out+=`<div class="an-sec sec-veredicto"><div class="an-sec-t"><span class="an-ico">⚖️</span>${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-veredicto"><div class="an-sec-t"><span class="an-ico">${svgNav("trophy",15)}</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // RIESGO — rojo
     if(tl.includes('riesgo')){
-      out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t"><span class="an-ico">⚠️</span>${esc(tituloLimpio)}</div>
+      out+=`<div class="an-sec sec-riesgo"><div class="an-sec-t"><span class="an-ico">${_WARN_SVG}</span>${esc(tituloLimpio)}</div>
         <div class="an-sec-b">${inline(cuerpo)}</div></div>`;continue;
     }
     // Si el cuerpo trae picks en formato **PICK:**...**Confianza:**...%,
@@ -1195,15 +1232,15 @@ function motorAnalisisHTML(markdown,ctx){
     // descartadas" del análisis completo) y se mostraba como texto plano
     // sin tarjetas. Esto se adelanta a esa confusión.
     if(/\*\*PICK:\*\*/i.test(cuerpo)){
-      out+=`<div class="an-model an-model-cons">◆ ${esc(tituloLimpio||'Candidatos')}</div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
+      out+=`<div class="an-model an-model-cons">${_DIA_SVG}<span>${esc(tituloLimpio||'Candidatos')}</span></div>${formatearTextoLibre(picks(cuerpo)).replace(/(?<!<\/div>)\n/g,'<br>')}`;continue;
     }
     // DESCARTADOS / DERECHAS — colapsables (cerrados)
     if(tl.includes('descartado')||tl.includes('derecha')){
-      const ic=tl.includes('descartado')?'🚫':'✔️';
+      const ic=`<span class="an-ico">${tl.includes('descartado')?svgNav('x',15):svgNav('check',15)}</span>`;
       const cuerpoHtml=cuerpo.trim()?inline(cuerpo):'<span style="color:var(--dim2)">Sin elementos en esta sección.</span>';
       out+=`<div class="an-sec an-collapse closed">
         <div class="an-sec-t an-collapse-h" style="cursor:pointer;display:flex;align-items:center"
-          data-toggle="1">${ic} ${esc(tituloLimpio)} <span class="an-caret">▾</span></div>
+          data-toggle="1">${ic}<span>${esc(tituloLimpio)}</span> <span class="an-caret">${svgNav("chevd",16)}</span></div>
         <div class="an-sec-b">${cuerpoHtml}</div></div>`;continue;
     }
     // otra sección
