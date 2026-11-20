@@ -121,7 +121,10 @@ router.post("/forgot", resetLimiter, ah(async (req, res) => {
     expiraEn: new Date(Date.now() + MINUTOS_VIGENCIA * 60 * 1000)
   });
 
-  const base = (process.env.APP_URL || "").replace(/\/$/, "");
+  // APP_URL puede traer varios origenes separados por coma (CORS + app movil).
+  // Para el enlace del correo usamos solo el primer origen https publico.
+  const base = String(process.env.APP_URL || "").split(",").map((o) => o.trim().replace(/\/$/, ""))
+    .find((o) => /^https:\/\//.test(o) && !/localhost|127\.0\.0\.1/.test(o)) || "";
   const enlace = `${base}/reset.html?token=${token}`;
   const { html, texto } = plantillaReset({ enlace, minutos: MINUTOS_VIGENCIA });
 
