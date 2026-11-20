@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
   stripeCustomerId: { type: String, default: null, index: true },
   stripeSubscriptionId: { type: String, default: null, index: true },
   stripeSubscriptionStatus: { type: String, default: null },
+  proOrigen: { type: String, enum: ["stripe", "apple", null], default: null },
+  iapProducto: { type: String, default: null },
   analisisFecha: { type: String, default: "" },
   analisisUsados: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }

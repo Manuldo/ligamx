@@ -47,6 +47,7 @@ async function syncSubscription(stripe, subscriptionRef, fallbackUserId = null) 
     stripeCustomerId: customerId || null,
     stripeSubscriptionId: subscription.id,
     stripeSubscriptionStatus: subscription.status,
+    proOrigen: "stripe",
     subscriptionExpiresAt: periodEnd,
     isPro: activeStatuses.has(subscription.status) && Boolean(periodEnd && periodEnd.getTime() > Date.now()),
   };

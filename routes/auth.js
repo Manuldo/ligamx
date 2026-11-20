@@ -6,6 +6,10 @@ import PasswordReset from "../models/PasswordReset.js";
 import { enviarCorreo, plantillaReset } from "../mailer.js";
 import { ah } from "../asyncHandler.js";
 import { requireAuth } from "../middleware/auth.js";
+import PushToken from "../models/PushToken.js";
+import PartidoSeguido from "../models/PartidoSeguido.js";
+import UserPick from "../models/UserPick.js";
+import Vote from "../models/Vote.js";
 
 const router = express.Router();
 
@@ -79,8 +83,38 @@ router.get("/me", requireAuth, ah(async (req, res) => {
       cuentaDesde: user.createdAt,
       proEstado: user.stripeSubscriptionStatus,
       proVence: user.subscriptionExpiresAt,
+      proOrigen: user.proOrigen || (user.stripeSubscriptionId ? "stripe" : null),
     }
   });
+}));
+
+// Borrar cuenta (Apple 5.1.1(v): si la app permite crear cuenta, debe permitir borrarla).
+// Pide la contraseña, cancela el cobro de Stripe si lo hay y borra los datos del usuario.
+// Una suscripción de Apple no se puede cancelar desde el servidor: el front avisa
+// al usuario que debe apagarla en Ajustes > Suscripciones.
+router.post("/eliminar-cuenta", authLimiter, requireAuth, ah(async (req, res) => {
+  const password = String(req.body?.password || "");
+  if (!password || !(await req.user.verifyPassword(password))) {
+    return res.status(403).json({ error: "Contraseña incorrecta" });
+  }
+  const user = req.user;
+  if (user.stripeSubscriptionId && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const { default: Stripe } = await import("stripe");
+      await new Stripe(process.env.STRIPE_SECRET_KEY).subscriptions.cancel(user.stripeSubscriptionId);
+    } catch (e) {
+      console.error("eliminar-cuenta: no se pudo cancelar Stripe", e?.message);
+    }
+  }
+  await Promise.all([
+    PushToken.deleteMany({ user: user._id }),
+    PartidoSeguido.deleteMany({ user: user._id }),
+    UserPick.deleteMany({ userId: user._id }),
+    Vote.deleteMany({ userId: user._id }),
+    PasswordReset.deleteMany({ userId: user._id }),
+  ]);
+  await User.deleteOne({ _id: user._id });
+  res.json({ ok: true, apple: user.proOrigen === "apple" && user.isProActive() });
 }));
 
 // Limite propio, mas estricto: pedir resets es barato para un atacante

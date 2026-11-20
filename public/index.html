@@ -688,6 +688,28 @@ body.landing .page{padding:0;max-width:none}
 .mforgot:hover{color:var(--dim)}
 .mnote{font-size:12.5px;line-height:1.5;color:var(--dim);background:var(--panel2);
   border-radius:8px;padding:12px;margin-bottom:12px}
+
+/* ===== Paywall IAP + eliminar cuenta ===== */
+.pw{position:fixed;inset:0;z-index:300;background:rgba(8,9,11,.78);display:flex;align-items:flex-end;justify-content:center;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+@media(min-width:640px){.pw{align-items:center}}
+.pw-c{position:relative;width:100%;max-width:420px;background:#15171B;border:1px solid var(--line);border-radius:20px;padding:26px 22px 18px;max-height:92vh;overflow:auto}
+.pw-x{position:absolute;top:10px;right:12px;width:34px;height:34px;border:0;background:transparent;color:var(--dim);font-size:26px;line-height:1;cursor:pointer}
+.pw-k{font-weight:900;font-size:12px;letter-spacing:.14em;color:var(--red)}
+.pw-t{font-weight:900;font-size:22px;letter-spacing:-.4px;margin:6px 0 14px}
+.pw-ul{list-style:none;margin:0 0 16px;padding:0}
+.pw-ul li{position:relative;padding:7px 0 7px 24px;font-size:14px;color:var(--txt)}
+.pw-ul li:before{content:"";position:absolute;left:2px;top:12px;width:12px;height:7px;border-left:2.5px solid var(--red);border-bottom:2.5px solid var(--red);transform:rotate(-45deg)}
+.pw-pr{font-size:15px;color:var(--dim);margin-bottom:12px}
+.pw-pr b{color:var(--txt);font-size:24px;font-weight:900}
+.pw-go{width:100%;justify-content:center;padding:14px 16px;font-size:15px}
+.pw-go:disabled{opacity:.55}
+.pw-lnk{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--dim);font-size:13px;font-weight:700;padding:8px;cursor:pointer;font-family:inherit}
+.pw-leg{margin-top:10px;font-size:10.5px;line-height:1.5;color:var(--dim2)}
+.pw-leg a{color:var(--dim)}
+.pw-p{font-size:13.5px;line-height:1.5;color:var(--dim);margin:0 0 14px}
+.pw-in{width:100%;background:#0D0F12;border:1px solid var(--line);border-radius:12px;color:var(--txt);font-size:16px;padding:13px 14px;margin-bottom:12px;font-family:inherit}
+.btn-del{background:none;border:0;color:var(--dim2);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;font-family:inherit;margin-left:auto}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(90px);
   background:var(--panel3);color:var(--txt);padding:12px 18px;border-radius:8px;
   font-size:13px;font-weight:600;z-index:90;transition:transform .3s cubic-bezier(.22,1,.36,1);
@@ -939,6 +961,8 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
     <div class="sb-user" id="sbuser"></div>
     <a href="/terminos.html" target="_blank" style="display:block;text-align:center;
       font-size:11px;color:var(--dim2);text-decoration:none;margin-top:8px">Términos y Condiciones</a>
+    <a href="/privacidad.html" target="_blank" style="display:block;text-align:center;
+      font-size:11px;color:var(--dim2);text-decoration:none;margin-top:4px">Aviso de Privacidad</a>
   </div>
 </aside>
 
@@ -970,7 +994,7 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
     <div class="mforgot" id="mForgot">¿Olvidaste tu contraseña?</div>
     <div id="mLegal" style="display:none;font-size:11px;color:var(--dim2);text-align:center;
       margin-top:14px;line-height:1.5">Al crear tu cuenta confirmas que eres mayor de 18 años y
-      aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a>.</div>
+      aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a> y el <a href="/privacidad.html" target="_blank" style="color:var(--red)">Aviso de Privacidad</a>.</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -1498,7 +1522,7 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("[data-a]"); if(!b)return;
   const a=b.dataset.a;
   if(a==="in")openAuth("login"); if(a==="up")openAuth("register");
-  if(a==="out")logout(); if(a==="pro")goPro();
+  if(a==="out")logout(); if(a==="pro")goPro(); if(a==="restaurar")restaurarCompras(); if(a==="borrar")eliminarCuenta();
   if(a==="cuenta"){if(me){verCuenta();if(b.closest("#bnav"))NAV.length=0;}else openAuth("login");}
   if(a==="atras")irAtras();
   if(a==="volver")volverAHoy();
@@ -1546,7 +1570,7 @@ function gate(){
         <div style="margin-top:22px;font-size:11.5px;color:var(--dim2);line-height:1.6;max-width:460px">
           Solo para mayores de 18 años. Pickazo es un servicio de análisis e información
           deportiva, <b style="color:var(--dim)">no una casa de apuestas</b>. Al crear tu cuenta
-          aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a>.
+          aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a> y el <a href="/privacidad.html" target="_blank" style="color:var(--red)">Aviso de Privacidad</a>.
         </div>
       </div>
     </div>`;
@@ -3197,6 +3221,8 @@ async function verCuenta(){
   // debe poder entrar al portal a cambiar su tarjeta en lugar de pagar otra vez.
   const tieneSub=!!(u.proEstado&&!["canceled","incomplete_expired"].includes(u.proEstado));
   const pagoPendiente=!esPro&&tieneSub;
+  window._proOrigen=u.proOrigen||null;
+  const apple=u.proOrigen==="apple";
   $("#tbT").textContent="Mi cuenta";$("#tbS").textContent="";
   p.innerHTML=`<div class="card">
     <div class="card-h"><span class="card-t">Mi cuenta</span></div>
@@ -3217,18 +3243,26 @@ async function verCuenta(){
       </div>
       <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
         ${esPro
-          ?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>'
+          ?((!IS_APP||apple)?'<button class="btn btn-line" data-a="portal">Gestionar suscripción</button>':"")
           :pagoPendiente
-            ?'<button class="btn btn-red" data-a="portal">Actualizar método de pago</button>'
-            :'<button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>'}
+            ?((!IS_APP||apple)?'<button class="btn btn-red" data-a="portal">'+(IS_APP?"Gestionar suscripción":"Actualizar método de pago")+'</button>':"")
+            :'<button class="btn btn-red" data-a="pro">Hazte PRO'+(IS_APP?"":" — $299/mes")+'</button>'}
+        ${IS_APP&&!esPro?'<button class="btn btn-line" data-a="restaurar">Restaurar compras</button>':""}
         <button class="btn btn-line" data-v="mios">Ver mis picks</button>
         <button class="btn btn-line" data-a="out" style="margin-left:auto">Cerrar sesión</button>
+      </div>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12px">
+        <a href="/terminos.html" target="_blank" style="color:var(--dim2)">Términos</a>
+        <a href="/privacidad.html" target="_blank" style="color:var(--dim2)">Privacidad</a>
+        <button class="btn-del" data-a="borrar">Eliminar cuenta</button>
       </div>
     </div>
   </div>`;
 }
 async function goPro(){
   if(!me){openAuth("register");return;}
+  // En la app de iPhone el PRO solo se vende con compra dentro de la app (Apple 3.1.1).
+  if(IS_APP){abrirPaywall();return;}
   try{const r=await fetch(`${API}/payments/checkout`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
@@ -3239,6 +3273,11 @@ async function goPro(){
   }catch{toast("Sin conexión");}
 }
 async function abrirPortal(){
+  if(IS_APP){
+    const P=_iapP();
+    try{if(P&&P.showManageSubscriptions){await P.showManageSubscriptions();return;}}catch{}
+    location.href="https://apps.apple.com/account/subscriptions";return;
+  }
   try{const r=await fetch(`${API}/payments/portal`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
     if(d.url){location.href=d.url;return;}
@@ -3247,6 +3286,136 @@ async function abrirPortal(){
     else if(r.status===503)toast("Los pagos aún no están activos");
     else toast(d.error||"No se pudo abrir el portal");
   }catch{toast("Sin conexión");}
+}
+
+// ===== Compras dentro de la app (Apple IAP vía RevenueCat) =====
+let _iapCfg=null;
+const _iapP=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Purchases;
+async function iapInit(){
+  const P=_iapP();if(!P)throw new Error("noplugin");
+  const r=await fetch(`${API}/iap/config`,{headers:H()});
+  const c=await r.json().catch(()=>({}));
+  if(!r.ok||!c.activo)throw new Error("inactivo");
+  if(!_iapCfg)await P.configure({apiKey:c.apiKey,appUserID:c.appUserId});
+  else if(_iapCfg.appUserId!==c.appUserId)await P.logIn({appUserID:c.appUserId});
+  _iapCfg=c;return P;
+}
+async function iapSincronizar(){
+  // Verifica con el servidor (que pregunta a RevenueCat) y refresca el estado.
+  let ok=false;
+  for(let i=0;i<4&&!ok;i++){
+    try{
+      const r=await fetch(`${API}/iap/sincronizar`,{method:"POST",headers:H()});
+      const d=await r.json().catch(()=>({}));
+      if(d.isPro)ok=true;
+    }catch{}
+    if(!ok)await new Promise(r=>setTimeout(r,1500));
+  }
+  try{
+    const r=await fetch(`${API}/auth/me`,{headers:H()});
+    if(r.ok){const d=await r.json();
+      if(d.token){token=d.token;localStorage.setItem("token",token);}
+      if(d.user){me=d.user;localStorage.setItem("me",JSON.stringify(me));}}
+  }catch{}
+  sbUser();
+  return isPro();
+}
+function cerrarPaywall(){const o=document.getElementById("pw");if(o)o.remove();}
+async function abrirPaywall(){
+  cerrarPaywall();
+  const ov=document.createElement("div");ov.id="pw";ov.className="pw";
+  ov.innerHTML=`<div class="pw-c" role="dialog" aria-label="Pickazo PRO">
+    <button class="pw-x" id="pwX" aria-label="Cerrar">×</button>
+    <div class="pw-k">PICKAZO PRO</div>
+    <div class="pw-t">Desbloquea todo el análisis</div>
+    <ul class="pw-ul">
+      <li>Mercado y momio de cada pick del día</li>
+      <li>Parlays y Parlay Builder completos</li>
+      <li>Historial verificado, pick por pick</li>
+      <li>Props de jugadores NBA</li>
+    </ul>
+    <div class="pw-pr" id="pwPr">Cargando precio…</div>
+    <button class="btn btn-red pw-go" id="pwGo" disabled>Suscribirme</button>
+    <button class="pw-lnk" id="pwRs">Restaurar compras</button>
+    <div class="pw-leg">Suscripción mensual con renovación automática. El cobro se carga a tu cuenta de Apple al confirmar. Se renueva solo por el mismo periodo y precio, salvo que la canceles al menos 24 horas antes de que termine el periodo vigente, en Ajustes &gt; tu nombre &gt; Suscripciones.
+      <br><a href="/terminos.html" target="_blank">Términos de uso</a> · <a href="/privacidad.html" target="_blank">Aviso de privacidad</a></div>
+  </div>`;
+  document.body.appendChild(ov);
+  document.getElementById("pwX").onclick=cerrarPaywall;
+  ov.addEventListener("click",e=>{if(e.target===ov)cerrarPaywall();});
+  const go=document.getElementById("pwGo"),pr=document.getElementById("pwPr"),rs=document.getElementById("pwRs");
+  let pkg=null,P=null;
+  try{
+    P=await iapInit();
+    const o=await P.getOfferings();
+    const cur=o&&o.current;
+    pkg=cur&&(cur.monthly||(cur.availablePackages||[])[0]);
+    if(!pkg)throw new Error("sinpaquete");
+    pr.innerHTML=`<b>${esc(pkg.product.priceString)}</b> / mes`;
+    go.disabled=false;
+  }catch(e){
+    pr.textContent=(e&&e.message==="inactivo")?"Las suscripciones aún no están activas.":"No se pudo cargar el precio. Revisa tu conexión.";
+  }
+  go.onclick=async()=>{
+    if(!pkg||!P)return;
+    go.disabled=true;go.textContent="Procesando…";
+    try{
+      await P.purchasePackage({aPackage:pkg});
+      go.textContent="Activando tu PRO…";
+      if(await iapSincronizar()){cerrarPaywall();toast("¡Ya eres PRO! 🎉","ok");sbLigas();render();}
+      else{cerrarPaywall();toast("Tu compra se está activando. Si en un par de minutos no ves tu PRO, toca Restaurar compras en Mi cuenta.");}
+    }catch(e){
+      go.disabled=false;go.textContent="Suscribirme";
+      if(e&&(e.userCancelled||/cancel/i.test(String(e.message||""))))return;
+      toast("No se pudo completar la compra");
+    }
+  };
+  rs.onclick=()=>restaurarCompras(true);
+}
+async function restaurarCompras(desdePaywall){
+  if(!me){openAuth("login");return;}
+  toast("Buscando tus compras…");
+  try{
+    const P=await iapInit();
+    await P.restorePurchases();
+    if(await iapSincronizar()){cerrarPaywall();toast("Compras restauradas, ya eres PRO","ok");sbLigas();render();}
+    else toast("No encontramos una suscripción activa en tu cuenta de Apple");
+  }catch(e){toast(e&&e.message==="inactivo"?"Las suscripciones aún no están activas":"No se pudo restaurar, intenta de nuevo");}
+}
+
+// ===== Eliminar cuenta (Apple 5.1.1(v)) =====
+function eliminarCuenta(){
+  if(!me)return;
+  document.getElementById("dl")?.remove();
+  const apple=(window._proOrigen==="apple")&&isPro();
+  const ov=document.createElement("div");ov.id="dl";ov.className="pw";
+  ov.innerHTML=`<div class="pw-c" role="dialog" aria-label="Eliminar cuenta">
+    <button class="pw-x" id="dlX" aria-label="Cerrar">×</button>
+    <div class="pw-k" style="color:var(--red)">ELIMINAR CUENTA</div>
+    <div class="pw-t">Esto no se puede deshacer</div>
+    <p class="pw-p">Se borrarán tu correo, tus picks, tus partidos seguidos y tus dispositivos de notificación.${
+      apple?" <b>Tu suscripción de Apple no se cancela sola:</b> cancélala en Ajustes &gt; tu nombre &gt; Suscripciones para que no te sigan cobrando.":""}</p>
+    <input id="dlP" type="password" class="pw-in" placeholder="Escribe tu contraseña para confirmar" autocomplete="current-password">
+    <button class="btn btn-red pw-go" id="dlGo">Eliminar mi cuenta</button>
+    <button class="pw-lnk" id="dlNo">Cancelar</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const cerrar=()=>ov.remove();
+  document.getElementById("dlX").onclick=cerrar;document.getElementById("dlNo").onclick=cerrar;
+  document.getElementById("dlGo").onclick=async()=>{
+    const pw=document.getElementById("dlP").value;
+    if(!pw){toast("Escribe tu contraseña");return;}
+    const b=document.getElementById("dlGo");b.disabled=true;b.textContent="Eliminando…";
+    try{
+      const r=await fetch(`${API}/auth/eliminar-cuenta`,{method:"POST",headers:{...H(),"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){b.disabled=false;b.textContent="Eliminar mi cuenta";toast(d.error||"No se pudo eliminar la cuenta");return;}
+      cerrar();
+      try{const P=_iapP();if(P&&_iapCfg)await P.logOut();}catch{}
+      _iapCfg=null;logout();
+      toast(d.apple?"Cuenta eliminada. Recuerda cancelar tu suscripción en Ajustes de Apple.":"Tu cuenta fue eliminada");
+    }catch{b.disabled=false;b.textContent="Eliminar mi cuenta";toast("Sin conexión");}
+  };
 }
 function openAuth(m){
   mode=m;
@@ -3375,6 +3544,7 @@ async function pushQuitar(){
   pushToken=null;
 }
 function logout(){
+  try{const P=_iapP();if(P&&_iapCfg){P.logOut();_iapCfg=null;}}catch{}
   pushQuitar();SEGUIDOS=new Set();
   token=null;me=null;localStorage.removeItem("token");localStorage.removeItem("me");
   view="home";NAV.length=0;syncApp();
