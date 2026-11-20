@@ -158,20 +158,26 @@ function texto(titulo, lineas, filas = [], boton) {
 }
 
 // 1) Primera activación de PRO (checkout completado).
-export function correoBienvenidaPro({ appUrl, montoHoy, montoRecurrente, moneda, proximoCobro }) {
-  const titulo = "¡Ya eres PRO! 🎉";
-  const parrafos = [
+export function correoBienvenidaPro({ appUrl, montoHoy, montoRecurrente, moneda, proximoCobro, premium = false }) {
+  const titulo = premium ? "¡Ya eres Premium! 🎉" : "¡Ya eres PRO! 🎉";
+  const parrafos = premium ? [
+    "Gracias por suscribirte a Pickazo Premium. Tienes todo lo de PRO y acceso al grupo VIP de WhatsApp.",
+    "<b>Último paso:</b> entra a <b>Mi cuenta</b>, registra el WhatsApp con el que vas a entrar al grupo y ahí te aparece el acceso. Tu solicitud se aprueba a mano.",
+    "Tu suscripción se renueva automáticamente cada mes. Puedes cancelarla cuando quieras desde Mi cuenta.",
+  ] : [
     "Gracias por suscribirte a Pickazo PRO. Ya tienes desbloqueados los picks completos, los mercados y momios, los parlays y el historial pick por pick.",
     "Tu suscripción se renueva automáticamente cada mes. Puedes cancelarla cuando quieras desde <b>Mi cuenta</b> y conservas el PRO hasta el final del periodo pagado.",
   ];
   const filas = [
-    ["Pagaste hoy", formatoMonto(montoHoy, moneda)],
+    ...(montoHoy != null ? [["Pagaste hoy", formatoMonto(montoHoy, moneda)]] : []),
     ["Siguiente cobro", `${formatoMonto(montoRecurrente, moneda)} el ${formatoFecha(proximoCobro)}`],
   ];
-  const boton = { texto: "Ver los picks de hoy", enlace: appUrl };
+  const boton = premium
+    ? { texto: "Registrar mi WhatsApp", enlace: `${appUrl}/?ver=cuenta` }
+    : { texto: "Ver los picks de hoy", enlace: appUrl };
   const nota = "El recibo oficial de tu pago te llega en un correo aparte de Stripe, nuestro procesador de pagos.";
   return {
-    asunto: "Bienvenido a Pickazo PRO",
+    asunto: premium ? "Bienvenido a Pickazo Premium" : "Bienvenido a Pickazo PRO",
     html: plantillaBase({ titulo, parrafos, filas, boton, nota }),
     texto: texto(titulo, parrafos, filas, boton),
   };

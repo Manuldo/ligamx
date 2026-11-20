@@ -62,7 +62,7 @@ router.post("/login", authLimiter, ah(async (req, res) => {
   }
   res.json({
     token: signToken(user),
-    user: { email: user.email, isPro: user.isProActive() }
+    user: { email: user.email, ...user.resumenPlan() }
   });
 }));
 
@@ -75,7 +75,7 @@ router.get("/me", requireAuth, ah(async (req, res) => {
     token: signToken(user),   // token nuevo con el estado actualizado
     user: {
       email: user.email,
-      isPro: user.isProActive(),
+      ...user.resumenPlan(),
       cuentaDesde: user.createdAt,
       proEstado: user.stripeSubscriptionStatus,
       proVence: user.subscriptionExpiresAt,
@@ -182,7 +182,7 @@ router.post("/reset", resetLimiter, ah(async (req, res) => {
 
   // Damos sesion de una vez: ya probo que controla el correo.
   res.json({ ok: true, token: signToken(user),
-    user: { email: user.email, isPro: user.isProActive() } });
+    user: { email: user.email, ...user.resumenPlan() } });
 }));
 
 export default router;
