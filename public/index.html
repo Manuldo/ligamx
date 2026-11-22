@@ -768,7 +768,31 @@ body.is-app .apphd{display:flex;align-items:center;justify-content:space-between
   height:calc(46px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 4px 0;background:#0D0F12;border-bottom:1px solid var(--line)}
 .aph-back,.aph-menu{width:40px;height:40px;display:grid;place-items:center;background:none;border:none;color:var(--txt);border-radius:10px}
 .aph-back:active,.aph-menu:active{background:var(--panel3)}
-.aph-back.off{visibility:hidden}
+.aph-l{position:relative;width:40px;height:40px;flex-shrink:0}
+.aph-sp{width:40px;height:40px;flex-shrink:0}
+.aph-l .aph-back,.aph-l .aph-menu{position:absolute;inset:0;transition:opacity .18s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.aph-l .aph-back{opacity:0;transform:translateX(8px) scale(.85);pointer-events:none;visibility:visible}
+.apphd.sub .aph-back{opacity:1;transform:none;pointer-events:auto}
+.apphd.sub .aph-menu{opacity:0;transform:translateX(-8px) scale(.85);pointer-events:none}
+.aph-logo{flex:1;justify-content:center}
+/* ---- Animaciones de la app (se apagan con "reducir movimiento") ---- */
+@keyframes pzIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pzPop{0%{transform:scale(.8)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
+body.is-app #page.pg-in>*{animation:pzIn .34s cubic-bezier(.22,1,.36,1) both}
+body.is-app #page.pg-in>*:nth-child(2){animation-delay:.05s}
+body.is-app #page.pg-in>*:nth-child(3){animation-delay:.1s}
+body.is-app #page.pg-in>*:nth-child(4){animation-delay:.15s}
+body.is-app #page.pg-in>*:nth-child(5){animation-delay:.2s}
+body.is-app #page.pg-in>*:nth-child(n+6){animation-delay:.24s}
+body.is-app .bn.on .bn-i{animation:pzPop .32s ease}
+body.is-app .bn,body.is-app .btn,body.is-app .card,body.is-app .pick{transition:transform .12s ease,background-color .15s ease}
+body.is-app .bn:active .bn-i{transform:scale(.88)}
+body.is-app .btn:active{transform:scale(.97)}
+body.is-app .card:active,body.is-app .pick:active{transform:scale(.985)}
+body.is-app aside{transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s}
+body.is-app.mopen aside{box-shadow:8px 0 30px rgba(0,0,0,.45)}
+body.is-app .scrim{display:block;opacity:0;visibility:hidden;transition:opacity .24s ease,visibility .24s}
+body.is-app .scrim.on{opacity:1;visibility:visible}
 .aph-logo{display:flex;align-items:center;gap:6px;font-family:Archivo,system-ui,sans-serif;font-weight:900;font-style:italic;font-size:15px;letter-spacing:.02em;line-height:1}
 .aph-logo img{width:22px;height:22px;border-radius:5px}
 .aph-logo em{font-style:italic}
@@ -967,7 +991,7 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
 </aside>
 
 <div class="wrap">
-  <div class="apphd" id="apphd"><button class="aph-back" id="apBack" data-a="atras" aria-label="Regresar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#n-back"/></svg></button><div class="aph-logo"><img src="/icons/icon-96.png" alt=""><em>PICKAZO</em> <span>MX</span></div><button class="aph-menu" id="apMenu" aria-label="Menú"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#n-menu"/></svg></button></div>
+  <div class="apphd" id="apphd"><div class="aph-l"><button class="aph-menu" id="apMenu" aria-label="Menú"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#n-menu"/></svg></button><button class="aph-back" id="apBack" data-a="atras" aria-label="Regresar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#n-back"/></svg></button></div><div class="aph-logo"><img src="/icons/icon-96.png" alt=""><em>PICKAZO</em> <span>MX</span></div><div class="aph-sp" aria-hidden="true"></div></div>
   <div class="topbar">
     <button class="btn btn-line" id="mtog" style="display:none">☰</button>
     <div>
@@ -1027,7 +1051,7 @@ if(IS_APP)document.body.classList.add("is-app");
 const NAV=[];let _atras=false;
 function syncApp(){
   if(!IS_APP)return;
-  const b=document.getElementById("apBack");if(b)b.classList.toggle("off",view==="home");
+  const h=document.getElementById("apphd");if(h)h.classList.toggle("sub",view!=="home");
   document.querySelectorAll("#bnav [data-v]").forEach(x=>x.classList.toggle("on",x.dataset.v===view));
   const c=document.getElementById("bnCuenta");if(c)c.classList.toggle("on",view==="cuenta");
 }
@@ -1384,6 +1408,7 @@ function setView(v){
   syncApp();
   if(TITLES[v]){$("#tbT").textContent=TITLES[v][0]; $("#tbS").textContent=TITLES[v][1];}
   render();
+  if(IS_APP){const pg=document.getElementById("page");if(pg){pg.classList.remove("pg-in");void pg.offsetWidth;pg.classList.add("pg-in");}}
 }
 window.setView=setView;
 // ¿un partido ya empezó? (por hora de inicio, aunque el motor no lo haya
