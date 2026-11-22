@@ -1324,7 +1324,7 @@ document.addEventListener("click",e=>{
 });
 
 const TITLES={home:["Inicio","Lo que pasa hoy en Pickazo"],
-  hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados por IA"],
+  hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados armados con datos"],
   track:["Track record","Resultados verificados"],
   builder:["Arma tu parlay","Elige tus patas y arma tu boleto"],
   comunidad:["Parlays de la banda","Lo que publica y vota la comunidad"],
@@ -1550,15 +1550,15 @@ function gate(){
       </video>
       <div class="land-bg"></div>
       <div class="land-in">
-        <div class="land-badge"><span class="d"></span> La app del apostador informado</div>
+        <div class="land-badge"><span class="d"></span> ${IS_APP?"Análisis deportivo con datos":"La app del apostador informado"}</div>
         <h1 class="land-h1">El que estudia cobra. El que adivina reza.</h1>
         <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
-          para que TÚ decidas: picks del día, parlays por IA e historial verificado. No apostamos por ti —
+          para que TÚ decidas: picks del día, parlays armados con datos e historial verificado. No apostamos por ti —
           te damos la ventaja del que sabe.</p>
         <div class="land-grid">
           <div class="lc"><b>Información, no corazonadas</b>
             <span>Vendemos datos y análisis. La jugada la haces tú.</span></div>
-          <div class="lc"><b>Parlays por IA</b>
+          <div class="lc"><b>Parlays armados con datos</b>
             <span>Combinados armados con datos, no adivinanza.</span></div>
           <div class="lc"><b>Historial verificado</b>
             <span>La app misma te dice qué tan creíble es. Sin editar.</span></div>
@@ -1569,7 +1569,8 @@ function gate(){
         <div class="land-sub" data-a="in">¿Ya tienes cuenta? <b>Entrar</b></div>
         <div style="margin-top:22px;font-size:11.5px;color:var(--dim2);line-height:1.6;max-width:460px">
           Solo para mayores de 18 años. Pickazo es un servicio de análisis e información
-          deportiva, <b style="color:var(--dim)">no una casa de apuestas</b>. Al crear tu cuenta
+          deportiva, <b style="color:var(--dim)">no una casa de apuestas</b>: no recibimos apuestas ni manejamos dinero de juego.
+          Ningún análisis garantiza resultados. Si apostar deja de ser un juego, busca apoyo profesional. Al crear tu cuenta
           aceptas los <a href="/terminos.html" target="_blank" style="color:var(--red)">Términos y Condiciones</a> y el <a href="/privacidad.html" target="_blank" style="color:var(--red)">Aviso de Privacidad</a>.
         </div>
       </div>
@@ -2456,7 +2457,7 @@ async function viewParlays(){
     </div>`;
   };
   // fecha bonita del día mostrado
-  let diaTxt="Combinados por IA";
+  let diaTxt="Combinados armados con datos";
   if(d.diaMostrado){try{const [y,m,dd]=d.diaMostrado.split("-");
     diaTxt=new Date(+y,+m-1,+dd).toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
     diaTxt=diaTxt.charAt(0).toUpperCase()+diaTxt.slice(1);}catch{}}
@@ -3256,6 +3257,7 @@ async function verCuenta(){
         <a href="/privacidad.html" target="_blank" style="color:var(--dim2)">Privacidad</a>
         <button class="btn-del" data-a="borrar">Eliminar cuenta</button>
       </div>
+      <div style="margin-top:12px;font-size:11px;line-height:1.5;color:var(--dim2)">Solo mayores de 18 años. Pickazo es información y análisis deportivo, no una casa de apuestas; ningún análisis garantiza resultados.</div>
     </div>
   </div>`;
 }
