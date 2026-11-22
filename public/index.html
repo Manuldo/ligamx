@@ -3311,7 +3311,9 @@ async function abrirPortal(){
   if(IS_APP){
     const P=_iapP();
     try{if(P&&P.showManageSubscriptions){await P.showManageSubscriptions();return;}}catch{}
-    location.href="https://apps.apple.com/account/subscriptions";return;
+    // Respaldo: abre la lista de suscripciones de Apple fuera de la app (no reemplaza la pantalla).
+    try{window.open("itms-apps://apps.apple.com/account/subscriptions","_system");return;}catch{}
+    toast("Ve a Ajustes > tu nombre > Suscripciones");return;
   }
   try{const r=await fetch(`${API}/payments/portal`,{method:"POST",headers:H()});
     const d=await r.json().catch(()=>({}));
