@@ -98,6 +98,8 @@ app.use(cors({
     if (!isProduction && /^http:\/\/localhost:\d+$/.test(normalized)) {
       return callback(null, true);
     }
+    // La app de iPhone empaqueta la interfaz y llama a la API desde estos orígenes.
+    if (normalized === "capacitor://localhost" || normalized === "ionic://localhost") return callback(null, true);
     return callback(null, allowedOrigins.includes(normalized));
   },
   methods: ["GET", "POST", "OPTIONS"],

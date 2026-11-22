@@ -1,8 +1,9 @@
 # App iOS de Pickazo MX (Capacitor + notificaciones push)
 
-La app iOS es un contenedor nativo (Capacitor) que carga el sitio web
-(`server.url` en `capacitor.config.json`). El frontend es el mismo
-`public/index.html`; no hay lógica de negocio duplicada.
+La app iOS es un contenedor nativo (Capacitor) que **empaqueta la interfaz**
+(`public/` → `www-app/` con `npm run build:app`) y llama a la API del servidor
+(`APP_API_BASE`). El frontend es el mismo `public/index.html`; no hay lógica de
+negocio duplicada. Ver `APP_STORE.md` para el flujo de build y envío.
 
 ## 1. Apple Developer (una sola vez)
 1. **Identifiers → +** → *App IDs* → App → Bundle ID explícito `mx.pickazo.app`

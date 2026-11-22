@@ -86,6 +86,21 @@ ls Assets.xcassets/AppIcon.appiconset                 # icono 1024x1024 sin tran
 - Capacidades en Xcode: Push Notifications, Background Modes > Remote notifications, **In-App Purchase**.
 - Sube primero a **TestFlight** y prueba compra Sandbox, restaurar, borrar cuenta y push.
 
-## 7. Riesgo principal que queda: guideline 4.2 (app que solo envuelve una web)
+## 7. Interfaz empaquetada dentro de la app (guideline 4.2)
 
-La app carga el sitio remoto con `server.url`. Para reducir el riesgo, el texto de las notas ya destaca las funciones nativas. La mitigación fuerte es **empaquetar la interfaz dentro de la app** (quitar `server.url` y que la app use los archivos locales, llamando a la API por internet). Costo: cada cambio de interfaz requiere una nueva versión en App Store. Decisión pendiente.
+La app ya **no** carga el sitio remoto: la interfaz (HTML e imágenes propias) viaja dentro del build y los datos, login, análisis, compras y push siguen viniendo de tu servidor por internet. Así Apple la ve como app real y no como una web envuelta.
+
+Consecuencia: **un cambio de diseño en `public/index.html` solo llega a los usuarios con una nueva versión de la app** (los cambios del servidor, motor y datos siguen siendo instantáneos). La web pickazoapp.com se sigue actualizando al momento.
+
+Armar el build en la Mac:
+
+```bash
+cd ~/ligamx-ios
+git checkout capacitor.config.json && git pull        # trae la config sin server.url
+npm install
+APP_API_BASE=https://ligamx-production-dff6b4b3.up.railway.app npm run build:app   # pruebas (preview)
+# para producción: APP_API_BASE=https://pickazoapp.com npm run build:app
+npx cap sync ios
+```
+
+Antes de enviar a la App Store, la rama debe estar desplegada en el servidor de producción (compras, push y borrar cuenta viven ahí), y `APP_API_BASE` debe apuntar a producción.

@@ -1000,17 +1000,19 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
 <div class="toast" id="toast"></div>
 
 <script>
-const API="/api";
+// En la app de iPhone la interfaz va empaquetada: las llamadas salen al servidor (PZ_API).
+const API=(window.PZ_API?window.PZ_API:"")+"/api";
 // Tope de espera para las llamadas a la API (si no traen el suyo): así nada se queda
 // cargando para siempre y, si falla, la pantalla dice cuál llamada fue.
 window._ultimoFallo="";
 {const _f=window.fetch.bind(window);
 window.fetch=(u,o)=>{
   const url=typeof u==="string"?u:(u&&u.url)||"";
-  if(url.startsWith("/api/")&&!(o&&o.signal)){
+  const esApi=url.startsWith(API+"/");
+  if(esApi&&!(o&&o.signal)){
     o=Object.assign({},o,{signal:AbortSignal.timeout(50000)});
   }
-  return _f(u,o).catch(e=>{if(url.startsWith("/api/"))window._ultimoFallo=url.split("?")[0]+" · "+(e&&e.name==="TimeoutError"?"tardó más de 50 s":"sin respuesta");throw e;});
+  return _f(u,o).catch(e=>{if(esApi)window._ultimoFallo=url.split("?")[0].replace(window.PZ_API||"","")+" · "+(e&&e.name==="TimeoutError"?"tardó más de 50 s":"sin respuesta");throw e;});
 };}
 let token=localStorage.getItem("token");
 let me=JSON.parse(localStorage.getItem("me")||"null");
