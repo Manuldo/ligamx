@@ -3380,6 +3380,10 @@ async function iapSincronizar(){
   sbUser();
   return isPro();
 }
+// Redibuja la pantalla actual. La de Cuenta la pinta verCuenta(), no render().
+function refrescarVista(){
+  try{ if(view==="cuenta")verCuenta(); else render(); }catch{}
+}
 function celebrarPro(msg){
   const prev=document.getElementById("proCel");if(prev)prev.remove();
   const o=document.createElement("div");o.id="proCel";o.className="pro-cel";
@@ -3448,7 +3452,7 @@ async function abrirPaywall(){
     try{
       await P.purchasePackage({aPackage:pkg});
       go.textContent="Activando tu PRO…";
-      if(await iapSincronizar()){cerrarPaywall();celebrarPro();sbLigas();render();}
+      if(await iapSincronizar()){cerrarPaywall();celebrarPro();sbLigas();refrescarVista();}
       else{cerrarPaywall();toast("Tu compra se está activando. Si en un par de minutos no ves tu PRO, toca Restaurar compras en Mi cuenta.");}
     }catch(e){
       go.disabled=false;go.textContent="Suscribirme";
@@ -3464,7 +3468,7 @@ async function restaurarCompras(desdePaywall){
   try{
     const P=await iapInit();
     await P.restorePurchases();
-    if(await iapSincronizar()){cerrarPaywall();celebrarPro("Restauramos tu suscripción. Tu PRO ya está activo.");sbLigas();render();}
+    if(await iapSincronizar()){cerrarPaywall();celebrarPro("Restauramos tu suscripción. Tu PRO ya está activo.");sbLigas();refrescarVista();}
     else toast("No encontramos una suscripción activa en tu cuenta de Apple");
   }catch(e){toast(e&&e.message==="inactivo"?"Las suscripciones aún no están activas":"No se pudo restaurar, intenta de nuevo");}
 }
