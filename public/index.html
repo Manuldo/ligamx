@@ -693,7 +693,30 @@ body.landing .page{padding:0;max-width:none}
 .pw{position:fixed;inset:0;z-index:300;background:rgba(8,9,11,.78);display:flex;align-items:flex-end;justify-content:center;
   padding:16px 16px calc(16px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 @media(min-width:640px){.pw{align-items:center}}
-.pw-c{position:relative;width:100%;max-width:420px;background:#15171B;border:1px solid var(--line);border-radius:20px;padding:26px 22px 18px;max-height:92vh;overflow:auto}
+.pw-c{position:relative;width:100%;max-width:420px;background:radial-gradient(120% 70% at 50% -10%,rgba(236,48,19,.22),transparent 60%),#15171B;border:1px solid rgba(236,48,19,.28);border-radius:22px;padding:28px 22px 18px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03) inset;animation:pwUp .42s cubic-bezier(.2,.9,.25,1) both}
+.pw{animation:pwFade .25s ease both}
+@keyframes pwFade{from{opacity:0}to{opacity:1}}
+@keyframes pwUp{from{opacity:0;transform:translateY(40px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes pwLi{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.pw-ul li{animation:pwLi .4s ease both}
+.pw-ul li:nth-child(1){animation-delay:.18s}.pw-ul li:nth-child(2){animation-delay:.26s}.pw-ul li:nth-child(3){animation-delay:.34s}.pw-ul li:nth-child(4){animation-delay:.42s}
+.pw-pr{display:inline-block;background:rgba(236,48,19,.1);border:1px solid rgba(236,48,19,.25);border-radius:12px;padding:8px 14px}
+.pw-go{position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(236,48,19,.35);transition:transform .15s}
+.pw-go:not(:disabled):active{transform:scale(.97)}
+.pw-go:not(:disabled):after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-20deg);animation:pwShine 2.8s ease-in-out infinite}
+@keyframes pwShine{0%,55%{left:-60%}100%{left:130%}}
+/* Celebración al activarse el PRO */
+.pro-cel{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(circle at 50% 42%,rgba(236,48,19,.35),rgba(8,9,11,.94) 62%);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:pwFade .25s ease both;overflow:hidden;text-align:center;padding:24px}
+.pro-cel.out{animation:pcOut .45s ease forwards}
+@keyframes pcOut{to{opacity:0;transform:scale(1.04)}}
+.pro-badge{width:132px;height:132px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:40px;letter-spacing:-1px;color:#fff;background:linear-gradient(145deg,#ff5a3c,#ec3013 55%,#a31a07);box-shadow:0 0 0 0 rgba(236,48,19,.6),0 14px 50px rgba(236,48,19,.55);animation:pcPop .75s cubic-bezier(.2,1.4,.3,1) both,pcPulse 1.8s ease-out .75s infinite}
+@keyframes pcPop{0%{transform:scale(.2) rotate(-25deg);opacity:0}70%{transform:scale(1.12) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes pcPulse{0%{box-shadow:0 0 0 0 rgba(236,48,19,.55),0 14px 50px rgba(236,48,19,.55)}100%{box-shadow:0 0 0 38px rgba(236,48,19,0),0 14px 50px rgba(236,48,19,.55)}}
+.pro-t{margin-top:22px;font-weight:900;font-size:30px;letter-spacing:-.8px;color:#fff;animation:pwUp .5s ease .35s both}
+.pro-s{margin-top:8px;font-size:15px;color:var(--dim);max-width:300px;animation:pwUp .5s ease .5s both}
+.pro-btn{margin-top:26px;animation:pwUp .5s ease .7s both}
+.pro-cf{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;opacity:0;animation:pcFall linear forwards}
+@keyframes pcFall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(105vh) rotate(720deg)}}
 .pw-x{position:absolute;top:10px;right:12px;width:34px;height:34px;border:0;background:transparent;color:var(--dim);font-size:26px;line-height:1;cursor:pointer}
 .pw-k{font-weight:900;font-size:12px;letter-spacing:.14em;color:var(--red)}
 .pw-t{font-weight:900;font-size:22px;letter-spacing:-.4px;margin:6px 0 14px}
@@ -3357,6 +3380,32 @@ async function iapSincronizar(){
   sbUser();
   return isPro();
 }
+function celebrarPro(msg){
+  const prev=document.getElementById("proCel");if(prev)prev.remove();
+  const o=document.createElement("div");o.id="proCel";o.className="pro-cel";
+  o.innerHTML=`<div class="pro-badge">PRO</div>
+    <div class="pro-t">¡Ya eres PRO!</div>
+    <div class="pro-s">${esc(msg||"Todo el análisis, los parlays y el historial verificado ya están desbloqueados.")}</div>
+    <button class="btn btn-red pro-btn" id="proOk">Empezar</button>`;
+  const calm=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  if(!calm){
+    const cols=["#ec3013","#ff7a55","#ffffff","#f5c451","#ffb199"];
+    for(let i=0;i<46;i++){
+      const c=document.createElement("i");c.className="pro-cf";
+      c.style.left=(Math.random()*100)+"%";
+      c.style.background=cols[i%cols.length];
+      c.style.animationDuration=(2.2+Math.random()*2)+"s";
+      c.style.animationDelay=(Math.random()*.9)+"s";
+      c.style.width=(6+Math.random()*6)+"px";
+      o.appendChild(c);
+    }
+  }
+  document.body.appendChild(o);
+  try{if(navigator.vibrate)navigator.vibrate([40,60,40]);}catch{}
+  const cerrar=()=>{o.classList.add("out");setTimeout(()=>o.remove(),420);};
+  document.getElementById("proOk").onclick=cerrar;
+  setTimeout(cerrar,6500);
+}
 function cerrarPaywall(){const o=document.getElementById("pw");if(o)o.remove();}
 async function abrirPaywall(){
   cerrarPaywall();
@@ -3399,7 +3448,7 @@ async function abrirPaywall(){
     try{
       await P.purchasePackage({aPackage:pkg});
       go.textContent="Activando tu PRO…";
-      if(await iapSincronizar()){cerrarPaywall();toast("¡Ya eres PRO! 🎉","ok");sbLigas();render();}
+      if(await iapSincronizar()){cerrarPaywall();celebrarPro();sbLigas();render();}
       else{cerrarPaywall();toast("Tu compra se está activando. Si en un par de minutos no ves tu PRO, toca Restaurar compras en Mi cuenta.");}
     }catch(e){
       go.disabled=false;go.textContent="Suscribirme";
@@ -3415,7 +3464,7 @@ async function restaurarCompras(desdePaywall){
   try{
     const P=await iapInit();
     await P.restorePurchases();
-    if(await iapSincronizar()){cerrarPaywall();toast("Compras restauradas, ya eres PRO","ok");sbLigas();render();}
+    if(await iapSincronizar()){cerrarPaywall();celebrarPro("Restauramos tu suscripción. Tu PRO ya está activo.");sbLigas();render();}
     else toast("No encontramos una suscripción activa en tu cuenta de Apple");
   }catch(e){toast(e&&e.message==="inactivo"?"Las suscripciones aún no están activas":"No se pudo restaurar, intenta de nuevo");}
 }
