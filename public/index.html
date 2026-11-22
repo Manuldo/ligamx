@@ -1001,6 +1001,9 @@ h1,h2,.tb-t,.sb-logo{font-family:Archivo,system-ui,sans-serif}
 
 <script>
 // En la app de iPhone la interfaz va empaquetada: las llamadas salen al servidor (PZ_API).
+// Parlays de la banda (contenido de usuarios): oculto por ahora. Cambiar a true para reactivarlo.
+const FEAT_BANDA=false;
+if(!FEAT_BANDA)document.querySelectorAll('[data-v="comunidad"]').forEach(e=>e.remove());
 const API=(window.PZ_API?window.PZ_API:"")+"/api";
 // Tope de espera para las llamadas a la API (si no traen el suyo): así nada se queda
 // cargando para siempre y, si falla, la pantalla dice cuál llamada fue.
@@ -1375,6 +1378,7 @@ function setView(v){
   clearTimeout(window._refreshHoy);clearTimeout(window._heroTimer);
   if(!_atras&&view&&view!==v)NAV.push(view);
   _atras=false;
+  if(v==="comunidad"&&!FEAT_BANDA)v="home";
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   syncApp();
@@ -1617,7 +1621,7 @@ async function viewHome(){
       <div class="hm-origs">
         ${orig("flame","Picks de hoy","hoy","#F43820")}
         ${orig("shield","Parlays","parlays","#35BDEB")}
-        ${orig("band","Parlays de la banda","comunidad","#36B69C")}
+        ${FEAT_BANDA?orig("band","Parlays de la banda","comunidad","#36B69C"):""}
         ${orig("record","Track record","track","#39B582")}
       </div>
       <div class="hm-sec"><h3>Noticias de las ligas</h3><button class="hm-more" data-v="noticias">Ver todas ${svgNav("chev",15)}</button></div>
@@ -1976,7 +1980,9 @@ async function viewTrack(){
       <p style="font-size:12.5px;color:var(--dim);padding:0 16px 8px;line-height:1.5">
         Cada pick se compara con el <b style="color:var(--txt)">marcador real</b> del partido y se
         marca solo. Sin trampa, sin editar: <b style="color:var(--txt)">El que estudia cobra</b>.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;padding:8px 16px 16px">
+      ${t===0?`<div class="empty" style="padding:18px 16px 22px"><b>Aún no hay picks cerrados</b>
+        <span>El historial se llena solo: cada pick se registra antes del partido y se cierra con el marcador real cuando termina. Vuelve después de la próxima jornada.</span></div>`:""}
+      <div style="display:${t===0?"none":"flex"};gap:10px;flex-wrap:wrap;padding:8px 16px 16px">
         <div class="tk-metric"><div class="tk-v">${t}</div><div class="tk-k">Picks cerrados</div></div>
         <div class="tk-metric"><div class="tk-v" style="color:var(--green)">${tasa}</div><div class="tk-k">Efectividad</div></div>
         <div class="tk-metric"><div class="tk-v" style="color:${uniColor}">${uni}</div><div class="tk-k">Unidades</div></div>
@@ -2084,7 +2090,7 @@ async function viewBuilder(){
 
   // Teaser hacia "Parlays de la banda" — la comunidad ya tiene su propia
   // sección en el sidebar, aquí solo invitamos a publicar y a verla.
-  const comuHTML=`
+  const comuHTML=!FEAT_BANDA?"":`
     <div class="card" style="margin-top:20px"><div style="padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div>
         <div style="font-weight:800;font-size:14.5px">🔥 Parlays de la banda</div>
@@ -2137,7 +2143,7 @@ function renderBoleto(){
     </div>
     <button class="btn btn-red" data-a="guardar-boleto" style="width:100%;margin-top:10px">Guardar en Mis picks</button>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-line" data-a="publicar-boleto" style="flex:1">⭐ Publicar a la banda</button>
+      ${FEAT_BANDA?`<button class="btn btn-line" data-a="publicar-boleto" style="flex:1">⭐ Publicar a la banda</button>`:""}
       <button class="btn btn-line" data-a="copiar-boleto" style="flex:1">Copiar boleto</button>
     </div>
   </div>`;
