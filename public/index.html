@@ -689,6 +689,9 @@ body.landing .page{padding:0;max-width:none}
 .mnote{font-size:12.5px;line-height:1.5;color:var(--dim);background:var(--panel2);
   border-radius:8px;padding:12px;margin-bottom:12px}
 
+/* App de iPhone: sin secciones de parlays (versión App Store) */
+body.is-app .sb-item[data-v="parlays"],body.is-app .sb-item[data-v="builder"]{display:none!important}
+
 /* ===== Paywall IAP + eliminar cuenta ===== */
 .pw{position:fixed;inset:0;z-index:300;background:rgba(8,9,11,.78);display:flex;align-items:flex-end;justify-content:center;
   padding:16px 16px calc(16px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -1426,6 +1429,7 @@ function setView(v){
   if(!_atras&&view&&view!==v)NAV.push(view);
   _atras=false;
   if(v==="comunidad"&&!FEAT_BANDA)v="home";
+  if(IS_APP&&(v==="parlays"||v==="builder"))v="home";
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   syncApp();
@@ -1749,7 +1753,7 @@ function lockRow(p){
   return `<div class="lockrow${p.pickLock?" pick-lock":""}">
     ${p.pickLock?`<div class="lk-badge">🔒 PICK LOCK</div>`:""}
     <div class="lk-b"><b>${esc(p.partido)}</b>
-    <div class="lk-blur">Mercado y momio reservados</div></div>
+    <div class="lk-blur">${IS_APP?"Detalle reservado":"Mercado y momio reservados"}</div></div>
     <div class="lk-e"><div class="k">Ventaja</div><div class="v mono">+${pct(p.edge)}</div></div>
     <button class="btn btn-red" data-a="pro">Desbloquear</button></div>`;
 }
@@ -2484,7 +2488,7 @@ async function viewParlays(){
         ${lockBadge}
         <div class="pz-top">
           <div class="pz-badge" style="background:var(--panel3);color:var(--dim2)">🔒</div>
-          <div class="pz-ttl"><b>${esc(p.partido||"Pick del equipo")}</b><span>Mercado y momio reservados PRO</span></div>
+          <div class="pz-ttl"><b>${esc(p.partido||"Pick del equipo")}</b><span>${IS_APP?"Detalle reservado PRO":"Mercado y momio reservados PRO"}</span></div>
         </div>
         <div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
           <span style="font-size:13px;color:var(--dim)">Ventaja ${p.edge!=null?("+"+pct(p.edge)):"—"} · ${esc(p.verdicto||"")}</span>
@@ -3419,10 +3423,10 @@ async function abrirPaywall(){
     <div class="pw-k">PICKAZO PRO</div>
     <div class="pw-t">Desbloquea todo el análisis</div>
     <ul class="pw-ul">
-      <li>Mercado y momio de cada pick del día</li>
-      <li>Parlays y Parlay Builder completos</li>
-      <li>Historial verificado, pick por pick</li>
-      <li>Props de jugadores NBA</li>
+      <li>Análisis completo de cada partido del día</li>
+      <li>Estadísticas, tendencias y contexto</li>
+      <li>Historial verificado de cada análisis</li>
+      <li>Análisis de jugadores NBA</li>
     </ul>
     <div class="pw-pr" id="pwPr">Cargando precio…</div>
     <button class="btn btn-red pw-go" id="pwGo" disabled>Suscribirme</button>
