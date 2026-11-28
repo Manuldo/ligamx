@@ -690,7 +690,7 @@ body.landing .page{padding:0;max-width:none}
   border-radius:8px;padding:12px;margin-bottom:12px}
 
 /* App de iPhone: sin secciones de parlays (versión App Store) */
-body.is-app .sb-item[data-v="parlays"],body.is-app .sb-item[data-v="builder"]{display:none!important}
+body.is-app .sb-item[data-v="parlays"],body.is-app .sb-item[data-v="builder"],body.is-app .sb-item[data-v="track"],body.is-app #sbCred{display:none!important}
 
 /* ===== Paywall IAP + eliminar cuenta ===== */
 .pw{position:fixed;inset:0;z-index:300;background:rgba(8,9,11,.78);display:flex;align-items:flex-end;justify-content:center;
@@ -1462,7 +1462,7 @@ function setView(v){
   if(!_atras&&view&&view!==v)NAV.push(view);
   _atras=false;
   if(v==="comunidad"&&!FEAT_BANDA)v="home";
-  if(IS_APP&&(v==="parlays"||v==="builder"))v="home";
+  if(IS_APP&&(v==="parlays"||v==="builder"||v==="track"))v="home";
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   syncApp();
@@ -1645,16 +1645,16 @@ function gate(){
         <div class="land-badge"><span class="d"></span> ${IS_APP?"Análisis deportivo con datos":"La app del apostador informado"}</div>
         <h1 class="land-h1">${IS_APP?"Datos, no corazonadas.":"El que estudia cobra. El que adivina reza."}</h1>
         <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
-          para que TÚ decidas: ${IS_APP?"análisis de cada partido, estadísticas e historial verificado. Pickazo no recibe apuestas ni maneja dinero de juego.":"picks del día, parlays armados con datos e historial verificado. No apostamos por ti — te damos la ventaja del que sabe."}</p>
+          para que TÚ decidas: ${IS_APP?"análisis de cada partido, estadísticas y noticias. Pickazo no recibe apuestas ni maneja dinero de juego.":"picks del día, parlays armados con datos e historial verificado. No apostamos por ti — te damos la ventaja del que sabe."}</p>
         <div class="land-grid">
           <div class="lc"><b>Información, no corazonadas</b>
             <span>Vendemos datos y análisis. La jugada la haces tú.</span></div>
           <div class="lc"><b>${IS_APP?"Análisis de cada partido":"Parlays armados con datos"}</b>
             <span>${IS_APP?"Estadísticas, tendencias y contexto para entender el juego.":"Combinados armados con datos, no adivinanza."}</span></div>
-          <div class="lc"><b>Historial verificado</b>
-            <span>La app misma te dice qué tan creíble es. Sin editar.</span></div>
-          <div class="lc"><b>Ventaja matemática</b>
-            <span>Solo picks donde la prob. real supera lo que paga la casa.</span></div>
+          <div class="lc"><b>${IS_APP?"Noticias y contexto":"Historial verificado"}</b>
+            <span>${IS_APP?"Noticias deportivas y el contexto de cada partido.":"La app misma te dice qué tan creíble es. Sin editar."}</span></div>
+          <div class="lc"><b>${IS_APP?"Estadísticas claras":"Ventaja matemática"}</b>
+            <span>${IS_APP?"Forma, bajas y tendencias de cada equipo, en un vistazo.":"Solo picks donde la prob. real supera lo que paga la casa."}</span></div>
         </div>
         <button class="land-cta" data-a="up">Crear cuenta y empezar</button>
         <div class="land-sub" data-a="in">¿Ya tienes cuenta? <b>Entrar</b></div>
@@ -1707,7 +1707,7 @@ async function viewHome(){
         ${orig("flame",IS_APP?"Análisis de hoy":"Picks de hoy","hoy","#F43820")}
         ${IS_APP?"":orig("shield","Parlays","parlays","#35BDEB")}
         ${FEAT_BANDA?orig("band","Parlays de la banda","comunidad","#36B69C"):""}
-        ${orig("record","Track record","track","#39B582")}
+        ${IS_APP?"":orig("record","Track record","track","#39B582")}
       </div>
       <div class="hm-sec"><h3>Noticias de las ligas</h3><button class="hm-more" data-v="noticias">Ver todas ${svgNav("chev",15)}</button></div>
       <div class="hm-news">${lista||'<div class="empty"><b>Sin noticias por ahora</b></div>'}</div>
@@ -3426,7 +3426,7 @@ function celebrarPro(msg){
   const o=document.createElement("div");o.id="proCel";o.className="pro-cel";
   o.innerHTML=`<div class="pro-badge">PRO</div>
     <div class="pro-t">¡Ya eres PRO!</div>
-    <div class="pro-s">${esc(msg||(IS_APP?"Todo el análisis, las estadísticas y el historial verificado ya están desbloqueados.":"Todo el análisis, los parlays y el historial verificado ya están desbloqueados."))}</div>
+    <div class="pro-s">${esc(msg||(IS_APP?"Todo el análisis y las estadísticas ya están desbloqueados.":"Todo el análisis, los parlays y el historial verificado ya están desbloqueados."))}</div>
     <button class="btn btn-red pro-btn" id="proOk">Empezar</button>`;
   const calm=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches;
   if(!calm){
@@ -3458,7 +3458,7 @@ async function abrirPaywall(){
     <ul class="pw-ul">
       <li>Análisis completo de cada partido del día</li>
       <li>Estadísticas, tendencias y contexto</li>
-      <li>Historial verificado de cada análisis</li>
+      <li>${IS_APP?"Avisos cuando tu análisis está listo":"Historial verificado de cada análisis"}</li>
       <li>Análisis de jugadores NBA</li>
     </ul>
     <div class="pw-pr" id="pwPr">Cargando precio…</div>
