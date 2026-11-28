@@ -1089,6 +1089,17 @@ async function compartirNativo({title,text,url}){
   return false;
 }
 if(IS_APP){
+  // En el iPhone target="_blank" no abre nada: Términos y Privacidad se abren en el visor
+  // del sistema (Safari integrado), apuntando al mismo servidor que usa la app.
+  document.addEventListener("click",e=>{
+    const a=e.target.closest&&e.target.closest('a[href$="terminos.html"],a[href$="privacidad.html"]');
+    if(!a)return;
+    e.preventDefault();
+    const base=String(window.PZ_API||"https://pickazoapp.com").replace(/\/+$/,"").replace(/\/api$/,"");
+    const url=base+"/"+(a.getAttribute("href").includes("privacidad")?"privacidad.html":"terminos.html");
+    const B=_nat("Browser");
+    try{ if(B)B.open({url}); else window.open(url,"_blank"); }catch{ location.href=url; }
+  },true);
   // Vibración suave al tocar botones y navegación
   document.addEventListener("click",e=>{
     if(e.target.closest("#bnav [data-v],.sb-item,#apMenu,#apBack,.btn,.pw-go,.pw-lnk"))hap("LIGHT");
