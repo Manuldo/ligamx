@@ -108,7 +108,7 @@ Antes de enviar a la App Store, la rama debe estar desplegada en el servidor de 
 
 ## 7. Versión de la app (`IS_APP`) vs web
 
-Dentro de la app de iPhone (y solo ahí) se ocultan Parlays y Arma tu parlay, el paywall usa lenguaje de análisis ("Análisis completo", "Estadísticas, tendencias y contexto"), "Momio" se muestra como "Línea" y el lema es "El que estudia llega mejor". La web (pickazoapp.com) no cambia.
+Dentro de la app de iPhone (y solo ahí) se ocultan Parlays y Arma tu parlay, el paywall usa lenguaje de análisis ("Análisis completo", "Estadísticas, tendencias y contexto"), "Momio" se muestra como "Línea" y el lema es "Datos, no corazonadas". La web (pickazoapp.com) no cambia.
 
 ## 8. Pendientes antes de enviar (no son de código)
 

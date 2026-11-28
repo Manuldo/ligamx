@@ -1609,7 +1609,7 @@ function gate(){
       <div class="land-bg"></div>
       <div class="land-in">
         <div class="land-badge"><span class="d"></span> ${IS_APP?"Análisis deportivo con datos":"La app del apostador informado"}</div>
-        <h1 class="land-h1">${IS_APP?"El que estudia llega mejor.":"El que estudia cobra. El que adivina reza."}</h1>
+        <h1 class="land-h1">${IS_APP?"Datos, no corazonadas.":"El que estudia cobra. El que adivina reza."}</h1>
         <p class="land-p">Pickazo es análisis de datos deportivos. Te damos <b style="color:#cfcac6">toda la información</b>
           para que TÚ decidas: ${IS_APP?"análisis de cada partido, estadísticas e historial verificado. Pickazo no recibe apuestas ni maneja dinero de juego.":"picks del día, parlays armados con datos e historial verificado. No apostamos por ti — te damos la ventaja del que sabe."}</p>
         <div class="land-grid">
@@ -1702,7 +1702,7 @@ async function render(){
   p.innerHTML=`<div class="pzload">
     <div class="pzload-ic"><img src="/icons/icon-192.png" alt="Pickazo"></div>
     <div class="pzload-txt">${_m}<span class="pzload-dots"></span></div>
-    <div class="pzload-sub">${IS_APP?"El que estudia llega mejor":"El que estudia cobra"}</div>
+    <div class="pzload-sub">${IS_APP?"Datos, no corazonadas":"El que estudia cobra"}</div>
   </div>`;
   try{
     if(view==="home")await viewHome();
@@ -2030,7 +2030,7 @@ async function viewTrack(){
     <div style="padding:6px 4px 4px">
       <p style="font-size:12.5px;color:var(--dim);padding:0 16px 8px;line-height:1.5">
         Cada pick se compara con el <b style="color:var(--txt)">marcador real</b> del partido y se
-        marca solo. Sin trampa, sin editar: <b style="color:var(--txt)">${IS_APP?"El que estudia llega mejor":"El que estudia cobra"}</b>.</p>
+        marca solo. Sin trampa, sin editar: <b style="color:var(--txt)">${IS_APP?"Datos, no corazonadas":"El que estudia cobra"}</b>.</p>
       ${t===0?`<div class="empty" style="padding:18px 16px 22px"><b>Aún no hay picks cerrados</b>
         <span>El historial se llena solo: cada pick se registra antes del partido y se cierra con el marcador real cuando termina. Vuelve después de la próxima jornada.</span></div>`:""}
       <div style="display:${t===0?"none":"flex"};gap:10px;flex-wrap:wrap;padding:8px 16px 16px">
