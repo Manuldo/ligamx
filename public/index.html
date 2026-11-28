@@ -1074,6 +1074,35 @@ const IS_APP=(()=>{try{
   return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())||sessionStorage.getItem("app")==="1";
 }catch{return false}})();
 if(IS_APP)document.body.classList.add("is-app");
+
+// ===== Funciones nativas (solo dentro de la app de iPhone; en la web no hacen nada) =====
+const _nat=n=>IS_APP&&window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n];
+function hap(style){try{const H=_nat("Haptics");if(H)H.impact({style:style||"LIGHT"});}catch{}}
+function hapOk(){try{const H=_nat("Haptics");if(H)H.notification({type:"SUCCESS"});}catch{}}
+async function compartirNativo({title,text,url}){
+  try{
+    const S=_nat("Share");
+    if(S){await S.share({title,text,url,dialogTitle:title});return true;}
+    if(navigator.share){await navigator.share({title,text,url});return true;}
+    if(navigator.clipboard){await navigator.clipboard.writeText([text,url].filter(Boolean).join("\n"));toast("Enlace copiado","ok");return true;}
+  }catch{}
+  return false;
+}
+if(IS_APP){
+  // Vibración suave al tocar botones y navegación
+  document.addEventListener("click",e=>{
+    if(e.target.closest("#bnav [data-v],.sb-item,#apMenu,#apBack,.btn,.pw-go,.pw-lnk"))hap("LIGHT");
+  },true);
+  // Al volver a la app tras un rato en segundo plano, refresca lo que se ve
+  try{
+    const A=_nat("App");let _bg=0;
+    if(A)A.addListener("appStateChange",st=>{
+      if(!st.isActive){_bg=Date.now();return;}
+      if(_bg&&Date.now()-_bg>120000&&me&&typeof refrescarVista==="function"&&view!=="partido")refrescarVista();
+      _bg=0;
+    });
+  }catch{}
+}
 const NAV=[];let _atras=false;
 function syncApp(){
   if(!IS_APP)return;
@@ -1584,6 +1613,7 @@ document.addEventListener("click",e=>{
   if(a==="cuenta"){if(me){verCuenta();if(b.closest("#bnav"))NAV.length=0;}else openAuth("login");}
   if(a==="atras")irAtras();
   if(a==="volver")volverAHoy();
+  if(a==="compartir"){const [lg,lo,vi]=String(b.dataset.cid||"").split(":");compartirNativo({title:`${lo} vs ${vi}`,text:`${lo} vs ${vi} · ${LIGA_NOMBRES[lg]||lg} — análisis en Pickazo MX`,url:"https://pickazoapp.com"});}
   if(a==="reanalizar"&&window._cargarAnalisis)window._cargarAnalisis(true);
   if(a==="refrescar-hero"&&window._cargarHero){b.disabled=true;b.textContent="…";window._cargarHero();setTimeout(()=>{b.disabled=false;b.textContent="↻ Actualizar";},1200);}
   if(a==="derechas"&&window._cargarDerechas)window._cargarDerechas(b);
@@ -2071,7 +2101,7 @@ async function viewTrack(){
       <div style="padding:24px 16px;text-align:center">
         <div style="font-size:15px;font-weight:800;margin-bottom:6px">Historial detallado 🔒</div>
         <div style="font-size:13px;color:var(--dim);margin-bottom:16px">Mira cada pick y su resultado, uno por uno. Exclusivo PRO.</div>
-        <button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>
+        <button class="btn btn-red" data-a="pro">Hazte PRO${IS_APP?"":" — $299/mes"}</button>
       </div>
     </div>`;
   }
@@ -2772,7 +2802,7 @@ async function abrirPartido(id){
   $("#tbT").textContent=`${local} vs ${visitante}`;
   $("#tbS").textContent=LIGA_NOMBRES[liga]||liga;
   $("#page").innerHTML=`
-    <button class="btn btn-line" data-a="volver" style="margin-bottom:14px">← Volver</button>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px"><button class="btn btn-line" data-a="volver">← Volver</button>${IS_APP?`<button class="btn btn-line" data-a="compartir" data-cid="${esc(id)}" style="margin-left:auto">Compartir</button>`:""}</div>
     <div class="match-hero card" style="margin-bottom:16px" id="pHero">
       <div style="display:flex;align-items:center;justify-content:center;gap:22px;padding:22px">
         <div style="text-align:center">${crest(local,null,true)}
@@ -2791,7 +2821,7 @@ async function abrirPartido(id){
         ${isPro()
           ? `<button class="btn btn-line" style="width:100%" data-a="derechas">🧪 Ver candidatos</button>`
           : `<div style="font-size:13px;color:var(--dim);margin-bottom:10px">Mercado reservado PRO</div>
-             <button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>`}
+             <button class="btn btn-red" data-a="pro">Hazte PRO${IS_APP?"":" — $299/mes"}</button>`}
         <div id="pDerechasResult" style="margin-top:10px"></div>
       </div></div>`}
     ${liga!=="nba"?"":`<div class="card" style="margin-bottom:16px" id="pProps">
@@ -2801,7 +2831,7 @@ async function abrirPartido(id){
         ${isPro()
           ? `<button class="btn btn-line" style="width:100%" data-a="props">📊 Calcular props</button>`
           : `<div style="font-size:13px;color:var(--dim);margin-bottom:10px">Mercado reservado PRO</div>
-             <button class="btn btn-red" data-a="pro">Hazte PRO — $299/mes</button>`}
+             <button class="btn btn-red" data-a="pro">Hazte PRO${IS_APP?"":" — $299/mes"}</button>`}
         <div id="pPropsResult" style="margin-top:10px"></div>
       </div></div>`}
     ${LIGAS_NO_FUTBOL.has(liga)?"":`<div class="card" style="margin-bottom:16px" id="pAlineaciones">
@@ -3408,7 +3438,7 @@ function celebrarPro(msg){
     }
   }
   document.body.appendChild(o);
-  try{if(navigator.vibrate)navigator.vibrate([40,60,40]);}catch{}
+  hapOk();try{if(!IS_APP&&navigator.vibrate)navigator.vibrate([40,60,40]);}catch{}
   const cerrar=()=>{o.classList.add("out");setTimeout(()=>o.remove(),420);};
   document.getElementById("proOk").onclick=cerrar;
   setTimeout(cerrar,6500);

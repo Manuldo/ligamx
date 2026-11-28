@@ -62,7 +62,7 @@ Pegar en "Notes":
 
 > Pickazo MX es una plataforma de análisis e información deportiva. No es una app de apuestas: no recibe apuestas, no maneja dinero de juego ni dirige a casas de apuestas. Es solo para mayores de 18 años y el contenido es informativo; ningún análisis garantiza resultados.
 >
-> Funciones nativas: notificaciones push (aviso cuando tu análisis está listo y antes de partidos que sigues), compras dentro de la app con Apple In-App Purchase (suscripción PRO mensual, con "Restaurar compras" en Mi cuenta), seguimiento de partidos, navegación propia de la app con barra inferior y eliminación de cuenta dentro de la app (Mi cuenta > Eliminar cuenta).
+> Funciones nativas: notificaciones push (aviso cuando tu análisis está listo y antes de partidos que sigues), compras dentro de la app con Apple In-App Purchase (suscripción PRO mensual, con "Restaurar compras" en Mi cuenta), seguimiento de partidos, hoja nativa de compartir del iPhone, respuesta háptica al tocar y al activar PRO, refresco al volver de segundo plano, navegación propia de la app con barra inferior y eliminación de cuenta dentro de la app (Mi cuenta > Eliminar cuenta).
 >
 > La suscripción PRO se vende únicamente mediante In-App Purchase dentro de la app; no hay enlaces ni botones a pagos externos.
 >
