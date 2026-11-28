@@ -107,7 +107,7 @@ Antes de enviar a la App Store, la rama debe estar desplegada en el servidor de 
 
 ## 7. Versión de la app (`IS_APP`) vs web
 
-En la app v1.0 también se oculta **Track record** y todo texto de "historial verificado" (el motor aún no resuelve los picks con fiabilidad; se reactiva en una actualización cuando esté arreglado).
+En la app v1.0 también se ocultan **Mis picks** ("Lo jugué") y **Track record** y todo texto de "historial verificado" (el motor aún no resuelve los picks con fiabilidad; se reactiva en una actualización cuando esté arreglado).
 
 Dentro de la app de iPhone (y solo ahí) se ocultan Parlays y Arma tu parlay, el paywall usa lenguaje de análisis ("Análisis completo", "Estadísticas, tendencias y contexto"), "Momio" se muestra como "Línea" y el lema es "Datos, no corazonadas". La web (pickazoapp.com) no cambia.
 

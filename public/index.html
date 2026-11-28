@@ -690,7 +690,7 @@ body.landing .page{padding:0;max-width:none}
   border-radius:8px;padding:12px;margin-bottom:12px}
 
 /* App de iPhone: sin secciones de parlays (versión App Store) */
-body.is-app .sb-item[data-v="parlays"],body.is-app .sb-item[data-v="builder"],body.is-app .sb-item[data-v="track"],body.is-app #sbCred{display:none!important}
+body.is-app .sb-item[data-v="parlays"],body.is-app .sb-item[data-v="builder"],body.is-app .sb-item[data-v="track"],body.is-app #sbCred,body.is-app [data-v="mios"],body.is-app [data-mine],body.is-app [data-mine-analisis],body.is-app [data-mine-parlay]{display:none!important}
 
 /* ===== Paywall IAP + eliminar cuenta ===== */
 .pw{position:fixed;inset:0;z-index:300;background:rgba(8,9,11,.78);display:flex;align-items:flex-end;justify-content:center;
@@ -1462,7 +1462,7 @@ function setView(v){
   if(!_atras&&view&&view!==v)NAV.push(view);
   _atras=false;
   if(v==="comunidad"&&!FEAT_BANDA)v="home";
-  if(IS_APP&&(v==="parlays"||v==="builder"||v==="track"))v="home";
+  if(IS_APP&&(v==="parlays"||v==="builder"||v==="track"||v==="mios"))v="home";
   view=v;
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   syncApp();
