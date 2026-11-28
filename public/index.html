@@ -1103,6 +1103,10 @@ if(IS_APP){
     });
   }catch{}
 }
+if(IS_APP){try{
+  document.querySelectorAll('.sb-item[data-v="hoy"] span:last-child,#bnav [data-v="hoy"] .bn-t').forEach(e=>{e.textContent="Análisis de hoy";});
+  const _t=document.getElementById("tbT");if(_t&&_t.textContent==="Picks de hoy")_t.textContent="Análisis de hoy";
+}catch{}}
 const NAV=[];let _atras=false;
 function syncApp(){
   if(!IS_APP)return;
@@ -1408,7 +1412,7 @@ document.addEventListener("click",e=>{
 });
 
 const TITLES={home:["Inicio","Lo que pasa hoy en Pickazo"],
-  hoy:["Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados armados con datos"],
+  hoy:[IS_APP?"Análisis de hoy":"Picks de hoy","Ordenados por ventaja"],analizar:["Analizar","Elige un partido"],parlays:["Parlays","Combinados armados con datos"],
   track:["Track record","Resultados verificados"],
   builder:["Arma tu parlay","Elige tus patas y arma tu boleto"],
   comunidad:["Parlays de la banda","Lo que publica y vota la comunidad"],
@@ -1700,8 +1704,8 @@ async function viewHome(){
       </div>
       <div class="hm-sec"><h3>Pickazo Originals</h3></div>
       <div class="hm-origs">
-        ${orig("flame","Picks de hoy","hoy","#F43820")}
-        ${orig("shield","Parlays","parlays","#35BDEB")}
+        ${orig("flame",IS_APP?"Análisis de hoy":"Picks de hoy","hoy","#F43820")}
+        ${IS_APP?"":orig("shield","Parlays","parlays","#35BDEB")}
         ${FEAT_BANDA?orig("band","Parlays de la banda","comunidad","#36B69C"):""}
         ${orig("record","Track record","track","#39B582")}
       </div>
@@ -3422,7 +3426,7 @@ function celebrarPro(msg){
   const o=document.createElement("div");o.id="proCel";o.className="pro-cel";
   o.innerHTML=`<div class="pro-badge">PRO</div>
     <div class="pro-t">¡Ya eres PRO!</div>
-    <div class="pro-s">${esc(msg||"Todo el análisis, los parlays y el historial verificado ya están desbloqueados.")}</div>
+    <div class="pro-s">${esc(msg||(IS_APP?"Todo el análisis, las estadísticas y el historial verificado ya están desbloqueados.":"Todo el análisis, los parlays y el historial verificado ya están desbloqueados."))}</div>
     <button class="btn btn-red pro-btn" id="proOk">Empezar</button>`;
   const calm=window.matchMedia&&window.matchMedia("(prefers-reduced-motion:reduce)").matches;
   if(!calm){
