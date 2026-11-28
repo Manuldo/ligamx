@@ -19,7 +19,7 @@ La app se presenta como **análisis e información deportiva**. Evita en nombre,
 > • Sigue tus partidos y recibe un aviso cuando tu análisis esté listo.
 > • Historial verificado de los análisis publicados.
 >
-> Pickazo PRO (suscripción mensual con renovación automática) desbloquea el detalle completo de cada análisis. El cobro se carga a tu cuenta de Apple al confirmar la compra y se renueva solo salvo que lo canceles al menos 24 horas antes de que termine el periodo, en Ajustes > tu nombre > Suscripciones.
+> Pickazo PRO (suscripción mensual con renovación automática) desbloquea el análisis completo de cada partido. El cobro se carga a tu cuenta de Apple al confirmar la compra y se renueva solo salvo que lo canceles al menos 24 horas antes de que termine el periodo, en Ajustes > tu nombre > Suscripciones.
 >
 > Solo para mayores de 18 años. Pickazo es un servicio de información y análisis deportivo: no es una casa de apuestas, no recibe apuestas ni maneja dinero de juego, y ningún análisis garantiza resultados.
 >
@@ -51,7 +51,7 @@ Datos que se recopilan, todos **vinculados a la identidad del usuario** y **no u
 
 ## 4. Suscripción
 
-- Crear el grupo de suscripción "Pickazo PRO" con un producto mensual de **$299 MXN**.
+- Crear el grupo de suscripción "Pickazo PRO" con un producto mensual de **$399 MXN** (precio en la tienda de México; el paywall lo lee de Apple).
 - Todos los textos de renovación automática y los enlaces a Términos y Privacidad ya aparecen dentro de la pantalla de suscripción de la app.
 - Incluir captura de la pantalla de suscripción en la revisión.
 - Firmar el acuerdo de **Apps de paga** y entrar al **Small Business Program** (comisión del 15%).
@@ -104,3 +104,16 @@ npx cap sync ios
 ```
 
 Antes de enviar a la App Store, la rama debe estar desplegada en el servidor de producción (compras, push y borrar cuenta viven ahí), y `APP_API_BASE` debe apuntar a producción.
+
+
+## 7. Versión de la app (`IS_APP`) vs web
+
+Dentro de la app de iPhone (y solo ahí) se ocultan Parlays y Arma tu parlay, el paywall usa lenguaje de análisis ("Análisis completo", "Estadísticas, tendencias y contexto"), "Momio" se muestra como "Línea" y el lema es "Datos, no corazonadas". La web (pickazoapp.com) no cambia.
+
+## 8. Pendientes antes de enviar (no son de código)
+
+- Crear la **cuenta de revisor** en producción y poner correo y contraseña en las notas (sección 5).
+- Variables en el servidor de producción: `REVENUECAT_IOS_KEY`, `REVENUECAT_SECRET_KEY`, `REVENUECAT_WEBHOOK_SECRET`, `REVENUECAT_ENTITLEMENT=pickazo_pro`, `RESEND_API_KEY`, `MAIL_FROM`, `APNS_SANDBOX=false`.
+- Rotar `ADMIN_KEY`.
+- Webhook de RevenueCat → `https://pickazoapp.com/api/iap/webhook` (cabecera `Bearer` con el mismo secreto).
+- Build con `APP_API_BASE=https://pickazoapp.com`, Archive → TestFlight → enviar junto con la suscripción.
