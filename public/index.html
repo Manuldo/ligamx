@@ -3303,6 +3303,7 @@ document.addEventListener("click",async e=>{
 
 async function verCuenta(){
   clearTimeout(window._refreshHoy);clearTimeout(window._heroTimer);
+  clearInterval(window._homeHeroTimer);clearInterval(window._newsHeroTimer);
   if(view!=="cuenta"&&view&&!_atras)NAV.push(view);
   _atras=false;view="cuenta";
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.remove("on"));
